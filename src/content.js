@@ -1,0 +1,183 @@
+import {
+  BookOpenText,
+  CalendarDays,
+  FileText,
+  GraduationCap,
+  Images,
+  Laptop,
+  MapPin,
+  Megaphone,
+  MessageCircleQuestion,
+  School,
+  ShieldCheck,
+  Users,
+} from 'lucide-react'
+
+export const navItems = [
+  { label: 'หน้าแรก', href: '#home' },
+  { label: 'รู้จักโรงเรียน', href: '#about' },
+  { label: 'ข่าวสาร', href: '#news' },
+  { label: 'กิจกรรม', href: '#activities' },
+  { label: 'บริการ', href: '#services' },
+  { label: 'ติดต่อเรา', href: '#contact' },
+]
+
+export const quickLinks = [
+  {
+    title: 'ข่าวประชาสัมพันธ์',
+    description: 'ติดตามข่าวและประกาศล่าสุด',
+    href: '#news',
+    icon: Megaphone,
+    color: 'blue',
+  },
+  {
+    title: 'ปฏิทินโรงเรียน',
+    description: 'ดูกิจกรรมและวันสำคัญ',
+    href: '#activities',
+    icon: CalendarDays,
+    color: 'gold',
+  },
+  {
+    title: 'เอกสารเผยแพร่',
+    description: 'ดาวน์โหลดเอกสารที่เกี่ยวข้อง',
+    href: '#services',
+    icon: FileText,
+    color: 'green',
+  },
+  {
+    title: 'ติดต่อโรงเรียน',
+    description: 'ที่อยู่ โทรศัพท์ และแผนที่',
+    href: '#contact',
+    icon: MapPin,
+    color: 'sky',
+  },
+]
+
+export const newsItems = [
+  {
+    category: 'ประชาสัมพันธ์',
+    date: '30 มิถุนายน 2569',
+    title: 'ยินดีต้อนรับสู่เว็บไซต์ใหม่ โรงเรียนบ้านน้ำพร',
+    excerpt:
+      'ศูนย์รวมข่าวสาร กิจกรรม เอกสาร และช่องทางติดต่อของโรงเรียนในรูปแบบที่อ่านง่ายและใช้งานได้ทุกอุปกรณ์',
+    icon: School,
+    accent: 'blue',
+    featured: true,
+  },
+  {
+    category: 'วิชาการ',
+    date: 'ภาคเรียนที่ 1/2569',
+    title: 'เตรียมความพร้อมสำหรับการเรียนรู้ในภาคเรียนใหม่',
+    excerpt:
+      'ผู้ปกครองและนักเรียนสามารถติดตามกำหนดการ เอกสาร และข่าวสารสำคัญได้จากเว็บไซต์ของโรงเรียน',
+    icon: BookOpenText,
+    accent: 'green',
+  },
+  {
+    category: 'กิจกรรม',
+    date: 'อัปเดตตลอดภาคเรียน',
+    title: 'พื้นที่รวบรวมภาพกิจกรรมและความภาคภูมิใจ',
+    excerpt:
+      'ติดตามเรื่องราวการเรียนรู้ ผลงานนักเรียน และกิจกรรมที่เชื่อมโยงโรงเรียนกับชุมชน',
+    icon: Images,
+    accent: 'gold',
+  },
+]
+
+export const activityItems = [
+  {
+    day: '01',
+    month: 'ก.ค.',
+    title: 'กิจกรรมส่งเสริมการอ่าน',
+    meta: 'ห้องสมุดโรงเรียน · ทุกระดับชั้น',
+    color: 'blue',
+  },
+  {
+    day: '08',
+    month: 'ก.ค.',
+    title: 'ชั่วโมงเรียนรู้รักษ์สิ่งแวดล้อม',
+    meta: 'บริเวณโรงเรียน · เรียนรู้ผ่านการลงมือทำ',
+    color: 'green',
+  },
+  {
+    day: '15',
+    month: 'ก.ค.',
+    title: 'ประชุมผู้ปกครองและเครือข่ายชุมชน',
+    meta: 'อาคารอเนกประสงค์ · เวลาโปรดติดตามประกาศ',
+    color: 'gold',
+  },
+]
+
+export const services = [
+  {
+    title: 'ข้อมูลพื้นฐาน',
+    description: 'ประวัติ วิสัยทัศน์ และข้อมูลทั่วไปของสถานศึกษา',
+    icon: School,
+  },
+  {
+    title: 'งานวิชาการ',
+    description: 'หลักสูตร แหล่งเรียนรู้ และข้อมูลสำหรับนักเรียน',
+    icon: GraduationCap,
+  },
+  {
+    title: 'เอกสารออนไลน์',
+    description: 'แบบฟอร์ม ประกาศ และเอกสารเผยแพร่ของโรงเรียน',
+    icon: FileText,
+  },
+  {
+    title: 'ระบบสารสนเทศ',
+    description: 'ทางลัดสู่ระบบงานและบริการดิจิทัลที่เกี่ยวข้อง',
+    icon: Laptop,
+  },
+  {
+    title: 'ข้อมูลบุคลากร',
+    description: 'ทำความรู้จักคณะครูและบุคลากรทางการศึกษา',
+    icon: Users,
+  },
+  {
+    title: 'ถาม–ตอบ',
+    description: 'คำถามที่พบบ่อยและช่องทางขอความช่วยเหลือ',
+    icon: MessageCircleQuestion,
+  },
+]
+
+export const values = [
+  {
+    number: '01',
+    title: 'รากฐานที่มั่นคง',
+    description: 'สร้างพื้นฐานความรู้ คุณธรรม และทักษะชีวิตที่เหมาะสมกับวัย',
+  },
+  {
+    number: '02',
+    title: 'เรียนรู้อย่างงอกงาม',
+    description: 'เปิดพื้นที่ให้เด็กได้คิด ลงมือทำ และค้นพบศักยภาพของตนเอง',
+  },
+  {
+    number: '03',
+    title: 'เติบโตไปกับชุมชน',
+    description: 'เชื่อมการเรียนรู้กับครอบครัว ภูมิปัญญา และสิ่งแวดล้อมรอบตัว',
+  },
+]
+
+export const schoolHighlights = [
+  { value: 'อนุบาล–ป.6', label: 'ระดับชั้นที่เปิดสอน' },
+  { value: '1 : 1', label: 'โรงเรียนและชุมชนร่วมดูแล' },
+  { value: '365', label: 'วันแห่งการเรียนรู้' },
+  { value: '100%', label: 'ใส่ใจเด็กทุกคน' },
+]
+
+export const contactDetails = {
+  address: 'เลขที่ 115 หมู่ 2 บ้านน้ำพร ตำบลปากตม อำเภอเชียงคาน จังหวัดเลย 42110',
+  phone: '081-871-3581',
+  phoneHref: 'tel:0818713581',
+  email: 'numporn@loei1.go.th',
+  emailHref: 'mailto:numporn@loei1.go.th',
+  mapHref:
+    'https://www.google.com/maps/search/?api=1&query=โรงเรียนบ้านน้ำพร+ตำบลปากตม+อำเภอเชียงคาน+จังหวัดเลย',
+}
+
+export const trustPoints = [
+  { icon: ShieldCheck, label: 'ข้อมูลจากโรงเรียน' },
+  { icon: Users, label: 'เชื่อมโยงชุมชน' },
+  { icon: GraduationCap, label: 'เติบโตด้วยการเรียนรู้' },
+]
