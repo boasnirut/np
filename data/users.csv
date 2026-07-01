@@ -1,0 +1,2 @@
+id,username,password_hash,salt,role,display_name,created_at,active
+admin-001,boasnirut,ENV,ENV,admin,ผู้ดูแลระบบโรงเรียนบ้านน้ำพร,2026-07-01T00:00:00.000Z,true

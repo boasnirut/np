@@ -1,7 +1,20 @@
 {
+  "functions": {
+    "api/**/*.js": {
+      "includeFiles": "data/**"
+    }
+  },
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/register",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin",
       "destination": "/index.html"
     }
   ]
