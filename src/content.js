@@ -193,20 +193,31 @@ export const values = [
 ]
 
 export const schoolHighlights = [
-  { value: 'อนุบาล–ป.6', label: 'ระดับชั้นที่เปิดสอน' },
-  { value: '1 : 1', label: 'โรงเรียนและชุมชนร่วมดูแล' },
-  { value: '365', label: 'วันแห่งการเรียนรู้' },
+  { value: 'อนุบาล 2–ม.3', label: 'ระดับชั้นที่เปิดสอน' },
+  { value: 'ขยายโอกาส', label: 'เรียนรู้ต่อเนื่องในชุมชน' },
+  { value: 'สพป.เลย 1', label: 'หน่วยงานต้นสังกัด' },
   { value: '100%', label: 'ใส่ใจเด็กทุกคน' },
 ]
 
+export const schoolInfo = {
+  thaiName: 'โรงเรียนบ้านน้ำพร',
+  englishName: 'Bannamporn School',
+  educationLevels: 'อนุบาล 2 - ม.3',
+  schoolType: 'โรงเรียนขยายโอกาส',
+  affiliation: 'สำนักงานเขตพื้นที่การศึกษาประถมศึกษาเลย เขต 1',
+  summary:
+    'โรงเรียนบ้านน้ำพร Bannamporn School เปิดสอนตั้งแต่ชั้นอนุบาล 2 - ม.3 เป็นโรงเรียนขยายโอกาส สังกัดสำนักงานเขตพื้นที่การศึกษาประถมศึกษาเลย เขต 1',
+}
+
 export const contactDetails = {
   address: 'เลขที่ 115 หมู่ 2 บ้านน้ำพร ตำบลปากตม อำเภอเชียงคาน จังหวัดเลย 42110',
-  phone: '081-871-3581',
-  phoneHref: 'tel:0818713581',
+  phone: '06-2546-1959',
+  phoneHref: 'tel:0625461959',
   email: 'numporn@loei1.go.th',
   emailHref: 'mailto:numporn@loei1.go.th',
-  mapHref:
-    'https://www.google.com/maps/search/?api=1&query=โรงเรียนบ้านน้ำพร+ตำบลปากตม+อำเภอเชียงคาน+จังหวัดเลย',
+  messengerHref: 'https://m.me/471976926239771',
+  facebookHref: 'https://www.facebook.com/NampornSchool/',
+  mapHref: 'https://maps.app.goo.gl/ZTXbKacBqoMYUu4Q8',
 }
 
 export const trustPoints = [

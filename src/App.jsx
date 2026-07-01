@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowRight,
   ArrowUp,
@@ -24,6 +24,7 @@ import {
   newsItems,
   quickLinks,
   schoolHighlights,
+  schoolInfo,
   services,
   trustPoints,
   values,
@@ -39,6 +40,49 @@ const getLocalDateKey = () => {
   const month = String(now.getMonth() + 1).padStart(2, '0')
   const day = String(now.getDate()).padStart(2, '0')
   return `${now.getFullYear()}-${month}-${day}`
+}
+
+function AutoFitText({ as: Component = 'span', children, className = '', minSize = 9 }) {
+  const textRef = useRef(null)
+
+  useEffect(() => {
+    const element = textRef.current
+    if (!element) return undefined
+
+    let frame
+    const fit = () => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        element.style.fontSize = ''
+        const maximum = Number.parseFloat(window.getComputedStyle(element).fontSize)
+        if (!element.clientWidth || element.scrollWidth <= element.clientWidth) return
+
+        let low = minSize
+        let high = maximum
+        for (let index = 0; index < 12; index += 1) {
+          const size = (low + high) / 2
+          element.style.fontSize = `${size}px`
+          if (element.scrollWidth <= element.clientWidth) low = size
+          else high = size
+        }
+        element.style.fontSize = `${low}px`
+      })
+    }
+
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(element)
+    return () => {
+      observer.disconnect()
+      window.cancelAnimationFrame(frame)
+    }
+  }, [children, minSize])
+
+  return (
+    <Component ref={textRef} className={`auto-fit-line ${className}`.trim()}>
+      {children}
+    </Component>
+  )
 }
 
 function WelcomeSlider() {
@@ -135,7 +179,7 @@ function SectionHeading({ eyebrow, title, description, align = 'left' }) {
         <span className="eyebrow__dot" />
         {eyebrow}
       </span>
-      <h2>{title}</h2>
+      <AutoFitText as="h2" minSize={18}>{title}</AutoFitText>
       {description && <p>{description}</p>}
     </div>
   )
@@ -165,7 +209,7 @@ function Header({ menuOpen, setMenuOpen }) {
         <div className="container notice-bar__inner">
           <div className="notice-bar__message">
             <Bell size={15} aria-hidden="true" />
-            <span>ยินดีต้อนรับสู่เว็บไซต์โรงเรียนบ้านน้ำพร</span>
+            <AutoFitText>ยินดีต้อนรับสู่เว็บไซต์โรงเรียนบ้านน้ำพร Bannamporn School</AutoFitText>
           </div>
           <div className="notice-bar__links">
             <a href={contactDetails.phoneHref}>
@@ -185,8 +229,8 @@ function Header({ menuOpen, setMenuOpen }) {
               <img src="/np.png" alt="ตราสัญลักษณ์โรงเรียนบ้านน้ำพร" />
             </span>
             <span className="brand__text">
-              <strong>โรงเรียนบ้านน้ำพร</strong>
-              <small>BAN NAM PHON SCHOOL</small>
+              <AutoFitText as="strong">{schoolInfo.thaiName}</AutoFitText>
+              <AutoFitText as="small">{schoolInfo.englishName}</AutoFitText>
             </span>
           </a>
 
@@ -308,15 +352,25 @@ function Hero() {
               <Sparkles size={16} aria-hidden="true" />
               พื้นที่แห่งการเรียนรู้ของชุมชน
             </div>
-            <p className="hero__kicker">WELCOME TO BAN NAM PHON SCHOOL</p>
+            <AutoFitText as="p" className="hero__kicker">
+              WELCOME TO BANNAMPORN SCHOOL
+            </AutoFitText>
             <h1>
-              เรียนรู้อย่างมีความสุข
-              <span>เติบโตอย่างมีคุณภาพ</span>
+              <AutoFitText as="span" className="hero__title-line" minSize={20}>
+                เรียนรู้อย่างมีความสุข
+              </AutoFitText>
+              <AutoFitText
+                as="span"
+                className="hero__title-line hero__title-line--accent"
+                minSize={20}
+              >
+                เติบโตอย่างมีคุณภาพ
+              </AutoFitText>
             </h1>
-            <p className="hero__lead">
-              ปลูกฝังความรู้ สร้างรากฐานคุณธรรม และเปิดโอกาสให้เด็กทุกคน
-              ได้ค้นพบศักยภาพของตนเอง
-            </p>
+            <AutoFitText as="p" className="hero__lead" minSize={6}>
+              เปิดสอนตั้งแต่ชั้นอนุบาล 2 - ม.3 เป็นโรงเรียนขยายโอกาส
+              สังกัดสำนักงานเขตพื้นที่การศึกษาประถมศึกษาเลย เขต 1
+            </AutoFitText>
             <div className="hero__actions">
               <a className="button button--gold" href="#news">
                 ดูข่าวสารล่าสุด
@@ -412,8 +466,8 @@ function About() {
         <div className="about__content reveal">
           <SectionHeading
             eyebrow="รู้จักโรงเรียนของเรา"
-            title="โรงเรียนเล็กที่ตั้งใจดูแลทุกการเติบโต"
-            description="โรงเรียนบ้านน้ำพรมุ่งสร้างพื้นที่เรียนรู้ที่ปลอดภัย เป็นมิตร และเชื่อมโยงกับชีวิตจริง เพื่อให้เด็กเติบโตเป็นคนดี มีทักษะ และพร้อมเรียนรู้ตลอดชีวิต"
+            title="เรียนรู้ต่อเนื่อง เติบโตอย่างมีคุณภาพ"
+            description={`${schoolInfo.summary} มุ่งสร้างพื้นที่เรียนรู้ที่ปลอดภัย เป็นมิตร และเชื่อมโยงกับชีวิตจริง`}
           />
           <div className="values-list">
             {values.map((item) => (
@@ -776,7 +830,7 @@ function Contact() {
             <span><MapPin size={28} fill="currentColor" /></span>
             <div>
               <strong>โรงเรียนบ้านน้ำพร</strong>
-              <small>ต.ปากตม อ.เชียงคาน จ.เลย</small>
+              <small>Bannamporn School · ต.ปากตม อ.เชียงคาน จ.เลย</small>
             </div>
           </div>
           <div className="map-card__location">
@@ -806,11 +860,11 @@ function Footer() {
                 <img src="/np.png" alt="ตราสัญลักษณ์โรงเรียนบ้านน้ำพร" />
               </span>
               <span className="brand__text">
-                <strong>โรงเรียนบ้านน้ำพร</strong>
-                <small>BAN NAM PHON SCHOOL</small>
+                <AutoFitText as="strong">{schoolInfo.thaiName}</AutoFitText>
+                <AutoFitText as="small">{schoolInfo.englishName}</AutoFitText>
               </span>
             </a>
-            <p>รากฐานมั่นคง งอกงามด้วยปัญญา เติบโตไปพร้อมกับชุมชน</p>
+            <p>{schoolInfo.summary}</p>
             <div className="footer__socials">
               <a href={contactDetails.phoneHref} aria-label="โทรหาโรงเรียน"><Phone size={19} /></a>
               <a href={contactDetails.emailHref} aria-label="ส่งอีเมลถึงโรงเรียน"><Mail size={19} /></a>
@@ -844,6 +898,107 @@ function Footer() {
         </div>
       </div>
     </footer>
+  )
+}
+
+function MessengerIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2C6.5 2 2 6.1 2 11.2c0 2.9 1.5 5.5 3.8 7.2V22l3.5-1.9c.9.3 1.8.4 2.7.4 5.5 0 10-4.1 10-9.2S17.5 2 12 2Zm1 12-2.5-2.7-4.8 2.7 5.3-5.6 2.5 2.7 4.8-2.7L13 14Z"
+      />
+    </svg>
+  )
+}
+
+function FacebookIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M13.7 22v-8h2.7l.4-3.1h-3.1v-2c0-.9.3-1.5 1.6-1.5H17V4.6c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1v2.3H8V14h2.6v8h3.1Z"
+      />
+    </svg>
+  )
+}
+
+function ContactFab() {
+  const [isOpen, setIsOpen] = useState(false)
+  const actions = [
+    {
+      label: 'อีเมล',
+      detail: contactDetails.email,
+      href: contactDetails.emailHref,
+      icon: <Mail size={22} />,
+      className: 'contact-fab__action--email',
+    },
+    {
+      label: 'โทร',
+      detail: contactDetails.phone,
+      href: contactDetails.phoneHref,
+      icon: <Phone size={22} />,
+      className: 'contact-fab__action--phone',
+    },
+    {
+      label: 'Messenger',
+      detail: 'ส่งข้อความหาโรงเรียน',
+      href: contactDetails.messengerHref,
+      icon: <MessengerIcon />,
+      className: 'contact-fab__action--messenger',
+      external: true,
+    },
+    {
+      label: 'Facebook',
+      detail: 'Namporn School',
+      href: contactDetails.facebookHref,
+      icon: <FacebookIcon />,
+      className: 'contact-fab__action--facebook',
+      external: true,
+    },
+  ]
+
+  useEffect(() => {
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [])
+
+  return (
+    <div className={`contact-fab ${isOpen ? 'contact-fab--open' : ''}`}>
+      <div className="contact-fab__actions" aria-hidden={!isOpen}>
+        {actions.map((action) => (
+          <a
+            className={`contact-fab__action ${action.className}`}
+            href={action.href}
+            key={action.label}
+            target={action.external ? '_blank' : undefined}
+            rel={action.external ? 'noreferrer' : undefined}
+            aria-label={`${action.label} ${action.detail}`}
+            tabIndex={isOpen ? 0 : -1}
+            onClick={() => setIsOpen(false)}
+          >
+            <span className="contact-fab__tooltip">
+              <strong>{action.label}</strong>
+              <small>{action.detail}</small>
+            </span>
+            <span className="contact-fab__action-icon">{action.icon}</span>
+          </a>
+        ))}
+      </div>
+      <button
+        className="contact-fab__main"
+        type="button"
+        aria-label={isOpen ? 'ปิดช่องทางติดต่อ' : 'เปิดช่องทางติดต่อ'}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        <img src="/ติดต่อเรา.png" alt="" aria-hidden="true" />
+        <span className="contact-fab__close"><X size={22} /></span>
+      </button>
+    </div>
   )
 }
 
@@ -898,6 +1053,7 @@ function App() {
       <DirectorMessage />
       <Contact />
       <Footer />
+      <ContactFab />
       <button
         type="button"
         className={`back-to-top ${showTop ? 'back-to-top--visible' : ''}`}
