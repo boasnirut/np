@@ -498,33 +498,189 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
   )
 }
 
-function MembersManager({ members, setMembers }) {
-  const updateStatus = async (username, status) => {
+function MembersManager({ members, setMembers, currentUsername }) {
+  const [editingMember, setEditingMember] = useState(null)
+  const [form, setForm] = useState({
+    username: '',
+    displayName: '',
+    role: 'member',
+    status: 'pending',
+    password: '',
+  })
+  const [showPassword, setShowPassword] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  const openEditor = (member) => {
+    setEditingMember(member)
+    setForm({
+      username: member.username,
+      displayName: member.displayName,
+      role: member.role,
+      status: member.status,
+      password: '',
+    })
+    setShowPassword(false)
+    setMessage(null)
+  }
+
+  const closeEditor = () => {
+    setEditingMember(null)
+    setForm({ username: '', displayName: '', role: 'member', status: 'pending', password: '' })
+    setShowPassword(false)
+    setMessage(null)
+  }
+
+  const updateForm = (event) => {
+    setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+    setMessage(null)
+  }
+
+  const replaceMember = (updatedMember) => {
+    setMembers((current) =>
+      current.map((member) => (member.id === updatedMember.id ? updatedMember : member)),
+    )
+  }
+
+  const saveMember = async (event) => {
+    event.preventDefault()
+    setSubmitting(true)
+    setMessage(null)
     try {
       const result = await apiRequest('/api/members', {
         method: 'PATCH',
-        body: JSON.stringify({ username, status }),
+        body: JSON.stringify({ id: editingMember.id, ...form }),
       })
-      setMembers((current) =>
-        current.map((member) =>
-          member.username === username ? { ...member, status: result.member.status } : member,
-        ),
-      )
+      replaceMember(result.member)
+      setEditingMember(result.member)
+      setForm((current) => ({ ...current, password: '' }))
+      setMessage({
+        type: 'success',
+        text: result.passwordChanged
+          ? 'บันทึกข้อมูลและเปลี่ยนรหัสผ่านเรียบร้อยแล้ว'
+          : 'บันทึกข้อมูลสมาชิกเรียบร้อยแล้ว',
+      })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const updateStatus = async (member, status) => {
+    try {
+      const result = await apiRequest('/api/members', {
+        method: 'PATCH',
+        body: JSON.stringify({ id: member.id, status }),
+      })
+      replaceMember(result.member)
     } catch (error) {
       window.alert(error.message)
     }
   }
 
   const statusLabel = { true: 'อนุมัติแล้ว', pending: 'รออนุมัติ', suspended: 'ระงับใช้งาน' }
+  const editingSelf = editingMember?.username === currentUsername
+
   return (
     <section className="admin-list-card admin-members-card">
       <div className="admin-section-heading">
         <div><span>USER MANAGEMENT</span><h2>จัดการสมาชิก</h2></div>
         <Users size={28} />
       </div>
+      {editingMember && (
+        <form className="admin-member-editor" onSubmit={saveMember}>
+          <div className="admin-member-editor__heading">
+            <div>
+              <span><User size={18} /></span>
+              <div><strong>แก้ไขข้อมูลผู้ใช้งาน</strong><small>รหัสสมาชิก: {editingMember.id}</small></div>
+            </div>
+            <button type="button" onClick={closeEditor} aria-label="ปิดแบบฟอร์มแก้ไขสมาชิก">
+              <X size={19} />
+            </button>
+          </div>
+          <div className="admin-member-editor__grid">
+            <label>
+              <span>ชื่อผู้ใช้</span>
+              <input
+                name="username"
+                value={form.username}
+                onChange={updateForm}
+                disabled={editingSelf}
+                required
+              />
+            </label>
+            <label>
+              <span>ชื่อที่ใช้แสดง</span>
+              <input
+                name="displayName"
+                value={form.displayName}
+                onChange={updateForm}
+                required
+              />
+            </label>
+            <label>
+              <span>บทบาทผู้ใช้งาน</span>
+              <select name="role" value={form.role} onChange={updateForm} disabled={editingSelf}>
+                <option value="member">สมาชิก</option>
+                <option value="admin">ผู้ดูแลระบบ</option>
+              </select>
+            </label>
+            <label>
+              <span>สถานะบัญชี</span>
+              <select name="status" value={form.status} onChange={updateForm} disabled={editingSelf}>
+                <option value="true">อนุมัติแล้ว</option>
+                <option value="pending">รออนุมัติ</option>
+                <option value="suspended">ระงับใช้งาน</option>
+              </select>
+            </label>
+            <label className="admin-member-editor__password">
+              <span>ตั้งรหัสผ่านใหม่</span>
+              <div>
+                <LockKeyhole size={17} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={form.password}
+                  onChange={updateForm}
+                  minLength={8}
+                  autoComplete="new-password"
+                  placeholder="เว้นว่างหากไม่ต้องการเปลี่ยน"
+                />
+                <button
+                  type="button"
+                  aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                  onClick={() => setShowPassword((current) => !current)}
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+              <small>รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร</small>
+            </label>
+          </div>
+          {editingSelf && (
+            <p className="admin-member-editor__note">
+              บัญชีที่กำลังใช้งานเปลี่ยนชื่อผู้ใช้ บทบาท หรือสถานะไม่ได้ เพื่อป้องกันการหลุดจากระบบ
+            </p>
+          )}
+          {message && (
+            <p className={`admin-message admin-message--${message.type}`}>
+              {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+              {message.text}
+            </p>
+          )}
+          <div className="admin-member-editor__footer">
+            <button type="button" onClick={closeEditor}>ยกเลิก</button>
+            <button type="submit" className="is-primary" disabled={submitting}>
+              {submitting ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />}
+              {submitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูลสมาชิก'}
+            </button>
+          </div>
+        </form>
+      )}
       <div className="admin-member-list">
         {members.map((member) => (
-          <article key={member.username}>
+          <article className={editingMember?.id === member.id ? 'is-editing' : ''} key={member.id}>
             <span className="admin-member-list__avatar"><User size={20} /></span>
             <div>
               <strong>{member.displayName}</strong>
@@ -533,20 +689,21 @@ function MembersManager({ members, setMembers }) {
             <span className={`member-status member-status--${member.status}`}>
               {statusLabel[member.status] || member.status}
             </span>
-            {member.role !== 'admin' && (
-              <div className="admin-member-list__actions">
-                {member.status !== 'true' && (
-                  <button type="button" className="is-approve" onClick={() => updateStatus(member.username, 'true')}>
-                    <Check size={16} />อนุมัติ
-                  </button>
-                )}
-                {member.status === 'true' && (
-                  <button type="button" className="is-suspend" onClick={() => updateStatus(member.username, 'suspended')}>
-                    <XCircle size={16} />ระงับ
-                  </button>
-                )}
-              </div>
-            )}
+            <div className="admin-member-list__actions">
+              <button type="button" className="is-edit" onClick={() => openEditor(member)}>
+                <Pencil size={16} />แก้ไข
+              </button>
+              {member.username !== currentUsername && member.status !== 'true' && (
+                <button type="button" className="is-approve" onClick={() => updateStatus(member, 'true')}>
+                  <Check size={16} />อนุมัติ
+                </button>
+              )}
+              {member.username !== currentUsername && member.status === 'true' && (
+                <button type="button" className="is-suspend" onClick={() => updateStatus(member, 'suspended')}>
+                  <XCircle size={16} />ระงับ
+                </button>
+              )}
+            </div>
           </article>
         ))}
       </div>
@@ -681,7 +838,11 @@ function Dashboard() {
         {loading ? (
           <div className="admin-empty"><LoaderCircle className="spin" />กำลังโหลดข้อมูล...</div>
         ) : activeModule === 'members' && isAdmin ? (
-          <MembersManager members={members} setMembers={setMembers} />
+          <MembersManager
+            members={members}
+            setMembers={setMembers}
+            currentUsername={session.user.username}
+          />
         ) : activeModule === 'events' ? (
           <RecordManager type="events" items={events} setItems={setEvents} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'awards' ? (
