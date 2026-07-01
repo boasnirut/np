@@ -14,6 +14,7 @@ import {
   Menu,
   Phone,
   Quote,
+  School,
   Sparkles,
   X,
 } from 'lucide-react'
@@ -449,16 +450,15 @@ function About() {
     <section className="section about" id="about">
       <div className="container about__grid">
         <div className="about__visual reveal">
-          <div className="about__image">
-            <img src="/np.png" alt="" aria-hidden="true" />
+          <div className="about__image about__image--director">
+            <img src="/PO.png" alt="นางศิวาลัย แก้วเขียว ผู้อำนวยการโรงเรียนบ้านน้ำพร" />
             <div className="about__image-overlay">
-              <span>ปรัชญาการศึกษา</span>
-              <strong>“รากฐานของวันนี้<br />คือการเติบโตของวันหน้า”</strong>
+              <span>ผู้อำนวยการโรงเรียน</span>
+              <AutoFitText as="strong" minSize={13}>นางศิวาลัย แก้วเขียว</AutoFitText>
             </div>
           </div>
-          <div className="about__seal">
-            <Leaf size={24} />
-            <span>เรียนรู้<br />คู่ชุมชน</span>
+          <div className="about__seal" aria-label="โรงเรียนบ้านน้ำพร">
+            <School size={45} aria-hidden="true" />
           </div>
           <div className="about__dots" aria-hidden="true" />
         </div>

@@ -1221,6 +1221,7 @@ body.welcome-open {
 
 .about__image::before {
   position: absolute;
+  z-index: 1;
   inset: 0;
   background:
     linear-gradient(transparent 59%, rgba(5, 32, 66, 0.84)),
@@ -1229,6 +1230,7 @@ body.welcome-open {
 }
 
 .about__image img {
+  position: relative;
   width: 305px;
   height: 305px;
   transform: translateY(-62px);
@@ -1236,9 +1238,29 @@ body.welcome-open {
   filter: drop-shadow(0 22px 28px rgba(9, 42, 82, 0.17));
 }
 
+.about__image--director {
+  align-items: end;
+  background:
+    radial-gradient(circle at 50% 32%, rgba(255, 255, 255, 0.98), rgba(225, 238, 248, 0.94) 54%, transparent 55%),
+    linear-gradient(155deg, #d7e8f6, #f2f6fa);
+}
+
+.about__image--director img {
+  position: absolute;
+  bottom: -23px;
+  left: 50%;
+  width: auto;
+  height: calc(100% - 12px);
+  max-height: none;
+  transform: translateX(-50%);
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 24px 28px rgba(9, 42, 82, 0.2));
+}
+
 .about__image-overlay {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   right: 32px;
   bottom: 29px;
   left: 32px;
@@ -1278,15 +1300,9 @@ body.welcome-open {
 }
 
 .about__seal svg {
-  position: absolute;
-  top: 18px;
-}
-
-.about__seal span {
-  margin-top: 26px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  line-height: 1.25;
+  width: 45px;
+  height: 45px;
+  filter: drop-shadow(0 5px 8px rgba(7, 34, 36, 0.22));
 }
 
 .about__dots {
@@ -3206,10 +3222,11 @@ body.welcome-open {
     border-radius: 125px 125px 22px 22px;
   }
 
-  .about__image img {
-    width: 225px;
-    height: 225px;
-    transform: translateY(-49px);
+  .about__image--director img {
+    bottom: -18px;
+    width: auto;
+    height: calc(100% - 8px);
+    transform: translateX(-50%);
   }
 
   .about__image-overlay {
@@ -3229,12 +3246,8 @@ body.welcome-open {
   }
 
   .about__seal svg {
-    top: 12px;
-    width: 19px;
-  }
-
-  .about__seal span {
-    font-size: 0.61rem;
+    width: 36px;
+    height: 36px;
   }
 
   .value-item {
