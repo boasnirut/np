@@ -1,3 +1,2 @@
 id,username,password_hash,salt,role,display_name,created_at,active
 admin-001,boasnirut,ENV,ENV,admin,ผู้ดูแลระบบโรงเรียนบ้านน้ำพร,2026-07-01T00:00:00.000Z,true
-0c6acdb6-546c-4935-8a3b-8a64284f8568,codex_test_200830,b95997578e9396bdfe9c374e78074e7f6609c90d2679ddb70ff6da4286f6fecceb737a2cd1eeb1e2b9971b9d4f06881b2f5a6d89dca72307e8a3ee70832a8995,c922a3eab8408a05219fd234d8bbbbbd,member,??????????????,2026-07-01T13:08:31.681Z,true
