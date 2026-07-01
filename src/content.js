@@ -15,10 +15,43 @@ import {
 
 export const navItems = [
   { label: 'หน้าแรก', href: '#home' },
-  { label: 'รู้จักโรงเรียน', href: '#about' },
-  { label: 'ข่าวสาร', href: '#news' },
-  { label: 'กิจกรรม', href: '#activities' },
-  { label: 'บริการ', href: '#services' },
+  {
+    label: 'รู้จักโรงเรียน',
+    href: '#about',
+    children: [
+      { label: 'ภาพรวมโรงเรียน', href: '#about' },
+      { label: 'แนวคิดและอัตลักษณ์', href: '#about' },
+      { label: 'ข้อมูลพื้นฐาน', href: '#services' },
+    ],
+  },
+  {
+    label: 'ข่าวสาร',
+    href: '#news',
+    children: [
+      { label: 'ข่าวประชาสัมพันธ์', href: '#news' },
+      { label: 'ข่าววิชาการ', href: '#news' },
+      { label: 'ภาพกิจกรรม', href: '#activities' },
+    ],
+  },
+  {
+    label: 'กิจกรรม',
+    href: '#activities',
+    children: [
+      { label: 'ปฏิทินกิจกรรม', href: '#activities' },
+      { label: 'กิจกรรมโรงเรียน', href: '#activities' },
+      { label: 'ผลงานและความภาคภูมิใจ', href: '#news' },
+    ],
+  },
+  {
+    label: 'บริการ',
+    href: '#services',
+    children: [
+      { label: 'งานวิชาการ', href: '#services' },
+      { label: 'เอกสารออนไลน์', href: '#services' },
+      { label: 'ระบบสารสนเทศ', href: '#services' },
+      { label: 'ถาม–ตอบ', href: '#contact' },
+    ],
+  },
   { label: 'ติดต่อเรา', href: '#contact' },
 ]
 

@@ -5,6 +5,7 @@ import {
   Bell,
   CalendarDays,
   Check,
+  ChevronDown,
   ChevronRight,
   Clock3,
   Leaf,
@@ -29,6 +30,103 @@ import {
 } from './content'
 
 const categories = ['ทั้งหมด', 'ประชาสัมพันธ์', 'วิชาการ', 'กิจกรรม']
+const welcomeSlides = [
+  { src: '/P10.jpg', alt: 'สถิตกลางใจปวงประชา สมเด็จพระเจ้าลูกเธอ เจ้าฟ้าพัชรกิติยาภา' },
+  { src: '/Q9.jpg', alt: 'สถิตในดวงใจตราบนิจนิรันดร์ สมเด็จพระนางเจ้าสิริกิติ์ พระบรมราชินีนาถ' },
+]
+const getLocalDateKey = () => {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
+function WelcomeSlider() {
+  const [isOpen, setIsOpen] = useState(() => {
+    try {
+      return localStorage.getItem('ban-nam-phon-welcome-hidden-date') !== getLocalDateKey()
+    } catch {
+      return true
+    }
+  })
+  const [activeSlide, setActiveSlide] = useState(0)
+  const [hideToday, setHideToday] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) return undefined
+    const timer = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % welcomeSlides.length)
+    }, 5000)
+    return () => window.clearInterval(timer)
+  }, [isOpen, activeSlide])
+
+  useEffect(() => {
+    document.body.classList.toggle('welcome-open', isOpen)
+    return () => document.body.classList.remove('welcome-open')
+  }, [isOpen])
+
+  const enterWebsite = () => {
+    if (hideToday) {
+      try {
+        localStorage.setItem('ban-nam-phon-welcome-hidden-date', getLocalDateKey())
+      } catch {
+        // Continue into the website even when storage is unavailable.
+      }
+    }
+    setIsOpen(false)
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="welcome-overlay" role="dialog" aria-modal="true" aria-label="ข่าวประชาสัมพันธ์">
+      <div className="welcome-overlay__backdrop" aria-hidden="true" />
+      <section className="welcome-slider">
+        <div className="welcome-slider__stage">
+          {welcomeSlides.map((slide, index) => (
+            <img
+              key={slide.src}
+              className={`welcome-slider__image ${activeSlide === index ? 'is-active' : ''}`}
+              src={slide.src}
+              alt={slide.alt}
+              aria-hidden={activeSlide !== index}
+            />
+          ))}
+        </div>
+
+        <div className="welcome-slider__controls">
+          <div className="welcome-slider__dots" role="group" aria-label="เลือกภาพประชาสัมพันธ์">
+            {welcomeSlides.map((slide, index) => (
+              <button
+                key={slide.src}
+                className={activeSlide === index ? 'is-active' : ''}
+                type="button"
+                aria-label={`แสดงภาพที่ ${index + 1}`}
+                aria-pressed={activeSlide === index}
+                onClick={() => setActiveSlide(index)}
+              />
+            ))}
+          </div>
+
+          <label className="welcome-slider__remember">
+            <input
+              type="checkbox"
+              checked={hideToday}
+              onChange={(event) => setHideToday(event.target.checked)}
+            />
+            <span className="welcome-slider__check"><Check size={15} /></span>
+            ไม่แสดงข้อความนี้อีกวันนี้
+          </label>
+
+          <button className="welcome-slider__enter" type="button" onClick={enterWebsite}>
+            เข้าสู่เว็บไซต์
+            <ArrowRight size={19} />
+          </button>
+        </div>
+      </section>
+    </div>
+  )
+}
 
 function SectionHeading({ eyebrow, title, description, align = 'left' }) {
   return (
@@ -45,6 +143,8 @@ function SectionHeading({ eyebrow, title, description, align = 'left' }) {
 
 function Header({ menuOpen, setMenuOpen }) {
   const [scrolled, setScrolled] = useState(false)
+  const [openDropdown, setOpenDropdown] = useState(null)
+  const [openMobileSection, setOpenMobileSection] = useState(null)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24)
@@ -53,7 +153,11 @@ function Header({ menuOpen, setMenuOpen }) {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const closeMenu = () => setMenuOpen(false)
+  const closeMenu = () => {
+    setMenuOpen(false)
+    setOpenDropdown(null)
+    setOpenMobileSection(null)
+  }
 
   return (
     <>
@@ -87,14 +191,44 @@ function Header({ menuOpen, setMenuOpen }) {
           </a>
 
           <nav className="desktop-nav" aria-label="เมนูหลัก">
-            {navItems.map((item) => (
-              <a key={item.href} href={item.href}>
-                {item.label}
-              </a>
-            ))}
+            {navItems.map((item) =>
+              item.children ? (
+                <div
+                  className={`nav-dropdown ${openDropdown === item.label ? 'nav-dropdown--open' : ''}`}
+                  key={item.label}
+                  onMouseEnter={() => setOpenDropdown(item.label)}
+                  onMouseLeave={() => setOpenDropdown(null)}
+                >
+                  <button
+                    className="nav-dropdown__trigger"
+                    type="button"
+                    aria-expanded={openDropdown === item.label}
+                    onClick={() =>
+                      setOpenDropdown((current) => (current === item.label ? null : item.label))
+                    }
+                  >
+                    {item.label}
+                    <ChevronDown size={15} aria-hidden="true" />
+                  </button>
+                  <div className="nav-dropdown__menu">
+                    <span className="nav-dropdown__eyebrow">{item.label}</span>
+                    {item.children.map((child) => (
+                      <a key={`${item.label}-${child.label}`} href={child.href} onClick={closeMenu}>
+                        <span>{child.label}</span>
+                        <ChevronRight size={16} aria-hidden="true" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <a key={item.href} href={item.href} onClick={closeMenu}>
+                  {item.label}
+                </a>
+              ),
+            )}
           </nav>
 
-          <a className="header-contact" href="#contact">
+          <a className="header-contact" href="#contact" onClick={closeMenu}>
             ติดต่อโรงเรียน
             <ArrowRight size={17} aria-hidden="true" />
           </a>
@@ -112,13 +246,44 @@ function Header({ menuOpen, setMenuOpen }) {
 
         <div className={`mobile-nav ${menuOpen ? 'mobile-nav--open' : ''}`}>
           <nav className="container" aria-label="เมนูมือถือ">
-            {navItems.map((item, index) => (
-              <a key={item.href} href={item.href} onClick={closeMenu}>
-                <span>0{index + 1}</span>
-                {item.label}
-                <ChevronRight size={18} />
-              </a>
-            ))}
+            {navItems.map((item, index) =>
+              item.children ? (
+                <div
+                  className={`mobile-nav__group ${openMobileSection === item.label ? 'mobile-nav__group--open' : ''}`}
+                  key={item.label}
+                >
+                  <button
+                    type="button"
+                    aria-expanded={openMobileSection === item.label}
+                    onClick={() =>
+                      setOpenMobileSection((current) => (current === item.label ? null : item.label))
+                    }
+                  >
+                    <span>0{index + 1}</span>
+                    {item.label}
+                    <ChevronDown size={18} />
+                  </button>
+                  <div className="mobile-nav__submenu">
+                    {item.children.map((child) => (
+                      <a
+                        key={`${item.label}-${child.label}`}
+                        href={child.href}
+                        onClick={closeMenu}
+                      >
+                        {child.label}
+                        <ChevronRight size={16} />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <a key={item.href} href={item.href} onClick={closeMenu}>
+                  <span>0{index + 1}</span>
+                  {item.label}
+                  <ChevronRight size={18} />
+                </a>
+              ),
+            )}
             <a className="mobile-nav__phone" href={contactDetails.phoneHref}>
               <Phone size={18} />
               โทร {contactDetails.phone}
@@ -722,6 +887,7 @@ function App() {
 
   return (
     <>
+      <WelcomeSlider />
       <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
       <Hero />
       <About />
