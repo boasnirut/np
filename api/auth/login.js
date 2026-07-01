@@ -15,11 +15,15 @@ export default async function handler(request, response) {
     }
 
     const { content } = await readRepoFile('data/users.csv')
-    const user = parseCsv(content).find(
-      (item) => item.username.toLowerCase() === username && item.active === 'true',
-    )
+    const user = parseCsv(content).find((item) => item.username.toLowerCase() === username)
     if (!user || !verifyPassword(password, user.salt, user.password_hash)) {
       return sendJson(response, 401, { error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' })
+    }
+    if (user.active === 'pending') {
+      return sendJson(response, 403, { error: 'บัญชีนี้กำลังรอผู้ดูแลระบบอนุมัติ' })
+    }
+    if (user.active !== 'true') {
+      return sendJson(response, 403, { error: 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ' })
     }
 
     setSessionCookie(response, createSessionToken(user))

@@ -78,6 +78,22 @@ export async function writeBinaryRepoFile(path, bytes, message) {
   })
 }
 
+export async function deleteRepoFile(path, message) {
+  if (!process.env.GITHUB_TOKEN) throw new RepositoryConfigError()
+  const current = await githubRequest(
+    `/contents/${encodeURI(path)}?ref=${encodeURIComponent(branch)}`,
+  )
+  return githubRequest(`/contents/${encodeURI(path)}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message,
+      sha: current.sha,
+      branch,
+    }),
+  })
+}
+
 export function rawGithubUrl(path) {
   return `https://raw.githubusercontent.com/${owner}/${repository}/${branch}/${path}`
 }

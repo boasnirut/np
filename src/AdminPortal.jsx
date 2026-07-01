@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
+  CalendarDays,
+  Check,
   CheckCircle2,
   Eye,
   EyeOff,
@@ -13,10 +15,16 @@ import {
   LogOut,
   Megaphone,
   Newspaper,
+  Pencil,
   Save,
   ShieldCheck,
+  Trash2,
+  Trophy,
   User,
   UserPlus,
+  Users,
+  X,
+  XCircle,
 } from 'lucide-react'
 import './admin.css'
 
@@ -38,32 +46,33 @@ async function apiRequest(path, options = {}) {
 
 function AuthLayout({ mode }) {
   const isRegister = mode === 'register'
-  const [form, setForm] = useState({
-    username: '',
-    password: '',
-    displayName: '',
-  })
+  const [form, setForm] = useState({ username: '', password: '', displayName: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState(null)
 
   const update = (event) => {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
-    setMessage('')
+    setMessage(null)
   }
 
   const submit = async (event) => {
     event.preventDefault()
     setSubmitting(true)
-    setMessage('')
+    setMessage(null)
     try {
-      await apiRequest(isRegister ? '/api/auth/register' : '/api/auth/login', {
+      const result = await apiRequest(isRegister ? '/api/auth/register' : '/api/auth/login', {
         method: 'POST',
         body: JSON.stringify(form),
       })
-      window.location.assign('/admin')
+      if (isRegister) {
+        setMessage({ type: 'success', text: result.message })
+        setForm({ username: '', password: '', displayName: '' })
+      } else {
+        window.location.assign('/admin')
+      }
     } catch (error) {
-      setMessage(error.message)
+      setMessage({ type: 'error', text: error.message })
     } finally {
       setSubmitting(false)
     }
@@ -80,17 +89,14 @@ function AuthLayout({ mode }) {
       <section className="auth-card">
         <div className="auth-card__brand">
           <span><img src="/np.png" alt="ตราสัญลักษณ์โรงเรียนบ้านน้ำพร" /></span>
-          <div>
-            <strong>โรงเรียนบ้านน้ำพร</strong>
-            <small>Bannamporn School</small>
-          </div>
+          <div><strong>โรงเรียนบ้านน้ำพร</strong><small>Bannamporn School</small></div>
         </div>
         <div className="auth-card__heading">
           <span className="auth-card__icon">
             {isRegister ? <UserPlus size={24} /> : <ShieldCheck size={24} />}
           </span>
           <div>
-            <p>{isRegister ? 'สร้างบัญชีผู้ใช้งาน' : 'ระบบสำหรับผู้ดูแล'}</p>
+            <p>{isRegister ? 'สร้างบัญชีผู้ใช้งาน' : 'ระบบจัดการข้อมูลโรงเรียน'}</p>
             <h1>{isRegister ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ'}</h1>
           </div>
         </div>
@@ -150,29 +156,24 @@ function AuthLayout({ mode }) {
               </button>
             </div>
           </label>
-
           {message && (
-            <p className="auth-form__message" role="alert">
-              <AlertCircle size={17} />
-              {message}
+            <p className={`auth-form__message auth-form__message--${message.type}`} role="alert">
+              {message.type === 'success' ? <CheckCircle2 size={17} /> : <AlertCircle size={17} />}
+              {message.text}
             </p>
           )}
-
           <button className="admin-button admin-button--primary" type="submit" disabled={submitting}>
             {submitting ? <LoaderCircle className="spin" size={19} /> : isRegister ? <UserPlus size={19} /> : <LogIn size={19} />}
-            {submitting ? 'กำลังดำเนินการ...' : isRegister ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ'}
+            {submitting ? 'กำลังดำเนินการ...' : isRegister ? 'ส่งคำขอสมัครสมาชิก' : 'เข้าสู่ระบบ'}
           </button>
         </form>
-
         <p className="auth-card__switch">
           {isRegister ? 'มีบัญชีอยู่แล้ว?' : 'ยังไม่มีบัญชี?'}
-          <a href={isRegister ? '/login' : '/register'}>
-            {isRegister ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}
-          </a>
+          <a href={isRegister ? '/login' : '/register'}>{isRegister ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}</a>
         </p>
         <div className="auth-card__security">
           <LockKeyhole size={15} />
-          รหัสผ่านถูกเข้ารหัสและไม่แสดงในฐานข้อมูล
+          {isRegister ? 'สมาชิกใหม่ต้องรอผู้ดูแลระบบอนุมัติก่อนเข้าใช้งาน' : 'ระบบยืนยันตัวตนที่ปลอดภัย'}
         </div>
       </section>
     </main>
@@ -188,18 +189,84 @@ function fileToDataUrl(file) {
   })
 }
 
-function NewsForm({ githubConfigured, onCreated }) {
-  const [form, setForm] = useState({
-    title: '',
-    category: 'ประชาสัมพันธ์',
-    summary: '',
-    content: '',
-    status: 'published',
-  })
+const modules = {
+  news: {
+    endpoint: '/api/news',
+    responseKey: 'news',
+    listKey: 'news',
+    label: 'ข่าวสารและประกาศ',
+    eyebrow: 'NEWS & ANNOUNCEMENT',
+    icon: Megaphone,
+    image: true,
+    defaults: { title: '', category: 'ประชาสัมพันธ์', summary: '', content: '', status: 'published' },
+    fields: [
+      { name: 'title', label: 'หัวข้อข่าว', wide: true, required: true, placeholder: 'กรอกหัวข้อข่าวหรือประกาศ' },
+      { name: 'category', label: 'หมวดหมู่', type: 'select', options: ['ประชาสัมพันธ์', 'วิชาการ', 'กิจกรรม', 'ประกาศ'] },
+      { name: 'status', label: 'สถานะ', type: 'status' },
+      { name: 'summary', label: 'ข้อความสรุป', type: 'textarea', wide: true, rows: 2, placeholder: 'ข้อความสั้นสำหรับสรุปเนื้อหา' },
+      { name: 'content', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 7, required: true, placeholder: 'กรอกรายละเอียดข่าวสารหรือประกาศ' },
+    ],
+    meta: (item) => `${item.category} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
+    date: (item) => item.created_at,
+  },
+  events: {
+    endpoint: '/api/events',
+    responseKey: 'event',
+    listKey: 'events',
+    label: 'ปฏิทินกิจกรรม',
+    eyebrow: 'SCHOOL CALENDAR',
+    icon: CalendarDays,
+    defaults: { title: '', event_date: '', start_time: '', location: '', details: '', status: 'published' },
+    fields: [
+      { name: 'title', label: 'ชื่อกิจกรรม', wide: true, required: true, placeholder: 'กรอกชื่อกิจกรรม' },
+      { name: 'event_date', label: 'วันที่', type: 'date', required: true },
+      { name: 'start_time', label: 'เวลา', type: 'time' },
+      { name: 'location', label: 'สถานที่', wide: true, placeholder: 'สถานที่จัดกิจกรรม' },
+      { name: 'details', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 5, placeholder: 'รายละเอียดเพิ่มเติม' },
+      { name: 'status', label: 'สถานะ', type: 'status' },
+    ],
+    meta: (item) => `${item.event_date}${item.start_time ? ` · ${item.start_time} น.` : ''}`,
+    date: (item) => item.created_at,
+  },
+  awards: {
+    endpoint: '/api/awards',
+    responseKey: 'award',
+    listKey: 'awards',
+    label: 'ผลงานและรางวัล',
+    eyebrow: 'ACHIEVEMENTS & AWARDS',
+    icon: Trophy,
+    image: true,
+    defaults: { title: '', award_date: '', level: '', recipient: '', description: '', status: 'published' },
+    fields: [
+      { name: 'title', label: 'ชื่อผลงานหรือรางวัล', wide: true, required: true, placeholder: 'กรอกชื่อผลงานหรือรางวัล' },
+      { name: 'award_date', label: 'วันที่ได้รับ', type: 'date', required: true },
+      { name: 'level', label: 'ระดับรางวัล', placeholder: 'เช่น ระดับจังหวัด' },
+      { name: 'recipient', label: 'ผู้ได้รับรางวัล', wide: true, placeholder: 'นักเรียน ครู หรือโรงเรียน' },
+      { name: 'description', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 5, placeholder: 'รายละเอียดผลงานและความภาคภูมิใจ' },
+      { name: 'status', label: 'สถานะ', type: 'status' },
+    ],
+    meta: (item) => `${item.level || 'ผลงานโรงเรียน'} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
+    date: (item) => item.award_date,
+  },
+}
+
+function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
+  const config = modules[type]
+  const Icon = config.icon
+  const [form, setForm] = useState(config.defaults)
+  const [editingId, setEditingId] = useState(null)
   const [image, setImage] = useState(null)
   const [preview, setPreview] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState(null)
+
+  useEffect(() => {
+    setForm(config.defaults)
+    setEditingId(null)
+    setImage(null)
+    setPreview('')
+    setMessage(null)
+  }, [config])
 
   const update = (event) => {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
@@ -210,36 +277,44 @@ function NewsForm({ githubConfigured, onCreated }) {
     const file = event.target.files?.[0]
     setImage(file || null)
     setPreview(file ? URL.createObjectURL(file) : '')
+  }
+
+  const reset = () => {
+    setForm(config.defaults)
+    setEditingId(null)
+    setImage(null)
+    setPreview('')
+  }
+
+  const edit = (item) => {
+    setForm(Object.fromEntries(Object.keys(config.defaults).map((key) => [key, item[key] || ''])))
+    setEditingId(item.id)
+    setImage(null)
+    setPreview(item.image_url || '')
     setMessage(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const submit = async (event) => {
     event.preventDefault()
-    if (!githubConfigured) {
-      setMessage({ type: 'error', text: 'กรุณาเชื่อมต่อ GitHub ใน Vercel ก่อนบันทึกข้อมูล' })
-      return
-    }
     setSubmitting(true)
     setMessage(null)
     try {
       const imageData = image
         ? { name: image.name, type: image.type, data: await fileToDataUrl(image) }
         : null
-      const result = await apiRequest('/api/news', {
-        method: 'POST',
-        body: JSON.stringify({ ...form, image: imageData }),
+      const result = await apiRequest(config.endpoint, {
+        method: editingId ? 'PUT' : 'POST',
+        body: JSON.stringify({ ...form, id: editingId, image: imageData }),
       })
-      setForm({
-        title: '',
-        category: 'ประชาสัมพันธ์',
-        summary: '',
-        content: '',
-        status: 'published',
-      })
-      setImage(null)
-      setPreview('')
-      setMessage({ type: 'success', text: 'บันทึกข่าวและส่งขึ้น GitHub เรียบร้อยแล้ว' })
-      onCreated(result.news)
+      const item = result[config.responseKey]
+      setItems((current) =>
+        editingId
+          ? current.map((existing) => (existing.id === editingId ? item : existing))
+          : [item, ...current],
+      )
+      setMessage({ type: 'success', text: editingId ? 'บันทึกการแก้ไขเรียบร้อยแล้ว' : 'เพิ่มข้อมูลและส่งขึ้น GitHub เรียบร้อยแล้ว' })
+      reset()
     } catch (error) {
       setMessage({ type: 'error', text: error.message })
     } finally {
@@ -247,131 +322,179 @@ function NewsForm({ githubConfigured, onCreated }) {
     }
   }
 
+  const remove = async (item) => {
+    if (!window.confirm(`ยืนยันการลบ “${item.title}” หรือไม่`)) return
+    try {
+      await apiRequest(config.endpoint, {
+        method: 'DELETE',
+        body: JSON.stringify({ id: item.id }),
+      })
+      setItems((current) => current.filter((existing) => existing.id !== item.id))
+      setMessage({ type: 'success', text: 'ลบรายการเรียบร้อยแล้ว' })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message })
+    }
+  }
+
   return (
-    <form className="news-editor" onSubmit={submit}>
-      <div className="admin-section-heading">
-        <div>
-          <span>NEWS & ANNOUNCEMENT</span>
-          <h2>เพิ่มข่าวสารและประกาศ</h2>
+    <section className="admin-content-grid">
+      <form className="news-editor" onSubmit={submit}>
+        <div className="admin-section-heading">
+          <div><span>{config.eyebrow}</span><h2>{editingId ? `แก้ไข${config.label}` : `เพิ่ม${config.label}`}</h2></div>
+          {editingId ? <button className="admin-icon-button" type="button" onClick={reset} aria-label="ยกเลิกแก้ไข"><X size={21} /></button> : <Icon size={28} />}
         </div>
-        <Megaphone size={28} />
-      </div>
-
-      <div className="news-editor__grid">
-        <label className="news-field news-field--wide">
-          <span>หัวข้อข่าว</span>
-          <input
-            name="title"
-            value={form.title}
-            onChange={update}
-            placeholder="กรอกหัวข้อข่าวหรือประกาศ"
-            maxLength={180}
-            required
-          />
-        </label>
-        <label className="news-field">
-          <span>หมวดหมู่</span>
-          <select name="category" value={form.category} onChange={update}>
-            <option>ประชาสัมพันธ์</option>
-            <option>วิชาการ</option>
-            <option>กิจกรรม</option>
-            <option>ประกาศ</option>
-          </select>
-        </label>
-        <label className="news-field">
-          <span>สถานะ</span>
-          <select name="status" value={form.status} onChange={update}>
-            <option value="published">เผยแพร่</option>
-            <option value="draft">ฉบับร่าง</option>
-          </select>
-        </label>
-        <label className="news-field news-field--wide">
-          <span>ข้อความสรุป</span>
-          <textarea
-            name="summary"
-            value={form.summary}
-            onChange={update}
-            placeholder="ข้อความสั้นสำหรับสรุปเนื้อหา"
-            rows={2}
-          />
-        </label>
-        <label className="news-field news-field--wide">
-          <span>รายละเอียด</span>
-          <textarea
-            name="content"
-            value={form.content}
-            onChange={update}
-            placeholder="กรอกรายละเอียดข่าวสารหรือประกาศ"
-            rows={7}
-            maxLength={20_000}
-            required
-          />
-        </label>
-      </div>
-
-      <label className={`image-uploader ${preview ? 'image-uploader--selected' : ''}`}>
-        {preview ? (
-          <img src={preview} alt="ตัวอย่างรูปข่าว" />
-        ) : (
-          <>
-            <span><FileImage size={27} /></span>
-            <strong>เลือกรูปภาพข่าว</strong>
-            <small>JPG, PNG หรือ WebP ขนาดไม่เกิน 3 MB</small>
-          </>
+        <div className="news-editor__grid">
+          {config.fields.map((field) => (
+            <label className={`news-field ${field.wide ? 'news-field--wide' : ''}`} key={field.name}>
+              <span>{field.label}</span>
+              {field.type === 'textarea' ? (
+                <textarea
+                  name={field.name}
+                  value={form[field.name]}
+                  onChange={update}
+                  placeholder={field.placeholder}
+                  rows={field.rows}
+                  required={field.required}
+                />
+              ) : field.type === 'select' ? (
+                <select name={field.name} value={form[field.name]} onChange={update}>
+                  {field.options.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              ) : field.type === 'status' ? (
+                <select name={field.name} value={form[field.name]} onChange={update}>
+                  <option value="published">เผยแพร่</option>
+                  <option value="draft">ฉบับร่าง</option>
+                </select>
+              ) : (
+                <input
+                  type={field.type || 'text'}
+                  name={field.name}
+                  value={form[field.name]}
+                  onChange={update}
+                  placeholder={field.placeholder}
+                  required={field.required}
+                />
+              )}
+            </label>
+          ))}
+        </div>
+        {config.image && (
+          <label className={`image-uploader ${preview ? 'image-uploader--selected' : ''}`}>
+            {preview ? <img src={preview} alt="ตัวอย่างรูปภาพ" /> : (
+              <><span><FileImage size={27} /></span><strong>เลือกรูปภาพ</strong><small>JPG, PNG หรือ WebP ขนาดไม่เกิน 3 MB</small></>
+            )}
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage} />
+          </label>
         )}
-        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage} />
-      </label>
+        {message && (
+          <p className={`admin-message admin-message--${message.type}`}>
+            {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+            {message.text}
+          </p>
+        )}
+        <button className="admin-button admin-button--primary" type="submit" disabled={submitting || !githubConfigured}>
+          {submitting ? <LoaderCircle className="spin" size={19} /> : <Save size={19} />}
+          {submitting ? 'กำลังบันทึก...' : editingId ? 'บันทึกการแก้ไข' : 'เพิ่มข้อมูล'}
+        </button>
+      </form>
 
-      {message && (
-        <p className={`admin-message admin-message--${message.type}`}>
-          {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-          {message.text}
-        </p>
-      )}
-
-      <button className="admin-button admin-button--primary" type="submit" disabled={submitting || !githubConfigured}>
-        {submitting ? <LoaderCircle className="spin" size={19} /> : <Save size={19} />}
-        {submitting ? 'กำลังอัปโหลดและบันทึก...' : 'บันทึกและอัปโหลดขึ้น GitHub'}
-      </button>
-    </form>
+      <div className="admin-list-card">
+        <div className="admin-section-heading">
+          <div><span>DATABASE</span><h2>รายการที่บันทึก</h2></div>
+          <Icon size={27} />
+        </div>
+        {!items.length ? (
+          <div className="admin-empty"><Icon size={34} /><strong>ยังไม่มีข้อมูลในหมวดนี้</strong></div>
+        ) : (
+          <div className="admin-record-list">
+            {items.map((item) => (
+              <article key={item.id}>
+                <div className="admin-news-list__image">
+                  {item.image_url ? <img src={item.image_url} alt="" /> : <Icon size={24} />}
+                </div>
+                <div className="admin-record-list__copy">
+                  <span>{config.meta(item)}</span>
+                  <h3>{item.title}</h3>
+                  <small>{config.date(item) ? new Date(config.date(item)).toLocaleDateString('th-TH') : ''}</small>
+                </div>
+                {isAdmin && (
+                  <div className="admin-record-list__actions">
+                    <button type="button" onClick={() => edit(item)} aria-label={`แก้ไข ${item.title}`}><Pencil size={16} /></button>
+                    <button type="button" className="is-danger" onClick={() => remove(item)} aria-label={`ลบ ${item.title}`}><Trash2 size={16} /></button>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   )
 }
 
-function NewsList({ news, loading }) {
-  if (loading) {
-    return <div className="admin-empty"><LoaderCircle className="spin" />กำลังโหลดข่าวสาร...</div>
-  }
-  if (!news.length) {
-    return (
-      <div className="admin-empty">
-        <Newspaper size={34} />
-        <strong>ยังไม่มีข่าวในฐานข้อมูล</strong>
-        <span>ข่าวที่เพิ่มใหม่จะแสดงในรายการนี้</span>
-      </div>
-    )
+function MembersManager({ members, setMembers }) {
+  const updateStatus = async (username, status) => {
+    try {
+      const result = await apiRequest('/api/members', {
+        method: 'PATCH',
+        body: JSON.stringify({ username, status }),
+      })
+      setMembers((current) =>
+        current.map((member) =>
+          member.username === username ? { ...member, status: result.member.status } : member,
+        ),
+      )
+    } catch (error) {
+      window.alert(error.message)
+    }
   }
 
+  const statusLabel = { true: 'อนุมัติแล้ว', pending: 'รออนุมัติ', suspended: 'ระงับใช้งาน' }
   return (
-    <div className="admin-news-list">
-      {news.map((item) => (
-        <article key={item.id}>
-          <div className="admin-news-list__image">
-            {item.image_url ? <img src={item.image_url} alt="" /> : <Newspaper size={25} />}
-          </div>
-          <div>
-            <span>{item.category} · {item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}</span>
-            <h3>{item.title}</h3>
-            <small>{new Date(item.created_at).toLocaleString('th-TH')}</small>
-          </div>
-        </article>
-      ))}
-    </div>
+    <section className="admin-list-card admin-members-card">
+      <div className="admin-section-heading">
+        <div><span>USER MANAGEMENT</span><h2>จัดการสมาชิก</h2></div>
+        <Users size={28} />
+      </div>
+      <div className="admin-member-list">
+        {members.map((member) => (
+          <article key={member.username}>
+            <span className="admin-member-list__avatar"><User size={20} /></span>
+            <div>
+              <strong>{member.displayName}</strong>
+              <small>@{member.username} · {member.role === 'admin' ? 'ผู้ดูแลระบบ' : 'สมาชิก'}</small>
+            </div>
+            <span className={`member-status member-status--${member.status}`}>
+              {statusLabel[member.status] || member.status}
+            </span>
+            {member.role !== 'admin' && (
+              <div className="admin-member-list__actions">
+                {member.status !== 'true' && (
+                  <button type="button" className="is-approve" onClick={() => updateStatus(member.username, 'true')}>
+                    <Check size={16} />อนุมัติ
+                  </button>
+                )}
+                {member.status === 'true' && (
+                  <button type="button" className="is-suspend" onClick={() => updateStatus(member.username, 'suspended')}>
+                    <XCircle size={16} />ระงับ
+                  </button>
+                )}
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
   )
 }
 
 function Dashboard() {
   const [session, setSession] = useState(null)
+  const [activeModule, setActiveModule] = useState('news')
   const [news, setNews] = useState([])
+  const [events, setEvents] = useState([])
+  const [awards, setAwards] = useState([])
+  const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -381,28 +504,34 @@ function Dashboard() {
         const sessionData = await apiRequest('/api/auth/session')
         if (!active) return
         setSession(sessionData)
-        const newsData = await apiRequest('/api/news')
-        if (active) setNews(newsData.news || [])
+        const requests = [
+          apiRequest('/api/news'),
+          apiRequest('/api/events'),
+          apiRequest('/api/awards'),
+          sessionData.user.role === 'admin' ? apiRequest('/api/members') : Promise.resolve({ members: [] }),
+        ]
+        const [newsData, eventData, awardData, memberData] = await Promise.all(requests)
+        if (!active) return
+        setNews(newsData.news || [])
+        setEvents(eventData.events || [])
+        setAwards(awardData.awards || [])
+        setMembers(memberData.members || [])
       } catch (error) {
-        if (error.status === 401) window.location.replace('/login')
+        if (error.status === 401 || error.status === 403) window.location.replace('/login')
       } finally {
         if (active) setLoading(false)
       }
     }
     load()
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [])
 
-  const stats = useMemo(
-    () => ({
-      total: news.length,
-      published: news.filter((item) => item.status === 'published').length,
-      draft: news.filter((item) => item.status === 'draft').length,
-    }),
-    [news],
-  )
+  const stats = useMemo(() => ({
+    news: news.length,
+    events: events.length,
+    awards: awards.length,
+    pending: members.filter((member) => member.status === 'pending').length,
+  }), [news, events, awards, members])
 
   const logout = async () => {
     await apiRequest('/api/auth/logout', { method: 'POST', body: '{}' }).catch(() => undefined)
@@ -413,6 +542,14 @@ function Dashboard() {
     return <main className="admin-loading"><LoaderCircle className="spin" />กำลังเตรียมหน้าบริหารจัดการ...</main>
   }
 
+  const isAdmin = session?.user.role === 'admin'
+  const navItems = [
+    { id: 'news', label: 'ข่าวสารและประกาศ', icon: Megaphone },
+    { id: 'events', label: 'ปฏิทินกิจกรรม', icon: CalendarDays },
+    { id: 'awards', label: 'ผลงานและรางวัล', icon: Trophy },
+    ...(isAdmin ? [{ id: 'members', label: `สมาชิก${stats.pending ? ` (${stats.pending})` : ''}`, icon: Users }] : []),
+  ]
+
   return (
     <main className="admin-page">
       <aside className="admin-sidebar">
@@ -421,59 +558,65 @@ function Dashboard() {
           <span><strong>โรงเรียนบ้านน้ำพร</strong><small>ADMINISTRATION</small></span>
         </a>
         <nav>
-          <a className="is-active" href="#dashboard"><LayoutDashboard size={19} />ภาพรวม</a>
-          <a href="#news-editor"><Megaphone size={19} />จัดการข่าวสาร</a>
+          <button className="is-overview" type="button"><LayoutDashboard size={19} />ระบบจัดการข้อมูล</button>
+          {navItems.map(({ id, label, icon: Icon }) => (
+            <button
+              className={activeModule === id ? 'is-active' : ''}
+              type="button"
+              onClick={() => setActiveModule(id)}
+              key={id}
+            >
+              <Icon size={19} />{label}
+            </button>
+          ))}
         </nav>
         <div className="admin-sidebar__user">
           <span><User size={20} /></span>
           <div>
             <strong>{session?.user.displayName}</strong>
-            <small>{session?.user.role === 'admin' ? 'ผู้ดูแลระบบ' : 'สมาชิก'}</small>
+            <small>{isAdmin ? 'ผู้ดูแลระบบ' : 'สมาชิกที่ได้รับอนุมัติ'}</small>
           </div>
         </div>
         <button type="button" onClick={logout}><LogOut size={18} />ออกจากระบบ</button>
       </aside>
 
       <div className="admin-main">
-        <header className="admin-topbar" id="dashboard">
-          <div>
-            <p>ยินดีต้อนรับกลับ</p>
-            <h1>ระบบบริหารจัดการข้อมูล</h1>
-          </div>
+        <header className="admin-topbar">
+          <div><p>ยินดีต้อนรับกลับ</p><h1>ระบบบริหารจัดการข้อมูล</h1></div>
           <a href="/" target="_blank" rel="noreferrer">เปิดหน้าเว็บไซต์<ArrowLeft size={17} /></a>
         </header>
 
         {!session?.githubConfigured && (
           <div className="admin-config-alert">
             <AlertCircle size={22} />
-            <div>
-              <strong>รอการเชื่อมต่อ GitHub</strong>
-              <p>เข้าสู่ระบบได้แล้ว แต่การสมัครสมาชิกและบันทึกข่าวจะเปิดใช้งานเมื่อเพิ่ม GITHUB_TOKEN ใน Vercel</p>
-            </div>
+            <div><strong>รอการเชื่อมต่อ GitHub</strong><p>การบันทึกข้อมูลจะเปิดใช้งานเมื่อเพิ่ม GITHUB_TOKEN ใน Vercel</p></div>
           </div>
         )}
 
         <section className="admin-stats">
-          <article><span><Newspaper size={22} /></span><div><small>ข่าวทั้งหมด</small><strong>{stats.total}</strong></div></article>
-          <article><span><CheckCircle2 size={22} /></span><div><small>เผยแพร่</small><strong>{stats.published}</strong></div></article>
-          <article><span><FileImage size={22} /></span><div><small>ฉบับร่าง</small><strong>{stats.draft}</strong></div></article>
+          <article><span><Newspaper size={22} /></span><div><small>ข่าวสาร</small><strong>{stats.news}</strong></div></article>
+          <article><span><CalendarDays size={22} /></span><div><small>กิจกรรม</small><strong>{stats.events}</strong></div></article>
+          <article><span><Trophy size={22} /></span><div><small>ผลงานและรางวัล</small><strong>{stats.awards}</strong></div></article>
+          {isAdmin && <article><span><Users size={22} /></span><div><small>รออนุมัติ</small><strong>{stats.pending}</strong></div></article>}
         </section>
 
-        <section className="admin-content-grid">
-          <div id="news-editor">
-            <NewsForm
-              githubConfigured={Boolean(session?.githubConfigured)}
-              onCreated={(item) => setNews((current) => [item, ...current])}
-            />
-          </div>
-          <div className="admin-list-card">
-            <div className="admin-section-heading">
-              <div><span>DATABASE</span><h2>รายการล่าสุด</h2></div>
-              <Newspaper size={27} />
-            </div>
-            <NewsList news={news} loading={loading} />
-          </div>
-        </section>
+        <div className="admin-mobile-tabs">
+          {navItems.map(({ id, label }) => (
+            <button className={activeModule === id ? 'is-active' : ''} type="button" onClick={() => setActiveModule(id)} key={id}>{label}</button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div className="admin-empty"><LoaderCircle className="spin" />กำลังโหลดข้อมูล...</div>
+        ) : activeModule === 'members' && isAdmin ? (
+          <MembersManager members={members} setMembers={setMembers} />
+        ) : activeModule === 'events' ? (
+          <RecordManager type="events" items={events} setItems={setEvents} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+        ) : activeModule === 'awards' ? (
+          <RecordManager type="awards" items={awards} setItems={setAwards} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+        ) : (
+          <RecordManager type="news" items={news} setItems={setNews} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+        )}
       </div>
     </main>
   )

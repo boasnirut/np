@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { getSession } from './_lib/auth.js'
+import { requireActiveUser } from './_lib/access.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
 import {
@@ -28,95 +28,129 @@ const allowedImageTypes = {
   'image/webp': 'webp',
 }
 
-function requireSession(request, response) {
-  const session = getSession(request)
-  if (!session) {
-    sendJson(response, 401, { error: 'กรุณาเข้าสู่ระบบอีกครั้ง' })
-    return null
+function newsFields(body, existing = {}) {
+  return {
+    title: String(body.title ?? existing.title ?? '').trim(),
+    category: String(body.category ?? existing.category ?? 'ประชาสัมพันธ์').trim(),
+    summary: String(body.summary ?? existing.summary ?? '').trim(),
+    content: String(body.content ?? existing.content ?? '').trim(),
+    status: (body.status ?? existing.status) === 'draft' ? 'draft' : 'published',
   }
-  return session
 }
 
-async function listNews(response) {
-  const { content } = await readRepoFile('data/news.csv')
-  const news = parseCsv(content).sort((left, right) =>
-    right.created_at.localeCompare(left.created_at),
-  )
-  return sendJson(response, 200, { news })
+function validate(fields, response) {
+  if (fields.title.length < 3 || fields.title.length > 180) {
+    sendJson(response, 400, { error: 'หัวข้อต้องมีความยาว 3–180 ตัวอักษร' })
+    return false
+  }
+  if (!fields.content || fields.content.length > 20_000) {
+    sendJson(response, 400, { error: 'กรุณากรอกรายละเอียดข่าวไม่เกิน 20,000 ตัวอักษร' })
+    return false
+  }
+  return true
 }
 
-async function createNews(request, response, session) {
-  const body = await readJsonBody(request, 5_000_000)
-  const title = String(body.title || '').trim()
-  const category = String(body.category || 'ประชาสัมพันธ์').trim()
-  const summary = String(body.summary || '').trim()
-  const content = String(body.content || '').trim()
-  const status = body.status === 'draft' ? 'draft' : 'published'
-
-  if (title.length < 3 || title.length > 180) {
-    return sendJson(response, 400, { error: 'หัวข้อต้องมีความยาว 3–180 ตัวอักษร' })
+async function uploadImage(image, id, title) {
+  if (!image?.data || !image?.type) return ''
+  const extension = allowedImageTypes[image.type]
+  if (!extension) {
+    const error = new Error('รองรับรูปภาพ JPG, PNG และ WebP เท่านั้น')
+    error.code = 'INVALID_IMAGE'
+    throw error
   }
-  if (!content || content.length > 20_000) {
-    return sendJson(response, 400, { error: 'กรุณากรอกรายละเอียดข่าวไม่เกิน 20,000 ตัวอักษร' })
+  const encoded = String(image.data).replace(/^data:[^;]+;base64,/, '')
+  const bytes = Buffer.from(encoded, 'base64')
+  if (!bytes.length || bytes.length > 3_000_000) {
+    const error = new Error('รูปภาพต้องมีขนาดไม่เกิน 3 MB')
+    error.code = 'INVALID_IMAGE'
+    throw error
   }
-
-  const id = randomUUID()
-  let imageUrl = ''
-  if (body.image?.data && body.image?.type) {
-    const extension = allowedImageTypes[body.image.type]
-    if (!extension) {
-      return sendJson(response, 400, { error: 'รองรับรูปภาพ JPG, PNG และ WebP เท่านั้น' })
-    }
-    const encoded = String(body.image.data).replace(/^data:[^;]+;base64,/, '')
-    const imageBytes = Buffer.from(encoded, 'base64')
-    if (!imageBytes.length || imageBytes.length > 3_000_000) {
-      return sendJson(response, 400, { error: 'รูปภาพต้องมีขนาดไม่เกิน 3 MB' })
-    }
-    const imagePath = `public/uploads/news/${id}.${extension}`
-    await writeBinaryRepoFile(imagePath, imageBytes, `เพิ่มรูปข่าว: ${title}`)
-    imageUrl = rawGithubUrl(imagePath)
-  }
-
-  const current = await readRepoFile('data/news.csv')
-  const news = parseCsv(current.content)
-  const now = new Date().toISOString()
-  const item = {
-    id,
-    title,
-    category,
-    summary,
-    content,
-    image_url: imageUrl,
-    status,
-    author: session.sub,
-    created_at: now,
-    updated_at: now,
-  }
-  news.push(item)
-  await writeRepoFile(
-    'data/news.csv',
-    stringifyCsv(news, headers),
-    `เพิ่มข่าวสาร: ${title}`,
-    current.sha,
-  )
-
-  return sendJson(response, 201, { news: item })
+  const path = `public/uploads/news/${id}-${Date.now()}.${extension}`
+  await writeBinaryRepoFile(path, bytes, `เพิ่มรูปข่าว: ${title}`)
+  return rawGithubUrl(path)
 }
 
 export default async function handler(request, response) {
-  const session = requireSession(request, response)
-  if (!session) return undefined
-
   try {
-    if (request.method === 'GET') return await listNews(response)
-    if (request.method === 'POST') return await createNews(request, response, session)
-    return methodNotAllowed(response, ['GET', 'POST'])
+    const session = await requireActiveUser(request, response)
+    if (!session) return undefined
+
+    const current = await readRepoFile('data/news.csv')
+    const news = parseCsv(current.content)
+
+    if (request.method === 'GET') {
+      return sendJson(response, 200, {
+        news: news.sort((left, right) => right.created_at.localeCompare(left.created_at)),
+      })
+    }
+
+    const body = await readJsonBody(request, 5_000_000)
+    if (request.method === 'POST') {
+      const fields = newsFields(body)
+      if (!validate(fields, response)) return undefined
+      const id = randomUUID()
+      const now = new Date().toISOString()
+      const item = {
+        id,
+        ...fields,
+        image_url: await uploadImage(body.image, id, fields.title),
+        author: session.sub,
+        created_at: now,
+        updated_at: now,
+      }
+      news.push(item)
+      await writeRepoFile(
+        'data/news.csv',
+        stringifyCsv(news, headers),
+        `เพิ่มข่าวสาร: ${fields.title}`,
+        current.sha,
+      )
+      return sendJson(response, 201, { news: item })
+    }
+
+    if (request.method === 'PUT' || request.method === 'DELETE') {
+      if (session.role !== 'admin') {
+        return sendJson(response, 403, { error: 'เฉพาะผู้ดูแลระบบเท่านั้นที่แก้ไขหรือลบรายการได้' })
+      }
+      const index = news.findIndex((item) => item.id === String(body.id || ''))
+      if (index < 0) return sendJson(response, 404, { error: 'ไม่พบข่าวที่ต้องการ' })
+
+      if (request.method === 'DELETE') {
+        const [removed] = news.splice(index, 1)
+        await writeRepoFile(
+          'data/news.csv',
+          stringifyCsv(news, headers),
+          `ลบข่าวสาร: ${removed.title}`,
+          current.sha,
+        )
+        return sendJson(response, 200, { success: true })
+      }
+
+      const fields = newsFields(body, news[index])
+      if (!validate(fields, response)) return undefined
+      const newImage = await uploadImage(body.image, news[index].id, fields.title)
+      news[index] = {
+        ...news[index],
+        ...fields,
+        image_url: newImage || news[index].image_url,
+        updated_at: new Date().toISOString(),
+      }
+      await writeRepoFile(
+        'data/news.csv',
+        stringifyCsv(news, headers),
+        `แก้ไขข่าวสาร: ${fields.title}`,
+        current.sha,
+      )
+      return sendJson(response, 200, { news: news[index] })
+    }
+
+    return methodNotAllowed(response, ['GET', 'POST', 'PUT', 'DELETE'])
   } catch (error) {
     if (error instanceof RepositoryConfigError) {
-      return sendJson(response, 503, {
-        error: 'ระบบบันทึกข้อมูลยังไม่ได้เชื่อมต่อ GitHub',
-        code: error.code,
-      })
+      return sendJson(response, 503, { error: 'ระบบยังไม่ได้เชื่อมต่อ GitHub' })
+    }
+    if (error.code === 'INVALID_IMAGE') {
+      return sendJson(response, 400, { error: error.message })
     }
     if (error.message === 'PAYLOAD_TOO_LARGE') {
       return sendJson(response, 413, { error: 'ข้อมูลหรือรูปภาพมีขนาดใหญ่เกินไป' })

@@ -39,7 +39,7 @@ export const navItems = [
     children: [
       { label: 'ปฏิทินกิจกรรม', href: '#activities' },
       { label: 'กิจกรรมโรงเรียน', href: '#activities' },
-      { label: 'ผลงานและความภาคภูมิใจ', href: '#news' },
+      { label: 'ผลงานและรางวัล', href: '#achievements' },
     ],
   },
   {

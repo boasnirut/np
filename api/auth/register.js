@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { createSessionToken, hashPassword, setSessionCookie } from '../_lib/auth.js'
+import { hashPassword } from '../_lib/auth.js'
 import { parseCsv, stringifyCsv } from '../_lib/csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from '../_lib/http.js'
 import { readRepoFile, RepositoryConfigError, writeRepoFile } from '../_lib/repo.js'
@@ -50,7 +50,7 @@ export default async function handler(request, response) {
       role: 'member',
       display_name: displayName,
       created_at: new Date().toISOString(),
-      active: 'true',
+      active: 'pending',
     }
     users.push(user)
     await writeRepoFile(
@@ -60,9 +60,10 @@ export default async function handler(request, response) {
       current.sha,
     )
 
-    setSessionCookie(response, createSessionToken(user))
     return sendJson(response, 201, {
-      user: { username, displayName, role: 'member' },
+      pending: true,
+      message: 'สมัครสมาชิกเรียบร้อยแล้ว กรุณารอผู้ดูแลระบบอนุมัติ',
+      user: { username, displayName, role: 'member', status: 'pending' },
     })
   } catch (error) {
     if (error instanceof RepositoryConfigError) {

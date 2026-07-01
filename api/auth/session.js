@@ -1,11 +1,11 @@
-import { getSession } from '../_lib/auth.js'
+import { requireActiveUser } from '../_lib/access.js'
 import { methodNotAllowed, sendJson } from '../_lib/http.js'
 import { githubConfigured } from '../_lib/repo.js'
 
-export default function handler(request, response) {
+export default async function handler(request, response) {
   if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
-  const session = getSession(request)
-  if (!session) return sendJson(response, 401, { authenticated: false })
+  const session = await requireActiveUser(request, response)
+  if (!session) return undefined
 
   return sendJson(response, 200, {
     authenticated: true,

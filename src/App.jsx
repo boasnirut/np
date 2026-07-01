@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Clock3,
   Leaf,
+  LogIn,
   Mail,
   MapPin,
   Menu,
@@ -16,6 +17,7 @@ import {
   Quote,
   School,
   Sparkles,
+  Trophy,
   X,
 } from 'lucide-react'
 import {
@@ -30,7 +32,7 @@ import {
   values,
 } from './content'
 
-const categories = ['ทั้งหมด', 'ประชาสัมพันธ์', 'วิชาการ', 'กิจกรรม']
+const categories = ['ทั้งหมด', 'ประชาสัมพันธ์', 'วิชาการ', 'กิจกรรม', 'ประกาศ']
 const welcomeSlides = [
   { src: '/P10.jpg', alt: 'สถิตกลางใจปวงประชา สมเด็จพระเจ้าลูกเธอ เจ้าฟ้าพัชรกิติยาภา' },
   { src: '/Q9.jpg', alt: 'สถิตในดวงใจตราบนิจนิรันดร์ สมเด็จพระนางเจ้าสิริกิติ์ พระบรมราชินีนาถ' },
@@ -278,8 +280,8 @@ function Header({ menuOpen, setMenuOpen }) {
             )}
           </nav>
 
-          <a className="header-contact" href="#contact" onClick={closeMenu}>
-            ติดต่อโรงเรียน
+          <a className="header-contact" href="/login" onClick={closeMenu}>
+            เข้าสู่ระบบ
             <ArrowRight size={17} aria-hidden="true" />
           </a>
 
@@ -334,9 +336,9 @@ function Header({ menuOpen, setMenuOpen }) {
                 </a>
               ),
             )}
-            <a className="mobile-nav__phone" href={contactDetails.phoneHref}>
-              <Phone size={18} />
-              โทร {contactDetails.phone}
+            <a className="mobile-nav__phone" href="/login">
+              <LogIn size={18} />
+              เข้าสู่ระบบ
             </a>
           </nav>
         </div>
@@ -536,15 +538,33 @@ function Billboard() {
   )
 }
 
-function News() {
+function News({ liveNews = [] }) {
   const [activeCategory, setActiveCategory] = useState('ทั้งหมด')
   const [activeNews, setActiveNews] = useState(null)
+  const sourceNews = useMemo(
+    () =>
+      liveNews.length
+        ? liveNews.map((item, index) => ({
+            ...item,
+            date: new Date(item.created_at).toLocaleDateString('th-TH', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            }),
+            excerpt: item.summary || item.content,
+            icon: Bell,
+            accent: index % 3 === 0 ? 'blue' : index % 3 === 1 ? 'green' : 'gold',
+            featured: index === 0,
+          }))
+        : newsItems,
+    [liveNews],
+  )
   const filteredNews = useMemo(
     () =>
       activeCategory === 'ทั้งหมด'
-        ? newsItems
-        : newsItems.filter((item) => item.category === activeCategory),
-    [activeCategory],
+        ? sourceNews
+        : sourceNews.filter((item) => item.category === activeCategory),
+    [activeCategory, sourceNews],
   )
 
   useEffect(() => {
@@ -595,7 +615,11 @@ function News() {
               >
                 <div className="news-card__visual">
                   <div className="news-card__pattern" aria-hidden="true" />
-                  <Icon size={item.featured ? 64 : 48} strokeWidth={1.35} aria-hidden="true" />
+                  {item.image_url ? (
+                    <img src={item.image_url} alt="" />
+                  ) : (
+                    <Icon size={item.featured ? 64 : 48} strokeWidth={1.35} aria-hidden="true" />
+                  )}
                   <span className="news-card__category">{item.category}</span>
                 </div>
                 <div className="news-card__body">
@@ -655,7 +679,8 @@ function News() {
               {activeNews.date}
             </div>
             <h2 id="news-dialog-title">{activeNews.title}</h2>
-            <p>{activeNews.excerpt}</p>
+            {activeNews.image_url && <img className="modal__image" src={activeNews.image_url} alt="" />}
+            <p className="modal__content">{activeNews.content || activeNews.excerpt}</p>
             <div className="modal__note">
               <Bell size={18} />
               โปรดติดตามรายละเอียดเพิ่มเติมและประกาศฉบับเต็มจากทางโรงเรียน
@@ -671,7 +696,29 @@ function News() {
   )
 }
 
-function Activities() {
+function Activities({ liveEvents = [] }) {
+  const displayedEvents = liveEvents.length
+    ? liveEvents.map((item, index) => {
+        const date = new Date(`${item.event_date}T00:00:00`)
+        return {
+          id: item.id,
+          day: String(date.getDate()).padStart(2, '0'),
+          month: date.toLocaleDateString('th-TH', { month: 'short' }),
+          title: item.title,
+          meta: [item.start_time ? `${item.start_time} น.` : '', item.location, item.details]
+            .filter(Boolean)
+            .join(' · '),
+          color: index % 3 === 0 ? 'blue' : index % 3 === 1 ? 'green' : 'gold',
+        }
+      })
+    : activityItems
+  const calendarHeading = liveEvents.length
+    ? new Date(`${liveEvents[0].event_date}T00:00:00`).toLocaleDateString('th-TH', {
+        month: 'long',
+        year: 'numeric',
+      })
+    : 'กรกฎาคม 2569'
+
   return (
     <section className="section activities" id="activities">
       <div className="activities__leaf activities__leaf--one" aria-hidden="true">
@@ -698,13 +745,13 @@ function Activities() {
           <div className="schedule__top">
             <div>
               <span>กิจกรรมที่กำลังจะมาถึง</span>
-              <strong>กรกฎาคม 2569</strong>
+              <strong>{calendarHeading}</strong>
             </div>
             <CalendarDays size={30} aria-hidden="true" />
           </div>
           <div className="schedule__list">
-            {activityItems.map((item) => (
-              <article className="schedule-item" key={item.day}>
+            {displayedEvents.map((item) => (
+              <article className="schedule-item" key={item.id || `${item.day}-${item.title}`}>
                 <div className={`schedule-item__date schedule-item__date--${item.color}`}>
                   <strong>{item.day}</strong>
                   <span>{item.month}</span>
@@ -722,6 +769,51 @@ function Activities() {
             กำหนดการอาจมีการเปลี่ยนแปลง โปรดติดตามประกาศจากโรงเรียน
           </p>
         </div>
+      </div>
+    </section>
+  )
+}
+
+function Achievements({ awards = [] }) {
+  return (
+    <section className="section achievements" id="achievements">
+      <div className="container">
+        <SectionHeading
+          eyebrow="ผลงานและรางวัล"
+          title="ความภาคภูมิใจของโรงเรียนบ้านน้ำพร"
+          description="รวบรวมผลงานของนักเรียน ครู และสถานศึกษาที่สะท้อนความมุ่งมั่นในการพัฒนาคุณภาพการศึกษา"
+          align="center"
+        />
+        {awards.length ? (
+          <div className="achievements__grid">
+            {awards.map((award) => (
+              <article className="achievement-card" key={award.id}>
+                <div className="achievement-card__visual">
+                  {award.image_url ? <img src={award.image_url} alt="" /> : <Trophy size={48} />}
+                  <span>{award.level || 'ผลงานโรงเรียน'}</span>
+                </div>
+                <div className="achievement-card__body">
+                  <small>
+                    {new Date(`${award.award_date}T00:00:00`).toLocaleDateString('th-TH', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </small>
+                  <h3>{award.title}</h3>
+                  {award.recipient && <strong>{award.recipient}</strong>}
+                  <p>{award.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="achievements__empty">
+            <span><Trophy size={38} /></span>
+            <strong>พื้นที่รวบรวมผลงานและรางวัล</strong>
+            <p>ข้อมูลผลงานที่เผยแพร่จากระบบบริหารจะแสดงในส่วนนี้</p>
+          </div>
+        )}
       </div>
     </section>
   )
@@ -1032,6 +1124,24 @@ function ContactFab() {
 function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [showTop, setShowTop] = useState(false)
+  const [publicContent, setPublicContent] = useState({ news: [], events: [], awards: [] })
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/public-content')
+      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then((data) => {
+        if (active) {
+          setPublicContent({
+            news: data.news || [],
+            events: data.events || [],
+            awards: data.awards || [],
+          })
+        }
+      })
+      .catch(() => undefined)
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     const onScroll = () => setShowTop(window.scrollY > 600)
@@ -1074,8 +1184,9 @@ function App() {
       <Hero />
       <Billboard />
       <About />
-      <News />
-      <Activities />
+      <News liveNews={publicContent.news} />
+      <Activities liveEvents={publicContent.events} />
+      <Achievements awards={publicContent.awards} />
       <Services />
       <DirectorMessage />
       <Contact />
