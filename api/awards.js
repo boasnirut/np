@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { requireActiveUser } from './_lib/access.js'
+import {
+  cleanExternalUrl,
+  nextDisplayOrder,
+  sortByDisplayOrder,
+} from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
 import { rawGithubUrl, readRepoFile, writeBinaryRepoFile, writeRepoFile } from './_lib/repo.js'
@@ -12,6 +17,9 @@ const headers = [
   'recipient',
   'description',
   'image_url',
+  'document_url',
+  'photo_url',
+  'display_order',
   'status',
   'author',
   'created_at',
@@ -19,15 +27,36 @@ const headers = [
 ]
 const allowedImageTypes = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
 
-function fields(body, existing = {}) {
+function fields(body, existing = {}, isAdmin = false) {
   return {
     title: String(body.title ?? existing.title ?? '').trim(),
     award_date: String(body.award_date ?? existing.award_date ?? '').trim(),
     level: String(body.level ?? existing.level ?? '').trim(),
     recipient: String(body.recipient ?? existing.recipient ?? '').trim(),
     description: String(body.description ?? existing.description ?? '').trim(),
+    document_url: cleanExternalUrl(body.document_url ?? existing.document_url ?? ''),
+    photo_url: cleanExternalUrl(body.photo_url ?? existing.photo_url ?? ''),
+    display_order: isAdmin
+      ? String(body.display_order ?? existing.display_order ?? '').trim()
+      : String(existing.display_order ?? '').trim(),
     status: (body.status ?? existing.status) === 'draft' ? 'draft' : 'published',
   }
+}
+
+function validate(item, response) {
+  if (item.title.length < 3 || !item.award_date) {
+    sendJson(response, 400, { error: 'กรุณากรอกชื่อผลงานและวันที่ให้ครบถ้วน' })
+    return false
+  }
+  if (item.document_url === null || item.photo_url === null) {
+    sendJson(response, 400, { error: 'ลิงก์เอกสารและ Google Photos ต้องเป็นลิงก์ https ที่ถูกต้อง' })
+    return false
+  }
+  if (item.display_order && !Number.isFinite(Number(item.display_order))) {
+    sendJson(response, 400, { error: 'ลำดับการแสดงผลต้องเป็นตัวเลข' })
+    return false
+  }
+  return true
 }
 
 async function uploadImage(image, id, title) {
@@ -50,21 +79,20 @@ export default async function handler(request, response) {
 
     if (request.method === 'GET') {
       return sendJson(response, 200, {
-        awards: awards.sort((left, right) => right.award_date.localeCompare(left.award_date)),
+        awards: sortByDisplayOrder(awards),
       })
     }
 
     const body = await readJsonBody(request, 5_000_000)
     if (request.method === 'POST') {
-      const itemFields = fields(body)
-      if (itemFields.title.length < 3 || !itemFields.award_date) {
-        return sendJson(response, 400, { error: 'กรุณากรอกชื่อผลงานและวันที่ให้ครบถ้วน' })
-      }
+      const itemFields = fields(body, {}, session.role === 'admin')
+      if (!validate(itemFields, response)) return undefined
       const id = randomUUID()
       const now = new Date().toISOString()
       const item = {
         id,
         ...itemFields,
+        display_order: itemFields.display_order || String(nextDisplayOrder(awards)),
         image_url: await uploadImage(body.image, id, itemFields.title),
         author: session.sub,
         created_at: now,
@@ -96,7 +124,8 @@ export default async function handler(request, response) {
         )
         return sendJson(response, 200, { success: true })
       }
-      const itemFields = fields(body, awards[index])
+      const itemFields = fields(body, awards[index], session.role === 'admin')
+      if (!validate(itemFields, response)) return undefined
       const newImage = await uploadImage(body.image, awards[index].id, itemFields.title)
       awards[index] = {
         ...awards[index],

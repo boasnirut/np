@@ -29,6 +29,7 @@ export const navItems = [
     href: '#news',
     children: [
       { label: 'ข่าวประชาสัมพันธ์', href: '#news' },
+      { label: 'จดหมายข่าวประชาสัมพันธ์', href: '#newsletters' },
       { label: 'ข่าววิชาการ', href: '#news' },
       { label: 'ภาพกิจกรรม', href: '#activities' },
     ],

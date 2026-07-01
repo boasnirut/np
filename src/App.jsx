@@ -6,13 +6,18 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Clock3,
+  ExternalLink,
+  FileText,
+  Images,
   Leaf,
   LogIn,
   Mail,
   MapPin,
   Menu,
+  Newspaper,
   Phone,
   Quote,
   School,
@@ -538,9 +543,54 @@ function Billboard() {
   )
 }
 
+function Pagination({ currentPage, totalPages, onChange, label }) {
+  if (totalPages <= 1) return null
+  const visiblePages = Array.from(
+    new Set([1, currentPage - 1, currentPage, currentPage + 1, totalPages]),
+  ).filter((page) => page >= 1 && page <= totalPages)
+
+  return (
+    <nav className="pagination" aria-label={label}>
+      <button
+        type="button"
+        aria-label="หน้าก่อนหน้า"
+        disabled={currentPage === 1}
+        onClick={() => onChange(currentPage - 1)}
+      >
+        <ChevronLeft size={18} />
+      </button>
+      {visiblePages.map((page, index) => (
+        <span className="pagination__item" key={page}>
+          {index > 0 && page - visiblePages[index - 1] > 1 && (
+            <span className="pagination__ellipsis" aria-hidden="true">…</span>
+          )}
+          <button
+            className={page === currentPage ? 'is-active' : ''}
+            type="button"
+            aria-label={`หน้า ${page}`}
+            aria-current={page === currentPage ? 'page' : undefined}
+            onClick={() => onChange(page)}
+          >
+            {page}
+          </button>
+        </span>
+      ))}
+      <button
+        type="button"
+        aria-label="หน้าถัดไป"
+        disabled={currentPage === totalPages}
+        onClick={() => onChange(currentPage + 1)}
+      >
+        <ChevronRight size={18} />
+      </button>
+    </nav>
+  )
+}
+
 function News({ liveNews = [] }) {
   const [activeCategory, setActiveCategory] = useState('ทั้งหมด')
   const [activeNews, setActiveNews] = useState(null)
+  const [page, setPage] = useState(1)
   const sourceNews = useMemo(
     () =>
       liveNews.length
@@ -566,6 +616,10 @@ function News({ liveNews = [] }) {
         : sourceNews.filter((item) => item.category === activeCategory),
     [activeCategory, sourceNews],
   )
+  const pageSize = 6
+  const totalPages = Math.max(1, Math.ceil(filteredNews.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const displayedNews = filteredNews.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   useEffect(() => {
     if (!activeNews) return undefined
@@ -599,7 +653,10 @@ function News({ liveNews = [] }) {
                   key={category}
                   className={activeCategory === category ? 'active' : ''}
                   aria-pressed={activeCategory === category}
-                  onClick={() => setActiveCategory(category)}
+                  onClick={() => {
+                    setActiveCategory(category)
+                    setPage(1)
+                  }}
                 >
                   {category}
                 </button>
@@ -608,13 +665,13 @@ function News({ liveNews = [] }) {
           </div>
 
           <div className="news__grid">
-            {filteredNews.map(({ icon: Icon, ...item }) => (
+            {displayedNews.map(({ icon: Icon, ...item }, index) => (
               <article
-                className={`news-card news-card--${item.accent} ${item.featured ? 'news-card--featured' : ''}`}
+                className={`news-card news-card--${item.accent} ${index === 0 ? 'news-card--featured' : ''}`}
                 key={item.title}
               >
                 <div className="news-card__visual">
-                  <div className="news-card__pattern" aria-hidden="true" />
+                  {!item.image_url && <div className="news-card__pattern" aria-hidden="true" />}
                   {item.image_url ? (
                     <img src={item.image_url} alt="" />
                   ) : (
@@ -643,16 +700,12 @@ function News({ liveNews = [] }) {
             ))}
           </div>
 
-          <div className="news__all">
-            <button
-              className="button button--outline"
-              type="button"
-              onClick={() => setActiveCategory('ทั้งหมด')}
-            >
-              แสดงข่าวทั้งหมด
-              <ArrowRight size={18} />
-            </button>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onChange={setPage}
+            label="เลือกหน้าข่าวสารและประกาศ"
+          />
         </div>
       </section>
 
@@ -681,6 +734,20 @@ function News({ liveNews = [] }) {
             <h2 id="news-dialog-title">{activeNews.title}</h2>
             {activeNews.image_url && <img className="modal__image" src={activeNews.image_url} alt="" />}
             <p className="modal__content">{activeNews.content || activeNews.excerpt}</p>
+            {(activeNews.document_url || activeNews.photo_url) && (
+              <div className="content-links">
+                {activeNews.document_url && (
+                  <a href={activeNews.document_url} target="_blank" rel="noreferrer">
+                    <FileText size={18} /> เปิดเอกสาร PDF
+                  </a>
+                )}
+                {activeNews.photo_url && (
+                  <a href={activeNews.photo_url} target="_blank" rel="noreferrer">
+                    <Images size={18} /> ดูภาพใน Google Photos
+                  </a>
+                )}
+              </div>
+            )}
             <div className="modal__note">
               <Bell size={18} />
               โปรดติดตามรายละเอียดเพิ่มเติมและประกาศฉบับเต็มจากทางโรงเรียน
@@ -693,6 +760,57 @@ function News({ liveNews = [] }) {
         </div>
       )}
     </>
+  )
+}
+
+function Newsletters({ newsletters = [] }) {
+  const [page, setPage] = useState(1)
+  const pageSize = 4
+  const totalPages = Math.max(1, Math.ceil(newsletters.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const displayedItems = newsletters.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  return (
+    <section className="section newsletters" id="newsletters">
+      <div className="container">
+        <SectionHeading
+          eyebrow="จดหมายข่าวประชาสัมพันธ์"
+          title="สรุปเรื่องราวและกิจกรรมของโรงเรียน"
+          description="ติดตามจดหมายข่าวประชาสัมพันธ์โรงเรียนบ้านน้ำพรในรูปแบบที่อ่านง่ายและเปิดดูฉบับเต็มได้"
+          align="center"
+        />
+        {displayedItems.length ? (
+          <>
+            <div className="newsletters__grid">
+              {displayedItems.map((item) => (
+                <article className="newsletter-card" key={item.id}>
+                  <a href={item.image_url} target="_blank" rel="noreferrer" aria-label={`เปิดจดหมายข่าว ${item.issue_number}`}>
+                    <img src={item.image_url} alt={`จดหมายข่าวประชาสัมพันธ์ ${item.issue_number}`} />
+                    <span><ExternalLink size={17} /> เปิดดูฉบับเต็ม</span>
+                  </a>
+                  <div>
+                    <Newspaper size={20} />
+                    <strong>{item.issue_number}</strong>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onChange={setPage}
+              label="เลือกหน้าจดหมายข่าวประชาสัมพันธ์"
+            />
+          </>
+        ) : (
+          <div className="newsletters__empty">
+            <span><Newspaper size={38} /></span>
+            <strong>พื้นที่รวบรวมจดหมายข่าวประชาสัมพันธ์</strong>
+            <p>จดหมายข่าวที่เผยแพร่จากระบบบริหารจะแสดงในส่วนนี้</p>
+          </div>
+        )}
+      </div>
+    </section>
   )
 }
 
@@ -775,6 +893,12 @@ function Activities({ liveEvents = [] }) {
 }
 
 function Achievements({ awards = [] }) {
+  const [page, setPage] = useState(1)
+  const pageSize = 6
+  const totalPages = Math.max(1, Math.ceil(awards.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const displayedAwards = awards.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
   return (
     <section className="section achievements" id="achievements">
       <div className="container">
@@ -784,9 +908,10 @@ function Achievements({ awards = [] }) {
           description="รวบรวมผลงานของนักเรียน ครู และสถานศึกษาที่สะท้อนความมุ่งมั่นในการพัฒนาคุณภาพการศึกษา"
           align="center"
         />
-        {awards.length ? (
-          <div className="achievements__grid">
-            {awards.map((award) => (
+        {displayedAwards.length ? (
+          <>
+            <div className="achievements__grid">
+              {displayedAwards.map((award) => (
               <article className="achievement-card" key={award.id}>
                 <div className="achievement-card__visual">
                   {award.image_url ? <img src={award.image_url} alt="" /> : <Trophy size={48} />}
@@ -803,10 +928,31 @@ function Achievements({ awards = [] }) {
                   <h3>{award.title}</h3>
                   {award.recipient && <strong>{award.recipient}</strong>}
                   <p>{award.description}</p>
+                  {(award.document_url || award.photo_url) && (
+                    <div className="content-links content-links--compact">
+                      {award.document_url && (
+                        <a href={award.document_url} target="_blank" rel="noreferrer">
+                          <FileText size={16} /> เอกสาร PDF
+                        </a>
+                      )}
+                      {award.photo_url && (
+                        <a href={award.photo_url} target="_blank" rel="noreferrer">
+                          <Images size={16} /> Google Photos
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
               </article>
-            ))}
-          </div>
+              ))}
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onChange={setPage}
+              label="เลือกหน้าผลงานและรางวัล"
+            />
+          </>
         ) : (
           <div className="achievements__empty">
             <span><Trophy size={38} /></span>
@@ -1124,7 +1270,12 @@ function ContactFab() {
 function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [showTop, setShowTop] = useState(false)
-  const [publicContent, setPublicContent] = useState({ news: [], events: [], awards: [] })
+  const [publicContent, setPublicContent] = useState({
+    news: [],
+    events: [],
+    awards: [],
+    newsletters: [],
+  })
 
   useEffect(() => {
     let active = true
@@ -1136,6 +1287,7 @@ function App() {
             news: data.news || [],
             events: data.events || [],
             awards: data.awards || [],
+            newsletters: data.newsletters || [],
           })
         }
       })
@@ -1185,6 +1337,7 @@ function App() {
       <Billboard />
       <About />
       <News liveNews={publicContent.news} />
+      <Newsletters newsletters={publicContent.newsletters} />
       <Activities liveEvents={publicContent.events} />
       <Achievements awards={publicContent.awards} />
       <Services />

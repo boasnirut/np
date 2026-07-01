@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { requireActiveUser } from './_lib/access.js'
+import {
+  cleanExternalUrl,
+  nextDisplayOrder,
+  sortByDisplayOrder,
+} from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
 import {
@@ -17,6 +22,9 @@ const headers = [
   'summary',
   'content',
   'image_url',
+  'document_url',
+  'photo_url',
+  'display_order',
   'status',
   'author',
   'created_at',
@@ -28,12 +36,17 @@ const allowedImageTypes = {
   'image/webp': 'webp',
 }
 
-function newsFields(body, existing = {}) {
+function newsFields(body, existing = {}, isAdmin = false) {
   return {
     title: String(body.title ?? existing.title ?? '').trim(),
     category: String(body.category ?? existing.category ?? 'ประชาสัมพันธ์').trim(),
     summary: String(body.summary ?? existing.summary ?? '').trim(),
     content: String(body.content ?? existing.content ?? '').trim(),
+    document_url: cleanExternalUrl(body.document_url ?? existing.document_url ?? ''),
+    photo_url: cleanExternalUrl(body.photo_url ?? existing.photo_url ?? ''),
+    display_order: isAdmin
+      ? String(body.display_order ?? existing.display_order ?? '').trim()
+      : String(existing.display_order ?? '').trim(),
     status: (body.status ?? existing.status) === 'draft' ? 'draft' : 'published',
   }
 }
@@ -45,6 +58,14 @@ function validate(fields, response) {
   }
   if (!fields.content || fields.content.length > 20_000) {
     sendJson(response, 400, { error: 'กรุณากรอกรายละเอียดข่าวไม่เกิน 20,000 ตัวอักษร' })
+    return false
+  }
+  if (fields.document_url === null || fields.photo_url === null) {
+    sendJson(response, 400, { error: 'ลิงก์เอกสารและ Google Photos ต้องเป็นลิงก์ https ที่ถูกต้อง' })
+    return false
+  }
+  if (fields.display_order && !Number.isFinite(Number(fields.display_order))) {
+    sendJson(response, 400, { error: 'ลำดับการแสดงผลต้องเป็นตัวเลข' })
     return false
   }
   return true
@@ -80,19 +101,20 @@ export default async function handler(request, response) {
 
     if (request.method === 'GET') {
       return sendJson(response, 200, {
-        news: news.sort((left, right) => right.created_at.localeCompare(left.created_at)),
+        news: sortByDisplayOrder(news),
       })
     }
 
     const body = await readJsonBody(request, 5_000_000)
     if (request.method === 'POST') {
-      const fields = newsFields(body)
+      const fields = newsFields(body, {}, session.role === 'admin')
       if (!validate(fields, response)) return undefined
       const id = randomUUID()
       const now = new Date().toISOString()
       const item = {
         id,
         ...fields,
+        display_order: fields.display_order || String(nextDisplayOrder(news)),
         image_url: await uploadImage(body.image, id, fields.title),
         author: session.sub,
         created_at: now,
@@ -126,7 +148,7 @@ export default async function handler(request, response) {
         return sendJson(response, 200, { success: true })
       }
 
-      const fields = newsFields(body, news[index])
+      const fields = newsFields(body, news[index], session.role === 'admin')
       if (!validate(fields, response)) return undefined
       const newImage = await uploadImage(body.image, news[index].id, fields.title)
       news[index] = {

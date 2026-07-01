@@ -8,7 +8,9 @@ import {
   Eye,
   EyeOff,
   FileImage,
+  GalleryHorizontalEnd,
   LayoutDashboard,
+  Link2,
   LoaderCircle,
   LockKeyhole,
   LogIn,
@@ -198,16 +200,29 @@ const modules = {
     eyebrow: 'NEWS & ANNOUNCEMENT',
     icon: Megaphone,
     image: true,
-    defaults: { title: '', category: 'ประชาสัมพันธ์', summary: '', content: '', status: 'published' },
+    defaults: {
+      title: '',
+      category: 'ประชาสัมพันธ์',
+      summary: '',
+      content: '',
+      document_url: '',
+      photo_url: '',
+      display_order: '',
+      status: 'published',
+    },
     fields: [
       { name: 'title', label: 'หัวข้อข่าว', wide: true, required: true, placeholder: 'กรอกหัวข้อข่าวหรือประกาศ' },
       { name: 'category', label: 'หมวดหมู่', type: 'select', options: ['ประชาสัมพันธ์', 'วิชาการ', 'กิจกรรม', 'ประกาศ'] },
       { name: 'status', label: 'สถานะ', type: 'status' },
       { name: 'summary', label: 'ข้อความสรุป', type: 'textarea', wide: true, rows: 2, placeholder: 'ข้อความสั้นสำหรับสรุปเนื้อหา' },
       { name: 'content', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 7, required: true, placeholder: 'กรอกรายละเอียดข่าวสารหรือประกาศ' },
+      { name: 'document_url', label: 'ลิงก์ PDF บน Google Drive', type: 'url', wide: true, placeholder: 'https://drive.google.com/...' },
+      { name: 'photo_url', label: 'ลิงก์ Google Photos', type: 'url', wide: true, placeholder: 'https://photos.app.goo.gl/...' },
+      { name: 'display_order', label: 'ลำดับการแสดงผล (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อเรียงรายการล่าสุดก่อน' },
     ],
     meta: (item) => `${item.category} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
     date: (item) => item.created_at,
+    title: (item) => item.title,
   },
   events: {
     endpoint: '/api/events',
@@ -227,6 +242,7 @@ const modules = {
     ],
     meta: (item) => `${item.event_date}${item.start_time ? ` · ${item.start_time} น.` : ''}`,
     date: (item) => item.created_at,
+    title: (item) => item.title,
   },
   awards: {
     endpoint: '/api/awards',
@@ -236,18 +252,60 @@ const modules = {
     eyebrow: 'ACHIEVEMENTS & AWARDS',
     icon: Trophy,
     image: true,
-    defaults: { title: '', award_date: '', level: '', recipient: '', description: '', status: 'published' },
+    defaults: {
+      title: '',
+      award_date: '',
+      level: '',
+      recipient: '',
+      description: '',
+      document_url: '',
+      photo_url: '',
+      display_order: '',
+      status: 'published',
+    },
     fields: [
       { name: 'title', label: 'ชื่อผลงานหรือรางวัล', wide: true, required: true, placeholder: 'กรอกชื่อผลงานหรือรางวัล' },
       { name: 'award_date', label: 'วันที่ได้รับ', type: 'date', required: true },
       { name: 'level', label: 'ระดับรางวัล', placeholder: 'เช่น ระดับจังหวัด' },
       { name: 'recipient', label: 'ผู้ได้รับรางวัล', wide: true, placeholder: 'นักเรียน ครู หรือโรงเรียน' },
       { name: 'description', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 5, placeholder: 'รายละเอียดผลงานและความภาคภูมิใจ' },
+      { name: 'document_url', label: 'ลิงก์ PDF บน Google Drive', type: 'url', wide: true, placeholder: 'https://drive.google.com/...' },
+      { name: 'photo_url', label: 'ลิงก์ Google Photos', type: 'url', wide: true, placeholder: 'https://photos.app.goo.gl/...' },
+      { name: 'display_order', label: 'ลำดับการแสดงผล (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อเรียงรายการล่าสุดก่อน' },
       { name: 'status', label: 'สถานะ', type: 'status' },
     ],
     meta: (item) => `${item.level || 'ผลงานโรงเรียน'} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
     date: (item) => item.award_date,
+    title: (item) => item.title,
   },
+  newsletters: {
+    endpoint: '/api/newsletters',
+    responseKey: 'newsletter',
+    listKey: 'newsletters',
+    label: 'จดหมายข่าวประชาสัมพันธ์',
+    eyebrow: 'SCHOOL NEWSLETTER',
+    icon: GalleryHorizontalEnd,
+    image: true,
+    imageRequired: true,
+    imageHint: 'ภาพแนวตั้ง อัตราส่วนประมาณ 1:1.4 · JPG, PNG หรือ WebP ไม่เกิน 3 MB',
+    imageClass: 'image-uploader--portrait',
+    defaults: { issue_number: '', display_order: '' },
+    fields: [
+      { name: 'issue_number', label: 'หมายเลขฉบับ', wide: true, required: true, placeholder: 'เช่น ฉบับที่ 1/2569' },
+      { name: 'display_order', label: 'ลำดับการแสดงผล (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อเรียงรายการล่าสุดก่อน' },
+    ],
+    meta: () => 'จดหมายข่าวประชาสัมพันธ์',
+    date: (item) => item.created_at,
+    title: (item) => item.issue_number,
+  },
+}
+
+function sortRecords(items) {
+  return [...items].sort((left, right) => {
+    const orderDifference = Number(right.display_order || 0) - Number(left.display_order || 0)
+    if (orderDifference) return orderDifference
+    return String(right.created_at || '').localeCompare(String(left.created_at || ''))
+  })
 }
 
 function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
@@ -309,9 +367,9 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
       })
       const item = result[config.responseKey]
       setItems((current) =>
-        editingId
+        sortRecords(editingId
           ? current.map((existing) => (existing.id === editingId ? item : existing))
-          : [item, ...current],
+          : [item, ...current]),
       )
       setMessage({ type: 'success', text: editingId ? 'บันทึกการแก้ไขเรียบร้อยแล้ว' : 'เพิ่มข้อมูลและส่งขึ้น GitHub เรียบร้อยแล้ว' })
       reset()
@@ -323,7 +381,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
   }
 
   const remove = async (item) => {
-    if (!window.confirm(`ยืนยันการลบ “${item.title}” หรือไม่`)) return
+    if (!window.confirm(`ยืนยันการลบ “${config.title(item)}” หรือไม่`)) return
     try {
       await apiRequest(config.endpoint, {
         method: 'DELETE',
@@ -344,7 +402,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
           {editingId ? <button className="admin-icon-button" type="button" onClick={reset} aria-label="ยกเลิกแก้ไข"><X size={21} /></button> : <Icon size={28} />}
         </div>
         <div className="news-editor__grid">
-          {config.fields.map((field) => (
+          {config.fields.filter((field) => !field.adminOnly || isAdmin).map((field) => (
             <label className={`news-field ${field.wide ? 'news-field--wide' : ''}`} key={field.name}>
               <span>{field.label}</span>
               {field.type === 'textarea' ? (
@@ -379,11 +437,16 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
           ))}
         </div>
         {config.image && (
-          <label className={`image-uploader ${preview ? 'image-uploader--selected' : ''}`}>
+          <label className={`image-uploader ${config.imageClass || ''} ${preview ? 'image-uploader--selected' : ''}`}>
             {preview ? <img src={preview} alt="ตัวอย่างรูปภาพ" /> : (
-              <><span><FileImage size={27} /></span><strong>เลือกรูปภาพ</strong><small>JPG, PNG หรือ WebP ขนาดไม่เกิน 3 MB</small></>
+              <><span><FileImage size={27} /></span><strong>เลือกรูปภาพ</strong><small>{config.imageHint || 'JPG, PNG หรือ WebP ขนาดไม่เกิน 3 MB'}</small></>
             )}
-            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage} />
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={chooseImage}
+              required={config.imageRequired && !editingId}
+            />
           </label>
         )}
         {message && (
@@ -414,13 +477,16 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
                 </div>
                 <div className="admin-record-list__copy">
                   <span>{config.meta(item)}</span>
-                  <h3>{item.title}</h3>
+                  <h3>{config.title(item)}</h3>
+                  {(item.document_url || item.photo_url) && (
+                    <small className="admin-record-list__links"><Link2 size={12} /> มีลิงก์แนบ</small>
+                  )}
                   <small>{config.date(item) ? new Date(config.date(item)).toLocaleDateString('th-TH') : ''}</small>
                 </div>
                 {isAdmin && (
                   <div className="admin-record-list__actions">
-                    <button type="button" onClick={() => edit(item)} aria-label={`แก้ไข ${item.title}`}><Pencil size={16} /></button>
-                    <button type="button" className="is-danger" onClick={() => remove(item)} aria-label={`ลบ ${item.title}`}><Trash2 size={16} /></button>
+                    <button type="button" onClick={() => edit(item)} aria-label={`แก้ไข ${config.title(item)}`}><Pencil size={16} /></button>
+                    <button type="button" className="is-danger" onClick={() => remove(item)} aria-label={`ลบ ${config.title(item)}`}><Trash2 size={16} /></button>
                   </div>
                 )}
               </article>
@@ -494,6 +560,7 @@ function Dashboard() {
   const [news, setNews] = useState([])
   const [events, setEvents] = useState([])
   const [awards, setAwards] = useState([])
+  const [newsletters, setNewsletters] = useState([])
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -508,13 +575,15 @@ function Dashboard() {
           apiRequest('/api/news'),
           apiRequest('/api/events'),
           apiRequest('/api/awards'),
+          apiRequest('/api/newsletters'),
           sessionData.user.role === 'admin' ? apiRequest('/api/members') : Promise.resolve({ members: [] }),
         ]
-        const [newsData, eventData, awardData, memberData] = await Promise.all(requests)
+        const [newsData, eventData, awardData, newsletterData, memberData] = await Promise.all(requests)
         if (!active) return
         setNews(newsData.news || [])
         setEvents(eventData.events || [])
         setAwards(awardData.awards || [])
+        setNewsletters(newsletterData.newsletters || [])
         setMembers(memberData.members || [])
       } catch (error) {
         if (error.status === 401 || error.status === 403) window.location.replace('/login')
@@ -530,8 +599,9 @@ function Dashboard() {
     news: news.length,
     events: events.length,
     awards: awards.length,
+    newsletters: newsletters.length,
     pending: members.filter((member) => member.status === 'pending').length,
-  }), [news, events, awards, members])
+  }), [news, events, awards, newsletters, members])
 
   const logout = async () => {
     await apiRequest('/api/auth/logout', { method: 'POST', body: '{}' }).catch(() => undefined)
@@ -547,6 +617,7 @@ function Dashboard() {
     { id: 'news', label: 'ข่าวสารและประกาศ', icon: Megaphone },
     { id: 'events', label: 'ปฏิทินกิจกรรม', icon: CalendarDays },
     { id: 'awards', label: 'ผลงานและรางวัล', icon: Trophy },
+    { id: 'newsletters', label: 'จดหมายข่าวประชาสัมพันธ์', icon: GalleryHorizontalEnd },
     ...(isAdmin ? [{ id: 'members', label: `สมาชิก${stats.pending ? ` (${stats.pending})` : ''}`, icon: Users }] : []),
   ]
 
@@ -597,6 +668,7 @@ function Dashboard() {
           <article><span><Newspaper size={22} /></span><div><small>ข่าวสาร</small><strong>{stats.news}</strong></div></article>
           <article><span><CalendarDays size={22} /></span><div><small>กิจกรรม</small><strong>{stats.events}</strong></div></article>
           <article><span><Trophy size={22} /></span><div><small>ผลงานและรางวัล</small><strong>{stats.awards}</strong></div></article>
+          <article><span><GalleryHorizontalEnd size={22} /></span><div><small>จดหมายข่าว</small><strong>{stats.newsletters}</strong></div></article>
           {isAdmin && <article><span><Users size={22} /></span><div><small>รออนุมัติ</small><strong>{stats.pending}</strong></div></article>}
         </section>
 
@@ -614,6 +686,8 @@ function Dashboard() {
           <RecordManager type="events" items={events} setItems={setEvents} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'awards' ? (
           <RecordManager type="awards" items={awards} setItems={setAwards} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+        ) : activeModule === 'newsletters' ? (
+          <RecordManager type="newsletters" items={newsletters} setItems={setNewsletters} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : (
           <RecordManager type="news" items={news} setItems={setNews} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         )}
