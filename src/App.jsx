@@ -46,7 +46,7 @@ import {
   values,
 } from './content'
 
-const categories = ['ทั้งหมด', 'ประชาสัมพันธ์', 'วิชาการ', 'กิจกรรม', 'ประกาศ']
+const categories = ['ทั้งหมด', 'กิจกรรม', 'ประชาสัมพันธ์', 'ประกาศ']
 const welcomeSlides = [
   { src: '/P10.jpg', alt: 'สถิตกลางใจปวงประชา สมเด็จพระเจ้าลูกเธอ เจ้าฟ้าพัชรกิติยาภา' },
   { src: '/Q9.jpg', alt: 'สถิตในดวงใจตราบนิจนิรันดร์ สมเด็จพระนางเจ้าสิริกิติ์ พระบรมราชินีนาถ' },
@@ -929,12 +929,109 @@ function Activities({ liveEvents = [] }) {
   )
 }
 
-function Achievements({ awards = [] }) {
+const achievementGroups = [
+  {
+    type: 'school',
+    title: 'ผลงาน/รางวัลโรงเรียน',
+    description: 'ผลงานและความสำเร็จในภาพรวมของสถานศึกษา',
+    icon: School,
+  },
+  {
+    type: 'personnel',
+    title: 'ผลงาน/รางวัลผู้บริหาร/ครู/บุคลากร',
+    description: 'ความสำเร็จของผู้บริหาร ครู และบุคลากรทางการศึกษา',
+    icon: Users,
+  },
+  {
+    type: 'student',
+    title: 'ผลงาน/รางวัลนักเรียน',
+    description: 'ความสามารถและความภาคภูมิใจของนักเรียนโรงเรียนบ้านน้ำพร',
+    icon: GraduationCap,
+  },
+]
+
+function AchievementCard({ award }) {
+  return (
+    <article className="achievement-card">
+      <div className="achievement-card__visual">
+        {award.image_url ? <img src={award.image_url} alt="" /> : <Trophy size={48} />}
+        <span>{award.level || 'ผลงานโรงเรียน'}</span>
+      </div>
+      <div className="achievement-card__body">
+        <small>
+          {new Date(`${award.award_date}T00:00:00`).toLocaleDateString('th-TH', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
+        </small>
+        <h3>{award.title}</h3>
+        {award.recipient && <strong>{award.recipient}</strong>}
+        <p>{award.description}</p>
+        {(award.document_url || award.photo_url) && (
+          <div className="content-links content-links--compact">
+            {award.document_url && (
+              <a href={award.document_url} target="_blank" rel="noreferrer">
+                <FileText size={16} /> เอกสาร PDF
+              </a>
+            )}
+            {award.photo_url && (
+              <a href={award.photo_url} target="_blank" rel="noreferrer">
+                <Images size={16} /> Google Photos
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    </article>
+  )
+}
+
+function Achievements({ awards = [], grouped = false }) {
   const [page, setPage] = useState(1)
   const pageSize = 6
   const totalPages = Math.max(1, Math.ceil(awards.length / pageSize))
   const currentPage = Math.min(page, totalPages)
   const displayedAwards = awards.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  if (grouped) {
+    return (
+      <section className="section achievements achievements--grouped" id="achievements">
+        <div className="container">
+          <SectionHeading
+            eyebrow="ผลงานและรางวัล"
+            title="ความภาคภูมิใจของโรงเรียนบ้านน้ำพร"
+            description="แบ่งข้อมูลตามประเภทผู้ได้รับผลงานและรางวัล เพื่อให้ค้นหาและติดตามได้สะดวก"
+            align="center"
+          />
+          <div className="achievement-groups">
+            {achievementGroups.map(({ type, title, description, icon: Icon }) => {
+              const groupAwards = awards.filter((award) => (award.award_type || 'school') === type)
+              return (
+                <section className="achievement-group" key={type}>
+                  <header>
+                    <span><Icon size={25} /></span>
+                    <div><h2>{title}</h2><p>{description}</p></div>
+                    <strong>{groupAwards.length} รายการ</strong>
+                  </header>
+                  {groupAwards.length ? (
+                    <div className="achievements__grid">
+                      {groupAwards.map((award) => <AchievementCard award={award} key={award.id} />)}
+                    </div>
+                  ) : (
+                    <div className="achievement-group__empty">
+                      <Trophy size={27} />
+                      <span>ยังไม่มีข้อมูลในหมวดนี้</span>
+                    </div>
+                  )}
+                </section>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="section achievements" id="achievements">
@@ -948,40 +1045,7 @@ function Achievements({ awards = [] }) {
         {displayedAwards.length ? (
           <>
             <div className="achievements__grid">
-              {displayedAwards.map((award) => (
-              <article className="achievement-card" key={award.id}>
-                <div className="achievement-card__visual">
-                  {award.image_url ? <img src={award.image_url} alt="" /> : <Trophy size={48} />}
-                  <span>{award.level || 'ผลงานโรงเรียน'}</span>
-                </div>
-                <div className="achievement-card__body">
-                  <small>
-                    {new Date(`${award.award_date}T00:00:00`).toLocaleDateString('th-TH', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                  </small>
-                  <h3>{award.title}</h3>
-                  {award.recipient && <strong>{award.recipient}</strong>}
-                  <p>{award.description}</p>
-                  {(award.document_url || award.photo_url) && (
-                    <div className="content-links content-links--compact">
-                      {award.document_url && (
-                        <a href={award.document_url} target="_blank" rel="noreferrer">
-                          <FileText size={16} /> เอกสาร PDF
-                        </a>
-                      )}
-                      {award.photo_url && (
-                        <a href={award.photo_url} target="_blank" rel="noreferrer">
-                          <Images size={16} /> Google Photos
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </article>
-              ))}
+              {displayedAwards.map((award) => <AchievementCard award={award} key={award.id} />)}
             </div>
             <Pagination
               currentPage={currentPage}
@@ -1185,6 +1249,47 @@ function OperationPage({ type }) {
   )
 }
 
+function HomeOperations() {
+  const operationMenu = navItems.find((item) => item.label === 'การดำเนินงาน')
+  const icons = [GraduationCap, ShieldCheck, School, ClipboardCheck]
+  const descriptions = [
+    'ข้อมูลการสอบ RT, NT และ O-NET',
+    'ข้อมูลการประเมินคุณภาพภายนอก',
+    'การพัฒนาโรงเรียนขยายโอกาสคุณภาพ',
+    'คุณธรรมและความโปร่งใสในการดำเนินงาน',
+  ]
+
+  return (
+    <section className="section home-operations">
+      <div className="container">
+        <SectionHeading
+          eyebrow="การดำเนินงาน"
+          title="ติดตามภารกิจสำคัญของโรงเรียน"
+          description="เข้าถึงข้อมูลการวัดผล การประกันคุณภาพ และการดำเนินงานที่สำคัญได้จากหน้าเฉพาะ"
+          align="center"
+        />
+        <div className="home-operations__grid">
+          {operationMenu.children.map((item, index) => {
+            const Icon = icons[index]
+            return (
+              <a
+                href={item.href}
+                target={item.external ? '_blank' : undefined}
+                rel={item.external ? 'noreferrer' : undefined}
+                key={item.label}
+              >
+                <span><Icon size={27} /></span>
+                <div><h3>{item.label}</h3><p>{descriptions[index]}</p></div>
+                <ArrowRight size={18} />
+              </a>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 const servicePageData = {
   results: {
     eyebrow: 'บริการสำหรับนักเรียน',
@@ -1300,7 +1405,7 @@ function PublicSubPage({ path, publicContent }) {
     return <><PageHero eyebrow="เกี่ยวกับโรงเรียน" title="ประวัติโรงเรียน" description="เรื่องราวของสถานศึกษาที่เติบโตเคียงข้างชุมชนบ้านน้ำพร" icon={History} /><HistoryPage /></>
   }
   if (path === '/achievements') {
-    return <><PageHero eyebrow="โรงเรียนบ้านน้ำพร" title="ผลงานและรางวัล" description="ความภาคภูมิใจของนักเรียน ครู และสถานศึกษา" icon={Trophy} /><Achievements awards={publicContent.awards} /></>
+    return <><PageHero eyebrow="โรงเรียนบ้านน้ำพร" title="ผลงานและรางวัล" description="ความภาคภูมิใจของนักเรียน ครู และสถานศึกษา" icon={Trophy} /><Achievements awards={publicContent.awards} grouped /></>
   }
   if (path === '/news/activities') {
     return <><PageHero eyebrow="ข่าวสาร" title="กิจกรรม" description="ข่าวกิจกรรมและประสบการณ์การเรียนรู้ของนักเรียน" icon={CalendarDays} /><News liveNews={publicContent.news} fixedCategory="กิจกรรม" paginate={false} eyebrow="ข่าวกิจกรรม" title="กิจกรรมล่าสุดของโรงเรียน" description="ติดตามภาพและเรื่องราวจากกิจกรรมของโรงเรียน" /></>
@@ -1334,13 +1439,13 @@ function Services() {
     <section className="section services" id="services">
       <div className="container">
         <SectionHeading
-          eyebrow="บริการออนไลน์"
-          title="เข้าถึงข้อมูลที่ต้องการได้ง่ายขึ้น"
-          description="รวมข้อมูลและบริการสำคัญสำหรับนักเรียน ผู้ปกครอง ครู และชุมชนไว้ในที่เดียว"
+          eyebrow="เมนูเว็บไซต์"
+          title="เข้าถึงทุกส่วนของเว็บไซต์ได้ง่ายขึ้น"
+          description="รวมทางเข้าสู่ข้อมูลโรงเรียน ผลงาน การดำเนินงาน ข่าวสาร บริการ และช่องทางติดต่อไว้ในส่วนเดียว"
           align="center"
         />
         <div className="services__grid">
-          {services.map(({ icon: Icon, title, description }, index) => (
+          {services.map(({ icon: Icon, title, description, href }, index) => (
             <article className="service-card reveal" key={title}>
               <span className="service-card__number">0{index + 1}</span>
               <span className="service-card__icon">
@@ -1348,8 +1453,8 @@ function Services() {
               </span>
               <h3>{title}</h3>
               <p>{description}</p>
-              <a href="#contact" aria-label={`สอบถามข้อมูล ${title}`}>
-                สอบถามข้อมูล
+              <a href={href} aria-label={`เปิดดูข้อมูล ${title}`}>
+                เปิดดูข้อมูล
                 <ArrowRight size={17} />
               </a>
             </article>
@@ -1727,10 +1832,11 @@ function App() {
           <Hero />
           <Billboard />
           <About />
+          <Achievements awards={publicContent.awards} />
+          <HomeOperations />
           <News liveNews={publicContent.news} />
           <Newsletters newsletters={publicContent.newsletters} />
           <Activities liveEvents={publicContent.events} />
-          <Achievements awards={publicContent.awards} />
           <Services />
           <DirectorMessage />
           <Contact />

@@ -1,15 +1,14 @@
 import {
   BookOpenText,
-  CalendarDays,
-  FileText,
+  ClipboardCheck,
   GraduationCap,
   Images,
   Laptop,
   MapPin,
   Megaphone,
-  MessageCircleQuestion,
   School,
   ShieldCheck,
+  Trophy,
   Users,
 } from 'lucide-react'
 
@@ -58,37 +57,6 @@ export const navItems = [
   { label: 'ติดต่อเรา', href: '/contact' },
 ]
 
-export const quickLinks = [
-  {
-    title: 'ข่าวประชาสัมพันธ์',
-    description: 'ติดตามข่าวและประกาศล่าสุด',
-    href: '/news/public-relations',
-    icon: Megaphone,
-    color: 'blue',
-  },
-  {
-    title: 'ปฏิทินโรงเรียน',
-    description: 'ดูกิจกรรมและวันสำคัญ',
-    href: '/news/activities',
-    icon: CalendarDays,
-    color: 'gold',
-  },
-  {
-    title: 'เอกสารเผยแพร่',
-    description: 'ดาวน์โหลดเอกสารที่เกี่ยวข้อง',
-    href: '/services/downloads',
-    icon: FileText,
-    color: 'green',
-  },
-  {
-    title: 'ติดต่อโรงเรียน',
-    description: 'ที่อยู่ โทรศัพท์ และแผนที่',
-    href: '/contact',
-    icon: MapPin,
-    color: 'sky',
-  },
-]
-
 export const newsItems = [
   {
     category: 'ประชาสัมพันธ์',
@@ -101,7 +69,7 @@ export const newsItems = [
     featured: true,
   },
   {
-    category: 'วิชาการ',
+    category: 'ประกาศ',
     date: 'ภาคเรียนที่ 1/2569',
     title: 'เตรียมความพร้อมสำหรับการเรียนรู้ในภาคเรียนใหม่',
     excerpt:
@@ -146,34 +114,40 @@ export const activityItems = [
 
 export const services = [
   {
-    title: 'ข้อมูลพื้นฐาน',
-    description: 'ประวัติ วิสัยทัศน์ และข้อมูลทั่วไปของสถานศึกษา',
+    title: 'เกี่ยวกับโรงเรียน',
+    description: 'ข้อมูลพื้นฐาน บุคลากร และประวัติโรงเรียนบ้านน้ำพร',
     icon: School,
+    href: '/about/basic-info',
   },
   {
-    title: 'งานวิชาการ',
-    description: 'หลักสูตร แหล่งเรียนรู้ และข้อมูลสำหรับนักเรียน',
-    icon: GraduationCap,
+    title: 'ผลงานและรางวัล',
+    description: 'ความภาคภูมิใจของโรงเรียน บุคลากร และนักเรียน',
+    icon: Trophy,
+    href: '/achievements',
   },
   {
-    title: 'เอกสารออนไลน์',
-    description: 'แบบฟอร์ม ประกาศ และเอกสารเผยแพร่ของโรงเรียน',
-    icon: FileText,
+    title: 'การดำเนินงาน',
+    description: 'การสอบระดับชาติ ประกันคุณภาพ และ ITA Online',
+    icon: ClipboardCheck,
+    href: '/operations/national-tests',
   },
   {
-    title: 'ระบบสารสนเทศ',
-    description: 'ทางลัดสู่ระบบงานและบริการดิจิทัลที่เกี่ยวข้อง',
+    title: 'ข่าวสาร',
+    description: 'กิจกรรม ประชาสัมพันธ์ ประกาศ และจดหมายข่าว',
+    icon: Megaphone,
+    href: '/news/public-relations',
+  },
+  {
+    title: 'บริการ',
+    description: 'ตรวจผลการเรียน ดาวน์โหลดเอกสาร ถาม-ตอบ และร้องเรียน',
     icon: Laptop,
+    href: '/services/results',
   },
   {
-    title: 'ข้อมูลบุคลากร',
-    description: 'ทำความรู้จักคณะครูและบุคลากรทางการศึกษา',
-    icon: Users,
-  },
-  {
-    title: 'ถาม–ตอบ',
-    description: 'คำถามที่พบบ่อยและช่องทางขอความช่วยเหลือ',
-    icon: MessageCircleQuestion,
+    title: 'ติดต่อเรา',
+    description: 'ที่อยู่ หมายเลขโทรศัพท์ อีเมล และแผนที่โรงเรียน',
+    icon: MapPin,
+    href: '/contact',
   },
 ]
 

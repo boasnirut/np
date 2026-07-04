@@ -191,6 +191,12 @@ function fileToDataUrl(file) {
   })
 }
 
+const awardTypeLabels = {
+  school: 'ผลงาน/รางวัลโรงเรียน',
+  personnel: 'ผลงาน/รางวัลผู้บริหาร/ครู/บุคลากร',
+  student: 'ผลงาน/รางวัลนักเรียน',
+}
+
 const modules = {
   news: {
     endpoint: '/api/news',
@@ -212,7 +218,7 @@ const modules = {
     },
     fields: [
       { name: 'title', label: 'หัวข้อข่าว', wide: true, required: true, placeholder: 'กรอกหัวข้อข่าวหรือประกาศ' },
-      { name: 'category', label: 'หมวดหมู่', type: 'select', options: ['ประชาสัมพันธ์', 'วิชาการ', 'กิจกรรม', 'ประกาศ'] },
+      { name: 'category', label: 'หมวดหมู่', type: 'select', options: ['กิจกรรม', 'ประชาสัมพันธ์', 'ประกาศ'] },
       { name: 'status', label: 'สถานะ', type: 'status' },
       { name: 'summary', label: 'ข้อความสรุป', type: 'textarea', wide: true, rows: 2, placeholder: 'ข้อความสั้นสำหรับสรุปเนื้อหา' },
       { name: 'content', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 7, required: true, placeholder: 'กรอกรายละเอียดข่าวสารหรือประกาศ' },
@@ -228,8 +234,8 @@ const modules = {
     endpoint: '/api/events',
     responseKey: 'event',
     listKey: 'events',
-    label: 'ปฏิทินกิจกรรม',
-    eyebrow: 'SCHOOL CALENDAR',
+    label: 'กิจกรรม',
+    eyebrow: 'SCHOOL ACTIVITIES',
     icon: CalendarDays,
     defaults: { title: '', event_date: '', start_time: '', location: '', details: '', status: 'published' },
     fields: [
@@ -254,6 +260,7 @@ const modules = {
     image: true,
     defaults: {
       title: '',
+      award_type: 'school',
       award_date: '',
       level: '',
       recipient: '',
@@ -265,6 +272,13 @@ const modules = {
     },
     fields: [
       { name: 'title', label: 'ชื่อผลงานหรือรางวัล', wide: true, required: true, placeholder: 'กรอกชื่อผลงานหรือรางวัล' },
+      {
+        name: 'award_type',
+        label: 'ประเภทผลงานและรางวัล',
+        type: 'select',
+        wide: true,
+        options: Object.entries(awardTypeLabels).map(([value, label]) => ({ value, label })),
+      },
       { name: 'award_date', label: 'วันที่ได้รับ', type: 'date', required: true },
       { name: 'level', label: 'ระดับรางวัล', placeholder: 'เช่น ระดับจังหวัด' },
       { name: 'recipient', label: 'ผู้ได้รับรางวัล', wide: true, placeholder: 'นักเรียน ครู หรือโรงเรียน' },
@@ -274,7 +288,7 @@ const modules = {
       { name: 'display_order', label: 'ลำดับการแสดงผล (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อเรียงรายการล่าสุดก่อน' },
       { name: 'status', label: 'สถานะ', type: 'status' },
     ],
-    meta: (item) => `${item.level || 'ผลงานโรงเรียน'} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
+    meta: (item) => `${awardTypeLabels[item.award_type] || awardTypeLabels.school} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
     date: (item) => item.award_date,
     title: (item) => item.title,
   },
@@ -416,7 +430,11 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
                 />
               ) : field.type === 'select' ? (
                 <select name={field.name} value={form[field.name]} onChange={update}>
-                  {field.options.map((option) => <option key={option}>{option}</option>)}
+                  {field.options.map((option) => {
+                    const value = typeof option === 'string' ? option : option.value
+                    const label = typeof option === 'string' ? option : option.label
+                    return <option value={value} key={value}>{label}</option>
+                  })}
                 </select>
               ) : field.type === 'status' ? (
                 <select name={field.name} value={form[field.name]} onChange={update}>
@@ -772,7 +790,7 @@ function Dashboard() {
   const isAdmin = session?.user.role === 'admin'
   const navItems = [
     { id: 'news', label: 'ข่าวสารและประกาศ', icon: Megaphone },
-    { id: 'events', label: 'ปฏิทินกิจกรรม', icon: CalendarDays },
+    { id: 'events', label: 'กิจกรรม', icon: CalendarDays },
     { id: 'awards', label: 'ผลงานและรางวัล', icon: Trophy },
     { id: 'newsletters', label: 'จดหมายข่าวประชาสัมพันธ์', icon: GalleryHorizontalEnd },
     ...(isAdmin ? [{ id: 'members', label: `สมาชิก${stats.pending ? ` (${stats.pending})` : ''}`, icon: Users }] : []),

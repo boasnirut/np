@@ -12,6 +12,7 @@ import { rawGithubUrl, readRepoFile, writeBinaryRepoFile, writeRepoFile } from '
 const headers = [
   'id',
   'title',
+  'award_type',
   'award_date',
   'level',
   'recipient',
@@ -26,10 +27,12 @@ const headers = [
   'updated_at',
 ]
 const allowedImageTypes = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+const allowedAwardTypes = new Set(['school', 'personnel', 'student'])
 
 function fields(body, existing = {}, isAdmin = false) {
   return {
     title: String(body.title ?? existing.title ?? '').trim(),
+    award_type: String(body.award_type ?? existing.award_type ?? 'school').trim(),
     award_date: String(body.award_date ?? existing.award_date ?? '').trim(),
     level: String(body.level ?? existing.level ?? '').trim(),
     recipient: String(body.recipient ?? existing.recipient ?? '').trim(),
@@ -46,6 +49,10 @@ function fields(body, existing = {}, isAdmin = false) {
 function validate(item, response) {
   if (item.title.length < 3 || !item.award_date) {
     sendJson(response, 400, { error: 'กรุณากรอกชื่อผลงานและวันที่ให้ครบถ้วน' })
+    return false
+  }
+  if (!allowedAwardTypes.has(item.award_type)) {
+    sendJson(response, 400, { error: 'ประเภทผลงานและรางวัลไม่ถูกต้อง' })
     return false
   }
   if (item.document_url === null || item.photo_url === null) {
