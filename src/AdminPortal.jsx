@@ -237,7 +237,7 @@ const modules = {
       { name: 'content', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 7, required: true, placeholder: 'กรอกรายละเอียดข่าวสารหรือประกาศ' },
       { name: 'document_url', label: 'ลิงก์ PDF บน Google Drive', type: 'url', wide: true, placeholder: 'https://drive.google.com/...' },
       { name: 'photo_url', label: 'ลิงก์ Google Photos', type: 'url', wide: true, placeholder: 'https://photos.app.goo.gl/...' },
-      { name: 'display_order', label: 'ลำดับการแสดงผล (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อเรียงรายการล่าสุดก่อน' },
+      { name: 'display_order', label: 'ลำดับภายในวันที่เดียวกัน (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบนับต่อภายในวันที่นี้' },
     ],
     meta: (item) => `${item.category} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
     date: (item) => item.publish_date || item.created_at,
@@ -298,7 +298,7 @@ const modules = {
       { name: 'description', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 5, placeholder: 'รายละเอียดผลงานและความภาคภูมิใจ' },
       { name: 'document_url', label: 'ลิงก์ PDF บน Google Drive', type: 'url', wide: true, placeholder: 'https://drive.google.com/...' },
       { name: 'photo_url', label: 'ลิงก์ Google Photos', type: 'url', wide: true, placeholder: 'https://photos.app.goo.gl/...' },
-      { name: 'display_order', label: 'ลำดับการแสดงผล (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อเรียงรายการล่าสุดก่อน' },
+      { name: 'display_order', label: 'ลำดับภายในวันที่เดียวกัน (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบนับต่อภายในวันที่นี้' },
       { name: 'status', label: 'สถานะ', type: 'status' },
     ],
     meta: (item) => `${awardTypeLabels[item.award_type] || awardTypeLabels.school} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
@@ -320,7 +320,7 @@ const modules = {
     fields: [
       { name: 'issue_number', label: 'หมายเลขฉบับ', wide: true, required: true, placeholder: 'เช่น ฉบับที่ 1/2569' },
       { name: 'publish_date', label: 'วันที่เผยแพร่', type: 'date', required: true },
-      { name: 'display_order', label: 'ลำดับการแสดงผล (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อเรียงรายการล่าสุดก่อน' },
+      { name: 'display_order', label: 'ลำดับภายในวันที่เดียวกัน (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบนับต่อภายในวันที่นี้' },
     ],
     meta: () => 'จดหมายข่าวประชาสัมพันธ์',
     date: (item) => item.publish_date || item.created_at,
@@ -330,13 +330,28 @@ const modules = {
 
 function sortRecords(items) {
   return [...items].sort((left, right) => {
-    const leftDate = String(left.created_at || left.createdAt || '')
-    const rightDate = String(right.created_at || right.createdAt || '')
+    const leftDate = String(
+      left.publish_date
+      || left.award_date
+      || left.event_date
+      || left.created_at
+      || left.createdAt
+      || '',
+    ).slice(0, 10)
+    const rightDate = String(
+      right.publish_date
+      || right.award_date
+      || right.event_date
+      || right.created_at
+      || right.createdAt
+      || '',
+    ).slice(0, 10)
     const dateDifference = rightDate.localeCompare(leftDate)
     if (dateDifference) return dateDifference
     const orderDifference = Number(right.display_order || 0) - Number(left.display_order || 0)
     if (orderDifference) return orderDifference
-    return String(right.id || '').localeCompare(String(left.id || ''))
+    return String(right.created_at || right.createdAt || right.id || '')
+      .localeCompare(String(left.created_at || left.createdAt || left.id || ''))
   })
 }
 

@@ -47,7 +47,7 @@ export default async function handler(request, response) {
     if (request.method === 'GET') {
       return sendJson(response, 200, {
         events: await withUserDisplayNames(
-          events.sort((left, right) => left.event_date.localeCompare(right.event_date)),
+          events.sort((left, right) => right.event_date.localeCompare(left.event_date)),
           session.userNames,
         ),
       })

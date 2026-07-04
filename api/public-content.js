@@ -1,5 +1,9 @@
 import { parseCsv } from './_lib/csv.js'
-import { evidenceDocumentUrls, sortByDisplayOrder } from './_lib/content.js'
+import {
+  evidenceDocumentUrls,
+  sortByDateAndDisplayOrder,
+  sortByDisplayOrder,
+} from './_lib/content.js'
 import { methodNotAllowed } from './_lib/http.js'
 import { readRepoFile } from './_lib/repo.js'
 
@@ -15,12 +19,15 @@ export default async function handler(request, response) {
     ])
     const published = (rows) => rows.filter((item) => item.status === 'published')
     const body = {
-      news: sortByDisplayOrder(published(parseCsv(newsFile.content))),
+      news: sortByDateAndDisplayOrder(published(parseCsv(newsFile.content)), 'publish_date'),
       events: published(parseCsv(eventsFile.content)).sort((left, right) =>
-        left.event_date.localeCompare(right.event_date),
+        right.event_date.localeCompare(left.event_date),
       ),
-      awards: sortByDisplayOrder(published(parseCsv(awardsFile.content))),
-      newsletters: sortByDisplayOrder(published(parseCsv(newslettersFile.content))),
+      awards: sortByDateAndDisplayOrder(published(parseCsv(awardsFile.content)), 'award_date'),
+      newsletters: sortByDateAndDisplayOrder(
+        published(parseCsv(newslettersFile.content)),
+        'publish_date',
+      ),
       qualityEvidence: sortByDisplayOrder(published(parseCsv(qualityFile.content))).map((item) => ({
         ...item,
         document_urls: evidenceDocumentUrls(item),

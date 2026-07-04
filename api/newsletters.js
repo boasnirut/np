@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
-import { nextDisplayOrder, sortByDisplayOrder } from './_lib/content.js'
+import { nextDisplayOrderForDate, sortByDateAndDisplayOrder } from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
 import {
@@ -77,7 +77,10 @@ export default async function handler(request, response) {
 
     if (request.method === 'GET') {
       return sendJson(response, 200, {
-        newsletters: await withUserDisplayNames(sortByDisplayOrder(newsletters), session.userNames),
+        newsletters: await withUserDisplayNames(
+          sortByDateAndDisplayOrder(newsletters, 'publish_date'),
+          session.userNames,
+        ),
       })
     }
 
@@ -95,7 +98,9 @@ export default async function handler(request, response) {
         id,
         ...itemFields,
         image_url: imageUrl,
-        display_order: itemFields.display_order || String(nextDisplayOrder(newsletters)),
+        display_order: itemFields.display_order || String(
+          nextDisplayOrderForDate(newsletters, 'publish_date', itemFields.publish_date),
+        ),
         author: session.sub,
         created_at: now,
         updated_at: now,
