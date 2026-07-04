@@ -1325,6 +1325,48 @@ function BasicInfoPage() {
 }
 
 function StaffPage() {
+  const director = {
+    image: '/TC01.png',
+    name: 'นางศิวาลัย แก้วเขียว',
+    position: 'ผู้อำนวยการโรงเรียนบ้านน้ำพร',
+  }
+  const teachers = [
+    { image: '/TC02.png', name: 'นางรัตนา อ่ำนาเพียง', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC03.png', name: 'นางสาววันชื่น ทองอยู่', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC04.png', name: 'นางสาวพรพรรณ จันทะสี', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC06.png', name: 'นางสุจิตรา ฝั้นสีดา', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC15.png', name: 'นางรัตนาภรณ์ ผิวจันทา', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC05.png', name: 'นางพิศมัย โกมาร', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC07.png', name: 'นางสาววิไลวรรณ ชาภูธร', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC08.png', name: 'นางสาวสุวรรณา พุทธมาตย์', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC09.png', name: 'นายนิรุทธิ์ เสวะนา', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC10.png', name: 'ว่าที่ร้อยตรีหญิงเอื้องคำ ชัยภา', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC11.png', name: 'นางสาวสุภาพร พิมพุธ', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC12.png', name: 'นายอิทธิภู กองพอด', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC13.png', name: 'นางสาวยลดา จันดาหาร', position: 'ครู โรงเรียนบ้านน้ำพร' },
+    { image: '/TC14.png', name: 'นางสาวรัตติกานต์ ราชศรีเมือง', position: 'ครู โรงเรียนบ้านน้ำพร' },
+  ]
+  const supportStaff = [
+    { image: '/TC16.png', name: 'นางสาวทิวาพร คำพรม', position: 'เจ้าหน้าที่ธุรการ' },
+    { image: '/TC17.png', name: 'นายประสิทธิ์ ไพฑูรย์', position: 'นักการภารโรง' },
+  ]
+
+  const StaffCard = ({ member }) => (
+    <article className="staff-card">
+      <div className="staff-card__image">
+        <img
+          src={member.image}
+          alt={`${member.name} ${member.position}`}
+          loading="lazy"
+        />
+      </div>
+      <div className="staff-card__copy">
+        <span>{member.position}</span>
+        <h3>{member.name}</h3>
+      </div>
+    </article>
+  )
+
   return (
     <section className="section inner-content">
       <div className="container">
@@ -1334,19 +1376,48 @@ function StaffPage() {
           description="บุคลากรโรงเรียนบ้านน้ำพรร่วมกันดูแลผู้เรียนและสร้างพื้นที่การเรียนรู้ที่ปลอดภัย เป็นมิตร และมีคุณภาพ"
           align="center"
         />
-        <article className="director-profile">
-          <div className="director-profile__image">
-            <img src="/PO.png" alt="นางศิวาลัย แก้วเขียว ผู้อำนวยการโรงเรียนบ้านน้ำพร" />
+
+        <div className="staff-section-heading staff-section-heading--director">
+          <span><School size={19} /></span>
+          <div>
+            <small>School Director</small>
+            <h2>ผู้บริหารสถานศึกษา</h2>
+          </div>
+        </div>
+        <article className="staff-director">
+          <div className="staff-director__image">
+            <img src={director.image} alt={`${director.name} ${director.position}`} />
           </div>
           <div>
-            <span>ผู้อำนวยการโรงเรียน</span>
-            <h2>นางศิวาลัย แก้วเขียว</h2>
+            <small>ผู้อำนวยการโรงเรียน</small>
+            <h2>{director.name}</h2>
+            <strong>{director.position}</strong>
             <p>บริหารสถานศึกษาโดยมุ่งเน้นคุณภาพผู้เรียน การทำงานร่วมกับครอบครัว และความเข้มแข็งของชุมชน</p>
           </div>
         </article>
-        <div className="personnel-groups">
-          <article><Users size={27} /><strong>คณะครูผู้สอน</strong><p>ร่วมออกแบบการเรียนรู้และดูแลนักเรียนทุกช่วงวัย</p></article>
-          <article><School size={27} /><strong>บุคลากรทางการศึกษา</strong><p>สนับสนุนงานโรงเรียนและบริการนักเรียน ผู้ปกครอง และชุมชน</p></article>
+
+        <div className="staff-section-heading">
+          <span><GraduationCap size={19} /></span>
+          <div>
+            <small>Teachers</small>
+            <h2>คณะครูผู้สอน</h2>
+          </div>
+          <strong>{teachers.length} คน</strong>
+        </div>
+        <div className="staff-grid">
+          {teachers.map((member) => <StaffCard member={member} key={member.image} />)}
+        </div>
+
+        <div className="staff-section-heading">
+          <span><Users size={19} /></span>
+          <div>
+            <small>Support Staff</small>
+            <h2>บุคลากรสนับสนุนการศึกษา</h2>
+          </div>
+          <strong>{supportStaff.length} คน</strong>
+        </div>
+        <div className="staff-grid staff-grid--support">
+          {supportStaff.map((member) => <StaffCard member={member} key={member.image} />)}
         </div>
       </div>
     </section>
