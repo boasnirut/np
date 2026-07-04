@@ -1223,9 +1223,55 @@ function BasicInfoPage() {
     { label: 'รหัสกระทรวง 10 หลัก', value: '1042520224' },
   ]
   const studentRows = [
-    { level: 'ระดับปฐมวัย', male: 9, female: 12, total: 21, rooms: 2 },
-    { level: 'ระดับประถมศึกษา', male: 38, female: 23, total: 61, rooms: 6 },
-    { level: 'มัธยมศึกษาตอนต้น', male: 24, female: 31, total: 55, rooms: 3 },
+    { level: 'อนุบาล 2', male: 5, female: 8, total: 13, rooms: 1 },
+    { level: 'อนุบาล 3', male: 4, female: 4, total: 8, rooms: 1 },
+    { level: 'รวมระดับปฐมวัย', male: 9, female: 12, total: 21, rooms: 2, isSummary: true },
+    { level: 'ประถมศึกษาปีที่ 1', male: 6, female: 4, total: 10, rooms: 1 },
+    { level: 'ประถมศึกษาปีที่ 2', male: 3, female: 3, total: 6, rooms: 1 },
+    { level: 'ประถมศึกษาปีที่ 3', male: 9, female: 3, total: 12, rooms: 1 },
+    { level: 'ประถมศึกษาปีที่ 4', male: 5, female: 4, total: 9, rooms: 1 },
+    { level: 'ประถมศึกษาปีที่ 5', male: 5, female: 4, total: 9, rooms: 1 },
+    { level: 'ประถมศึกษาปีที่ 6', male: 10, female: 5, total: 15, rooms: 1 },
+    { level: 'รวมระดับประถมศึกษา', male: 38, female: 23, total: 61, rooms: 6, isSummary: true },
+    { level: 'มัธยมศึกษาปีที่ 1', male: 12, female: 6, total: 18, rooms: 1 },
+    { level: 'มัธยมศึกษาปีที่ 2', male: 2, female: 14, total: 16, rooms: 1 },
+    { level: 'มัธยมศึกษาปีที่ 3', male: 10, female: 11, total: 21, rooms: 1 },
+    { level: 'รวมมัธยมศึกษาตอนต้น', male: 24, female: 31, total: 55, rooms: 3, isSummary: true },
+  ]
+  const staffDashboardPanels = [
+    {
+      title: 'ตำแหน่ง',
+      eyebrow: 'Position',
+      icon: School,
+      tone: 'green',
+      items: [
+        { label: 'ผู้บริหาร', value: 1 },
+        { label: 'ครูผู้สอน', value: 14 },
+        { label: 'ลูกจ้างชั่วคราว', value: 2 },
+      ],
+    },
+    {
+      title: 'วิทยฐานะ',
+      eyebrow: 'Academic Standing',
+      icon: Trophy,
+      tone: 'gold',
+      items: [
+        { label: 'ชำนาญการพิเศษ', value: 3 },
+        { label: 'ชำนาญการ', value: 3 },
+        { label: 'ไม่มีวิทยฐานะ', value: 11 },
+      ],
+    },
+    {
+      title: 'วุฒิการศึกษา',
+      eyebrow: 'Education',
+      icon: GraduationCap,
+      tone: 'blue',
+      items: [
+        { label: 'ปริญญาโท', value: 4 },
+        { label: 'ปริญญาตรี', value: 12 },
+        { label: 'ต่ำกว่าอนุปริญญา', value: 1 },
+      ],
+    },
   ]
 
   return (
@@ -1305,9 +1351,9 @@ function BasicInfoPage() {
               </thead>
               <tbody>
                 {studentRows.map((row) => (
-                  <tr key={row.level}>
-                    <th>{row.level}</th>
-                    <td>{row.male}</td>
+                <tr className={row.isSummary ? 'is-summary' : ''} key={row.level}>
+                  <th>{row.level}</th>
+                  <td>{row.male}</td>
                     <td>{row.female}</td>
                     <td><strong>{row.total}</strong></td>
                     <td>{row.rooms}</td>
@@ -1326,6 +1372,54 @@ function BasicInfoPage() {
             </table>
           </div>
         </article>
+
+        <section className="staff-dashboard" aria-labelledby="staff-dashboard-title">
+          <div className="staff-dashboard__heading">
+            <div>
+              <span>ข้อมูลครูและบุคลากร</span>
+              <h2 id="staff-dashboard-title">แดชบอร์ดบุคลากร ปีการศึกษา 2569</h2>
+              <p>ภาพรวมบุคลากรจำแนกตามเพศ ตำแหน่ง วิทยฐานะ และวุฒิการศึกษา</p>
+            </div>
+            <strong>รวม 17 คน</strong>
+          </div>
+          <div className="staff-dashboard__grid">
+            <article className="staff-dashboard-card staff-gender-card">
+              <header>
+                <span><Users size={21} /></span>
+                <div><small>Gender</small><h3>เพศ</h3></div>
+              </header>
+              <div className="staff-gender-card__content">
+                <div className="staff-donut" aria-label="ชาย 4 คน หญิง 13 คน">
+                  <div><strong>17</strong><small>คน</small></div>
+                </div>
+                <div className="staff-gender-legend">
+                  <div><span className="is-male" /><p>ชาย</p><strong>4 คน</strong><small>24%</small></div>
+                  <div><span className="is-female" /><p>หญิง</p><strong>13 คน</strong><small>76%</small></div>
+                </div>
+              </div>
+            </article>
+
+            {staffDashboardPanels.map(({ title, eyebrow, icon: Icon, tone, items }) => (
+              <article className={`staff-dashboard-card staff-dashboard-card--${tone}`} key={title}>
+                <header>
+                  <span><Icon size={21} /></span>
+                  <div><small>{eyebrow}</small><h3>{title}</h3></div>
+                </header>
+                <div className="staff-progress-list">
+                  {items.map((item) => (
+                    <div className="staff-progress" key={item.label}>
+                      <div><span>{item.label}</span><strong>{item.value} คน</strong></div>
+                      <div className="staff-progress__track">
+                        <span style={{ width: `${(item.value / 17) * 100}%` }} />
+                      </div>
+                      <small>{Math.round((item.value / 17) * 100)}%</small>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
 
         <div className="basic-info-actions">
           <a className="button button--navy" href={bigDataMapUrl} target="_blank" rel="noreferrer">
