@@ -6,11 +6,12 @@ import { readRepoFile } from './_lib/repo.js'
 export default async function handler(request, response) {
   if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
   try {
-    const [newsFile, eventsFile, awardsFile, newslettersFile] = await Promise.all([
+    const [newsFile, eventsFile, awardsFile, newslettersFile, qualityFile] = await Promise.all([
       readRepoFile('data/news.csv'),
       readRepoFile('data/events.csv'),
       readRepoFile('data/awards.csv'),
       readRepoFile('data/newsletters.csv'),
+      readRepoFile('data/quality-evidence.csv'),
     ])
     const published = (rows) => rows.filter((item) => item.status === 'published')
     const body = {
@@ -20,6 +21,7 @@ export default async function handler(request, response) {
       ),
       awards: sortByDisplayOrder(published(parseCsv(awardsFile.content))),
       newsletters: sortByDisplayOrder(published(parseCsv(newslettersFile.content))),
+      qualityEvidence: sortByDisplayOrder(published(parseCsv(qualityFile.content))),
     }
     response.statusCode = 200
     response.setHeader('Content-Type', 'application/json; charset=utf-8')

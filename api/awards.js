@@ -79,7 +79,7 @@ async function uploadImage(image, id, title) {
 
 export default async function handler(request, response) {
   try {
-    const session = await requireActiveUser(request, response)
+    const session = await requireActiveUser(request, response, { permission: 'awards' })
     if (!session) return undefined
     const current = await readRepoFile('data/awards.csv')
     const awards = parseCsv(current.content)

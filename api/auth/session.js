@@ -13,6 +13,7 @@ export default async function handler(request, response) {
       username: session.sub,
       displayName: session.name,
       role: session.role,
+      permissions: session.permissions,
     },
     githubConfigured: githubConfigured(),
   })

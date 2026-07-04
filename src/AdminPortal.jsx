@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  FileText,
   FileImage,
   GalleryHorizontalEnd,
   LayoutDashboard,
@@ -29,6 +30,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import './admin.css'
+import { qualityIndicator, qualityLevelMap, qualityLevels } from './qualityStandards'
 
 async function apiRequest(path, options = {}) {
   const response = await fetch(path, {
@@ -196,6 +198,14 @@ const awardTypeLabels = {
   personnel: 'ผลงาน/รางวัลผู้บริหาร/ครู/บุคลากร',
   student: 'ผลงาน/รางวัลนักเรียน',
 }
+
+const permissionOptions = [
+  { id: 'news', label: 'ข่าวสาร / ประชาสัมพันธ์ / ประกาศ', icon: Megaphone },
+  { id: 'events', label: 'ปฏิทินกิจกรรม', icon: CalendarDays },
+  { id: 'awards', label: 'ผลงานและรางวัล', icon: Trophy },
+  { id: 'newsletters', label: 'จดหมายข่าวประชาสัมพันธ์', icon: GalleryHorizontalEnd },
+  { id: 'quality', label: 'งานประกันคุณภาพ (สมศ.)', icon: ShieldCheck },
+]
 
 const modules = {
   news: {
@@ -516,6 +526,244 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
   )
 }
 
+const qualityDefaults = {
+  education_level: 'early',
+  indicator_code: '1.1',
+  title: '',
+  description: '',
+  document_url: '',
+  display_order: '',
+  status: 'published',
+}
+
+function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
+  const [form, setForm] = useState(qualityDefaults)
+  const [editingId, setEditingId] = useState(null)
+  const [file, setFile] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState(null)
+  const selectedLevel = qualityLevelMap[form.education_level] || qualityLevels[0]
+  const indicators = selectedLevel.standards.flatMap((standard) => standard.indicators)
+
+  const update = (event) => {
+    const { name, value } = event.target
+    setForm((current) => {
+      if (name !== 'education_level') return { ...current, [name]: value }
+      const nextLevel = qualityLevelMap[value]
+      return {
+        ...current,
+        education_level: value,
+        indicator_code: nextLevel.standards[0].indicators[0].code,
+      }
+    })
+    setMessage(null)
+  }
+
+  const reset = () => {
+    setForm(qualityDefaults)
+    setEditingId(null)
+    setFile(null)
+  }
+
+  const edit = (item) => {
+    setForm(Object.fromEntries(Object.keys(qualityDefaults).map((key) => [key, item[key] || ''])))
+    setEditingId(item.id)
+    setFile(null)
+    setMessage(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const submit = async (event) => {
+    event.preventDefault()
+    setSubmitting(true)
+    setMessage(null)
+    try {
+      const fileData = file
+        ? { name: file.name, type: file.type, data: await fileToDataUrl(file) }
+        : null
+      const result = await apiRequest('/api/quality-evidence', {
+        method: editingId ? 'PUT' : 'POST',
+        body: JSON.stringify({ ...form, id: editingId, file: fileData }),
+      })
+      setItems((current) =>
+        sortRecords(editingId
+          ? current.map((item) => (item.id === editingId ? result.evidence : item))
+          : [result.evidence, ...current]),
+      )
+      setMessage({
+        type: 'success',
+        text: editingId ? 'บันทึกการแก้ไขหลักฐานเรียบร้อยแล้ว' : 'เพิ่มหลักฐานและส่งขึ้น GitHub เรียบร้อยแล้ว',
+      })
+      reset()
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const remove = async (item) => {
+    if (!window.confirm(`ยืนยันการลบ “${item.title}” หรือไม่`)) return
+    try {
+      await apiRequest('/api/quality-evidence', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: item.id }),
+      })
+      setItems((current) => current.filter((existing) => existing.id !== item.id))
+      setMessage({ type: 'success', text: 'ลบเอกสารหลักฐานเรียบร้อยแล้ว' })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message })
+    }
+  }
+
+  return (
+    <section className="admin-content-grid">
+      <form className="news-editor" onSubmit={submit}>
+        <div className="admin-section-heading">
+          <div>
+            <span>EXTERNAL QUALITY ASSURANCE</span>
+            <h2>{editingId ? 'แก้ไขเอกสารหลักฐาน สมศ.' : 'เพิ่มเอกสารหลักฐาน สมศ.'}</h2>
+          </div>
+          {editingId ? (
+            <button className="admin-icon-button" type="button" onClick={reset} aria-label="ยกเลิกแก้ไข">
+              <X size={21} />
+            </button>
+          ) : <ShieldCheck size={28} />}
+        </div>
+
+        <div className="news-editor__grid">
+          <label className="news-field">
+            <span>ระดับการศึกษา</span>
+            <select name="education_level" value={form.education_level} onChange={update}>
+              {qualityLevels.map((level) => (
+                <option value={level.id} key={level.id}>{level.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="news-field">
+            <span>ตัวชี้วัด</span>
+            <select name="indicator_code" value={form.indicator_code} onChange={update}>
+              {indicators.map((indicator) => (
+                <option value={indicator.code} key={indicator.code}>
+                  {indicator.code} {indicator.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="news-field news-field--wide">
+            <span>ชื่อเอกสารหลักฐาน</span>
+            <input
+              name="title"
+              value={form.title}
+              onChange={update}
+              placeholder="เช่น รายงานการประเมินตนเองของสถานศึกษา ปีการศึกษา 2568"
+              required
+            />
+          </label>
+          <label className="news-field news-field--wide">
+            <span>คำอธิบาย</span>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={update}
+              placeholder="รายละเอียดสั้น ๆ ของเอกสาร"
+              rows={3}
+            />
+          </label>
+          <label className="news-field news-field--wide">
+            <span>ลิงก์เอกสารบน Google Drive หรือเว็บไซต์ภายนอก</span>
+            <input
+              type="url"
+              name="document_url"
+              value={form.document_url}
+              onChange={update}
+              placeholder="https://drive.google.com/..."
+            />
+          </label>
+          {isAdmin && (
+            <label className="news-field">
+              <span>ลำดับการแสดงผล</span>
+              <input
+                type="number"
+                name="display_order"
+                value={form.display_order}
+                onChange={update}
+                placeholder="เลขมากแสดงก่อน"
+              />
+            </label>
+          )}
+          <label className="news-field">
+            <span>สถานะ</span>
+            <select name="status" value={form.status} onChange={update}>
+              <option value="published">เผยแพร่</option>
+              <option value="draft">ฉบับร่าง</option>
+            </select>
+          </label>
+        </div>
+
+        <label className={`quality-file-uploader ${file ? 'is-selected' : ''}`}>
+          <span><FileText size={27} /></span>
+          <div>
+            <strong>{file ? file.name : 'อัปโหลดไฟล์ PDF'}</strong>
+            <small>เลือกอัปโหลดไฟล์ PDF ไม่เกิน 3 MB หรือใช้ลิงก์เอกสารด้านบน</small>
+          </div>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(event) => setFile(event.target.files?.[0] || null)}
+          />
+        </label>
+
+        <div className="quality-selected-indicator">
+          <span>ตัวชี้วัดที่ {form.indicator_code}</span>
+          <p>{qualityIndicator(form.education_level, form.indicator_code)?.title}</p>
+        </div>
+
+        {message && (
+          <p className={`admin-message admin-message--${message.type}`}>
+            {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+            {message.text}
+          </p>
+        )}
+        <button className="admin-button admin-button--primary" type="submit" disabled={submitting || !githubConfigured}>
+          {submitting ? <LoaderCircle className="spin" size={19} /> : <Save size={19} />}
+          {submitting ? 'กำลังบันทึก...' : editingId ? 'บันทึกการแก้ไข' : 'เพิ่มเอกสารหลักฐาน'}
+        </button>
+      </form>
+
+      <div className="admin-list-card">
+        <div className="admin-section-heading">
+          <div><span>EVIDENCE DATABASE</span><h2>เอกสารหลักฐานที่บันทึก</h2></div>
+          <FileText size={27} />
+        </div>
+        {!items.length ? (
+          <div className="admin-empty"><FileText size={34} /><strong>ยังไม่มีเอกสารหลักฐาน</strong></div>
+        ) : (
+          <div className="admin-record-list quality-record-list">
+            {items.map((item) => (
+              <article key={item.id}>
+                <div className="admin-news-list__image"><FileText size={24} /></div>
+                <div className="admin-record-list__copy">
+                  <span>{qualityLevelMap[item.education_level]?.shortLabel} · ตัวชี้วัดที่ {item.indicator_code}</span>
+                  <h3>{item.title}</h3>
+                  <small className="admin-record-list__links"><Link2 size={12} /> เอกสารหลักฐาน</small>
+                  <small>{item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}</small>
+                </div>
+                {isAdmin && (
+                  <div className="admin-record-list__actions">
+                    <button type="button" onClick={() => edit(item)} aria-label={`แก้ไข ${item.title}`}><Pencil size={16} /></button>
+                    <button type="button" className="is-danger" onClick={() => remove(item)} aria-label={`ลบ ${item.title}`}><Trash2 size={16} /></button>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function MembersManager({ members, setMembers, currentUsername }) {
   const [editingMember, setEditingMember] = useState(null)
   const [form, setForm] = useState({
@@ -524,6 +772,7 @@ function MembersManager({ members, setMembers, currentUsername }) {
     role: 'member',
     status: 'pending',
     password: '',
+    permissions: [],
   })
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -537,6 +786,7 @@ function MembersManager({ members, setMembers, currentUsername }) {
       role: member.role,
       status: member.status,
       password: '',
+      permissions: member.permissions || [],
     })
     setShowPassword(false)
     setMessage(null)
@@ -544,13 +794,30 @@ function MembersManager({ members, setMembers, currentUsername }) {
 
   const closeEditor = () => {
     setEditingMember(null)
-    setForm({ username: '', displayName: '', role: 'member', status: 'pending', password: '' })
+    setForm({
+      username: '',
+      displayName: '',
+      role: 'member',
+      status: 'pending',
+      password: '',
+      permissions: [],
+    })
     setShowPassword(false)
     setMessage(null)
   }
 
   const updateForm = (event) => {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+    setMessage(null)
+  }
+
+  const togglePermission = (permission) => {
+    setForm((current) => ({
+      ...current,
+      permissions: current.permissions.includes(permission)
+        ? current.permissions.filter((item) => item !== permission)
+        : [...current.permissions, permission],
+    }))
     setMessage(null)
   }
 
@@ -676,6 +943,30 @@ function MembersManager({ members, setMembers, currentUsername }) {
               <small>รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร</small>
             </label>
           </div>
+          <fieldset className="admin-permissions" disabled={form.role === 'admin'}>
+            <legend>
+              <strong>สิทธิ์การบริหารจัดการข้อมูล</strong>
+              <small>
+                {form.role === 'admin'
+                  ? 'ผู้ดูแลระบบสามารถจัดการข้อมูลทุกส่วนโดยอัตโนมัติ'
+                  : 'เลือกเฉพาะส่วนที่สมาชิกคนนี้รับผิดชอบ'}
+              </small>
+            </legend>
+            <div>
+              {permissionOptions.map(({ id, label, icon: Icon }) => (
+                <label className={form.permissions.includes(id) || form.role === 'admin' ? 'is-checked' : ''} key={id}>
+                  <input
+                    type="checkbox"
+                    checked={form.role === 'admin' || form.permissions.includes(id)}
+                    onChange={() => togglePermission(id)}
+                  />
+                  <span><Icon size={18} /></span>
+                  <strong>{label}</strong>
+                  <Check size={17} />
+                </label>
+              ))}
+            </div>
+          </fieldset>
           {editingSelf && (
             <p className="admin-member-editor__note">
               บัญชีที่กำลังใช้งานเปลี่ยนชื่อผู้ใช้ บทบาท หรือสถานะไม่ได้ เพื่อป้องกันการหลุดจากระบบ
@@ -703,6 +994,11 @@ function MembersManager({ members, setMembers, currentUsername }) {
             <div>
               <strong>{member.displayName}</strong>
               <small>@{member.username} · {member.role === 'admin' ? 'ผู้ดูแลระบบ' : 'สมาชิก'}</small>
+              <small>
+                {member.role === 'admin'
+                  ? 'จัดการได้ทุกส่วน'
+                  : `ได้รับสิทธิ์ ${member.permissions?.length || 0} ส่วน`}
+              </small>
             </div>
             <span className={`member-status member-status--${member.status}`}>
               {statusLabel[member.status] || member.status}
@@ -736,6 +1032,7 @@ function Dashboard() {
   const [events, setEvents] = useState([])
   const [awards, setAwards] = useState([])
   const [newsletters, setNewsletters] = useState([])
+  const [qualityEvidence, setQualityEvidence] = useState([])
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -746,19 +1043,26 @@ function Dashboard() {
         const sessionData = await apiRequest('/api/auth/session')
         if (!active) return
         setSession(sessionData)
+        const allowed = new Set(sessionData.user.permissions || [])
+        const canManage = (permission) =>
+          sessionData.user.role === 'admin' || allowed.has(permission)
+        const firstAllowed = permissionOptions.find((item) => canManage(item.id))
+        setActiveModule(firstAllowed?.id || (sessionData.user.role === 'admin' ? 'members' : 'none'))
         const requests = [
-          apiRequest('/api/news'),
-          apiRequest('/api/events'),
-          apiRequest('/api/awards'),
-          apiRequest('/api/newsletters'),
+          canManage('news') ? apiRequest('/api/news') : Promise.resolve({ news: [] }),
+          canManage('events') ? apiRequest('/api/events') : Promise.resolve({ events: [] }),
+          canManage('awards') ? apiRequest('/api/awards') : Promise.resolve({ awards: [] }),
+          canManage('newsletters') ? apiRequest('/api/newsletters') : Promise.resolve({ newsletters: [] }),
+          canManage('quality') ? apiRequest('/api/quality-evidence') : Promise.resolve({ evidence: [] }),
           sessionData.user.role === 'admin' ? apiRequest('/api/members') : Promise.resolve({ members: [] }),
         ]
-        const [newsData, eventData, awardData, newsletterData, memberData] = await Promise.all(requests)
+        const [newsData, eventData, awardData, newsletterData, qualityData, memberData] = await Promise.all(requests)
         if (!active) return
         setNews(newsData.news || [])
         setEvents(eventData.events || [])
         setAwards(awardData.awards || [])
         setNewsletters(newsletterData.newsletters || [])
+        setQualityEvidence(qualityData.evidence || [])
         setMembers(memberData.members || [])
       } catch (error) {
         if (error.status === 401 || error.status === 403) window.location.replace('/login')
@@ -775,8 +1079,9 @@ function Dashboard() {
     events: events.length,
     awards: awards.length,
     newsletters: newsletters.length,
+    quality: qualityEvidence.length,
     pending: members.filter((member) => member.status === 'pending').length,
-  }), [news, events, awards, newsletters, members])
+  }), [news, events, awards, newsletters, qualityEvidence, members])
 
   const logout = async () => {
     await apiRequest('/api/auth/logout', { method: 'POST', body: '{}' }).catch(() => undefined)
@@ -788,11 +1093,16 @@ function Dashboard() {
   }
 
   const isAdmin = session?.user.role === 'admin'
-  const navItems = [
-    { id: 'news', label: 'ข่าวสารและประกาศ', icon: Megaphone },
-    { id: 'events', label: 'กิจกรรม', icon: CalendarDays },
+  const allowedPermissions = new Set(session?.user.permissions || [])
+  const moduleNavItems = [
+    { id: 'news', label: 'ข่าวสาร / ประชาสัมพันธ์ / ประกาศ', icon: Megaphone },
+    { id: 'events', label: 'ปฏิทินกิจกรรม', icon: CalendarDays },
     { id: 'awards', label: 'ผลงานและรางวัล', icon: Trophy },
-    { id: 'newsletters', label: 'จดหมายข่าวประชาสัมพันธ์', icon: GalleryHorizontalEnd },
+    { id: 'newsletters', label: 'จดหมายข่าว', icon: GalleryHorizontalEnd },
+    { id: 'quality', label: 'งานประกันคุณภาพ (สมศ.)', icon: ShieldCheck },
+  ].filter((item) => isAdmin || allowedPermissions.has(item.id))
+  const navItems = [
+    ...moduleNavItems,
     ...(isAdmin ? [{ id: 'members', label: `สมาชิก${stats.pending ? ` (${stats.pending})` : ''}`, icon: Users }] : []),
   ]
 
@@ -844,6 +1154,7 @@ function Dashboard() {
           <article><span><CalendarDays size={22} /></span><div><small>กิจกรรม</small><strong>{stats.events}</strong></div></article>
           <article><span><Trophy size={22} /></span><div><small>ผลงานและรางวัล</small><strong>{stats.awards}</strong></div></article>
           <article><span><GalleryHorizontalEnd size={22} /></span><div><small>จดหมายข่าว</small><strong>{stats.newsletters}</strong></div></article>
+          <article><span><ShieldCheck size={22} /></span><div><small>หลักฐาน สมศ.</small><strong>{stats.quality}</strong></div></article>
           {isAdmin && <article><span><Users size={22} /></span><div><small>รออนุมัติ</small><strong>{stats.pending}</strong></div></article>}
         </section>
 
@@ -867,6 +1178,19 @@ function Dashboard() {
           <RecordManager type="awards" items={awards} setItems={setAwards} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'newsletters' ? (
           <RecordManager type="newsletters" items={newsletters} setItems={setNewsletters} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+        ) : activeModule === 'quality' ? (
+          <QualityManager
+            items={qualityEvidence}
+            setItems={setQualityEvidence}
+            isAdmin={isAdmin}
+            githubConfigured={session.githubConfigured}
+          />
+        ) : activeModule === 'none' ? (
+          <div className="admin-empty admin-no-permission">
+            <ShieldCheck size={36} />
+            <strong>ยังไม่ได้รับสิทธิ์จัดการข้อมูล</strong>
+            <p>กรุณาติดต่อผู้ดูแลระบบเพื่อกำหนดส่วนงานที่รับผิดชอบ</p>
+          </div>
         ) : (
           <RecordManager type="news" items={news} setItems={setNews} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         )}

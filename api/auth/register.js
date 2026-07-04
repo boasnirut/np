@@ -13,6 +13,7 @@ const headers = [
   'display_name',
   'created_at',
   'active',
+  'permissions',
 ]
 
 export default async function handler(request, response) {
@@ -51,6 +52,7 @@ export default async function handler(request, response) {
       display_name: displayName,
       created_at: new Date().toISOString(),
       active: 'pending',
+      permissions: '',
     }
     users.push(user)
     await writeRepoFile(

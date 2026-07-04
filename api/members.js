@@ -13,9 +13,16 @@ const headers = [
   'display_name',
   'created_at',
   'active',
+  'permissions',
 ]
 const allowedStatuses = new Set(['true', 'pending', 'suspended'])
 const allowedRoles = new Set(['member', 'admin'])
+const allowedPermissions = new Set(['news', 'events', 'awards', 'newsletters', 'quality'])
+
+function memberPermissions(user) {
+  if (user.role === 'admin') return [...allowedPermissions]
+  return String(user.permissions || '').split(';').filter((permission) => allowedPermissions.has(permission))
+}
 
 export default async function handler(request, response) {
   const admin = await requireActiveUser(request, response, { adminOnly: true })
@@ -34,6 +41,7 @@ export default async function handler(request, response) {
           displayName: user.display_name,
           createdAt: user.created_at,
           status: user.active,
+          permissions: memberPermissions(user),
         })),
       })
     }
@@ -50,6 +58,9 @@ export default async function handler(request, response) {
       const role = String(body.role ?? member.role)
       const status = String(body.status ?? member.active)
       const password = String(body.password || '')
+      const requestedPermissions = body.permissions === undefined
+        ? memberPermissions(member)
+        : body.permissions
 
       if (!/^[a-z0-9_]{4,32}$/.test(username)) {
         return sendJson(response, 400, {
@@ -67,6 +78,9 @@ export default async function handler(request, response) {
       }
       if (password && password.length < 8) {
         return sendJson(response, 400, { error: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร' })
+      }
+      if (!Array.isArray(requestedPermissions) || requestedPermissions.some((permission) => !allowedPermissions.has(permission))) {
+        return sendJson(response, 400, { error: 'สิทธิ์การจัดการข้อมูลไม่ถูกต้อง' })
       }
 
       if (users.some((user) => user.id !== member.id && user.username.toLowerCase() === username)) {
@@ -102,6 +116,9 @@ export default async function handler(request, response) {
       member.display_name = displayName
       member.role = role
       member.active = status
+      member.permissions = role === 'admin'
+        ? '*'
+        : [...new Set(requestedPermissions)].join(';')
       if (password) {
         const passwordData = hashPassword(password)
         member.password_hash = passwordData.hash
@@ -122,6 +139,7 @@ export default async function handler(request, response) {
           role: member.role,
           status: member.active,
           createdAt: member.created_at,
+          permissions: memberPermissions(member),
         },
         passwordChanged: Boolean(password),
       })

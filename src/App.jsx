@@ -45,6 +45,7 @@ import {
   trustPoints,
   values,
 } from './content'
+import { qualityLevels } from './qualityStandards'
 
 const categories = ['ทั้งหมด', 'กิจกรรม', 'ประชาสัมพันธ์', 'ประกาศ']
 const welcomeSlides = [
@@ -950,13 +951,19 @@ const achievementGroups = [
   },
 ]
 
-function AchievementCard({ award }) {
+function AchievementCard({ award, onOpen }) {
   return (
     <article className="achievement-card">
-      <div className="achievement-card__visual">
+      <button
+        className="achievement-card__visual"
+        type="button"
+        onClick={() => onOpen(award)}
+        aria-label={`เปิดภาพและรายละเอียด ${award.title}`}
+      >
         {award.image_url ? <img src={award.image_url} alt="" /> : <Trophy size={48} />}
         <span>{award.level || 'ผลงานโรงเรียน'}</span>
-      </div>
+        <span className="achievement-card__zoom"><Images size={17} /> ดูภาพเต็ม</span>
+      </button>
       <div className="achievement-card__body">
         <small>
           {new Date(`${award.award_date}T00:00:00`).toLocaleDateString('th-TH', {
@@ -968,6 +975,9 @@ function AchievementCard({ award }) {
         <h3>{award.title}</h3>
         {award.recipient && <strong>{award.recipient}</strong>}
         <p>{award.description}</p>
+        <button className="achievement-card__detail" type="button" onClick={() => onOpen(award)}>
+          ดูภาพและรายละเอียด <ArrowRight size={16} />
+        </button>
         {(award.document_url || award.photo_url) && (
           <div className="content-links content-links--compact">
             {award.document_url && (
@@ -989,80 +999,163 @@ function AchievementCard({ award }) {
 
 function Achievements({ awards = [], grouped = false }) {
   const [page, setPage] = useState(1)
+  const [activeAward, setActiveAward] = useState(null)
   const pageSize = 6
   const totalPages = Math.max(1, Math.ceil(awards.length / pageSize))
   const currentPage = Math.min(page, totalPages)
   const displayedAwards = awards.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-  if (grouped) {
-    return (
-      <section className="section achievements achievements--grouped" id="achievements">
-        <div className="container">
-          <SectionHeading
-            eyebrow="ผลงานและรางวัล"
-            title="ความภาคภูมิใจของโรงเรียนบ้านน้ำพร"
-            description="แบ่งข้อมูลตามประเภทผู้ได้รับผลงานและรางวัล เพื่อให้ค้นหาและติดตามได้สะดวก"
-            align="center"
-          />
-          <div className="achievement-groups">
-            {achievementGroups.map(({ type, title, description, icon: Icon }) => {
-              const groupAwards = awards.filter((award) => (award.award_type || 'school') === type)
-              return (
-                <section className="achievement-group" key={type}>
-                  <header>
-                    <span><Icon size={25} /></span>
-                    <div><h2>{title}</h2><p>{description}</p></div>
-                    <strong>{groupAwards.length} รายการ</strong>
-                  </header>
-                  {groupAwards.length ? (
-                    <div className="achievements__grid">
-                      {groupAwards.map((award) => <AchievementCard award={award} key={award.id} />)}
-                    </div>
-                  ) : (
-                    <div className="achievement-group__empty">
-                      <Trophy size={27} />
-                      <span>ยังไม่มีข้อมูลในหมวดนี้</span>
-                    </div>
-                  )}
-                </section>
-              )
+  useEffect(() => {
+    if (!activeAward) return undefined
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setActiveAward(null)
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape)
+      document.body.style.overflow = ''
+    }
+  }, [activeAward])
+
+  const awardDialog = activeAward && (
+    <div className="modal achievement-modal" role="presentation" onMouseDown={() => setActiveAward(null)}>
+      <article
+        className="modal__dialog achievement-modal__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="achievement-dialog-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <button
+          className="modal__close"
+          type="button"
+          aria-label="ปิดรายละเอียดผลงานและรางวัล"
+          onClick={() => setActiveAward(null)}
+        >
+          <X size={20} />
+        </button>
+        {activeAward.image_url ? (
+          <div className="achievement-modal__image">
+            <img src={activeAward.image_url} alt={activeAward.title} />
+          </div>
+        ) : (
+          <div className="achievement-modal__placeholder"><Trophy size={58} /></div>
+        )}
+        <div className="achievement-modal__content">
+          <span className="modal__category">{activeAward.level || 'ผลงานและรางวัล'}</span>
+          <div className="modal__date">
+            <CalendarDays size={15} />
+            {new Date(`${activeAward.award_date}T00:00:00`).toLocaleDateString('th-TH', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
             })}
           </div>
+          <h2 id="achievement-dialog-title">{activeAward.title}</h2>
+          {activeAward.recipient && (
+            <div className="achievement-modal__recipient">
+              <Trophy size={18} />
+              <div><small>ผู้ได้รับผลงานหรือรางวัล</small><strong>{activeAward.recipient}</strong></div>
+            </div>
+          )}
+          <p className="modal__content">
+            {activeAward.description || 'ยังไม่มีรายละเอียดเพิ่มเติมสำหรับรายการนี้'}
+          </p>
+          {(activeAward.document_url || activeAward.photo_url) && (
+            <div className="content-links">
+              {activeAward.document_url && (
+                <a href={activeAward.document_url} target="_blank" rel="noreferrer">
+                  <FileText size={18} /> เปิดเอกสาร PDF
+                </a>
+              )}
+              {activeAward.photo_url && (
+                <a href={activeAward.photo_url} target="_blank" rel="noreferrer">
+                  <Images size={18} /> ดูภาพใน Google Photos
+                </a>
+              )}
+            </div>
+          )}
         </div>
-      </section>
+      </article>
+    </div>
+  )
+
+  if (grouped) {
+    return (
+      <>
+        <section className="section achievements achievements--grouped" id="achievements">
+          <div className="container">
+            <SectionHeading
+              eyebrow="ผลงานและรางวัล"
+              title="ความภาคภูมิใจของโรงเรียนบ้านน้ำพร"
+              description="แบ่งข้อมูลตามประเภทผู้ได้รับผลงานและรางวัล เพื่อให้ค้นหาและติดตามได้สะดวก"
+              align="center"
+            />
+            <div className="achievement-groups">
+              {achievementGroups.map(({ type, title, description, icon: Icon }) => {
+                const groupAwards = awards.filter((award) => (award.award_type || 'school') === type)
+                return (
+                  <section className="achievement-group" key={type}>
+                    <header>
+                      <span><Icon size={25} /></span>
+                      <div><h2>{title}</h2><p>{description}</p></div>
+                      <strong>{groupAwards.length} รายการ</strong>
+                    </header>
+                    {groupAwards.length ? (
+                      <div className="achievements__grid">
+                        {groupAwards.map((award) => <AchievementCard award={award} onOpen={setActiveAward} key={award.id} />)}
+                      </div>
+                    ) : (
+                      <div className="achievement-group__empty">
+                        <Trophy size={27} />
+                        <span>ยังไม่มีข้อมูลในหมวดนี้</span>
+                      </div>
+                    )}
+                  </section>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+        {awardDialog}
+      </>
     )
   }
 
   return (
-    <section className="section achievements" id="achievements">
-      <div className="container">
-        <SectionHeading
-          eyebrow="ผลงานและรางวัล"
-          title="ความภาคภูมิใจของโรงเรียนบ้านน้ำพร"
-          description="รวบรวมผลงานของนักเรียน ครู และสถานศึกษาที่สะท้อนความมุ่งมั่นในการพัฒนาคุณภาพการศึกษา"
-          align="center"
-        />
-        {displayedAwards.length ? (
-          <>
-            <div className="achievements__grid">
-              {displayedAwards.map((award) => <AchievementCard award={award} key={award.id} />)}
+    <>
+      <section className="section achievements" id="achievements">
+        <div className="container">
+          <SectionHeading
+            eyebrow="ผลงานและรางวัล"
+            title="ความภาคภูมิใจของโรงเรียนบ้านน้ำพร"
+            description="รวบรวมผลงานของนักเรียน ครู และสถานศึกษาที่สะท้อนความมุ่งมั่นในการพัฒนาคุณภาพการศึกษา"
+            align="center"
+          />
+          {displayedAwards.length ? (
+            <>
+              <div className="achievements__grid">
+                {displayedAwards.map((award) => <AchievementCard award={award} onOpen={setActiveAward} key={award.id} />)}
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onChange={setPage}
+                label="เลือกหน้าผลงานและรางวัล"
+              />
+            </>
+          ) : (
+            <div className="achievements__empty">
+              <span><Trophy size={38} /></span>
+              <strong>พื้นที่รวบรวมผลงานและรางวัล</strong>
+              <p>ข้อมูลผลงานที่เผยแพร่จากระบบบริหารจะแสดงในส่วนนี้</p>
             </div>
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onChange={setPage}
-              label="เลือกหน้าผลงานและรางวัล"
-            />
-          </>
-        ) : (
-          <div className="achievements__empty">
-            <span><Trophy size={38} /></span>
-            <strong>พื้นที่รวบรวมผลงานและรางวัล</strong>
-            <p>ข้อมูลผลงานที่เผยแพร่จากระบบบริหารจะแสดงในส่วนนี้</p>
-          </div>
-        )}
-      </div>
-    </section>
+          )}
+        </div>
+      </section>
+      {awardDialog}
+    </>
   )
 }
 
@@ -1450,6 +1543,160 @@ function OperationPage({ type }) {
   )
 }
 
+function QualityAssurancePage({ evidence = [] }) {
+  const [activeLevel, setActiveLevel] = useState('early')
+  const [openStandards, setOpenStandards] = useState(['1', '2', '3'])
+  const level = qualityLevels.find((item) => item.id === activeLevel) || qualityLevels[0]
+
+  const toggleStandard = (number) => {
+    setOpenStandards((current) =>
+      current.includes(number)
+        ? current.filter((item) => item !== number)
+        : [...current, number],
+    )
+  }
+
+  return (
+    <>
+      <PageHero
+        eyebrow="การดำเนินงาน"
+        title="ประกันคุณภาพภายนอก (สมศ.)"
+        description="เอกสารหลักฐานการประกันคุณภาพภายนอก รอบที่ 5 ระดับปฐมวัยและระดับการศึกษาขั้นพื้นฐาน"
+        icon={ShieldCheck}
+      />
+      <section className="section quality-hub">
+        <div className="container">
+          <div className="quality-intro">
+            <div>
+              <span className="quality-intro__eyebrow"><ShieldCheck size={17} /> ONESQA รอบที่ 5</span>
+              <h2>ศูนย์รวมมาตรฐาน ตัวชี้วัด และเอกสารหลักฐาน</h2>
+              <p>จัดหมวดหมู่หลักฐานตามกรอบแนวทางการประกันคุณภาพภายนอก พ.ศ. 2567–2571 เพื่อให้ค้นหาและตรวจสอบข้อมูลได้สะดวก</p>
+            </div>
+            <div className="quality-intro__summary">
+              <article><strong>2</strong><span>ระดับการศึกษา</span></article>
+              <article><strong>6</strong><span>มาตรฐาน</span></article>
+              <article><strong>34</strong><span>ตัวชี้วัด</span></article>
+            </div>
+          </div>
+
+          <div className="quality-levels" aria-label="เลือกระดับการศึกษา">
+            {qualityLevels.map((item, index) => (
+              <button
+                className={`quality-level-card ${activeLevel === item.id ? 'is-active' : ''}`}
+                type="button"
+                aria-pressed={activeLevel === item.id}
+                onClick={() => setActiveLevel(item.id)}
+                key={item.id}
+              >
+                <span className="quality-level-card__number">0{index + 1}</span>
+                <span className="quality-level-card__icon">
+                  {item.id === 'early' ? <School size={29} /> : <GraduationCap size={29} />}
+                </span>
+                <div>
+                  <small>{item.shortLabel}</small>
+                  <h3>เอกสารประกอบ{item.label}</h3>
+                  <p>{item.description}</p>
+                  <strong>{item.summary}</strong>
+                </div>
+                <ArrowRight size={20} />
+              </button>
+            ))}
+          </div>
+
+          <div className="quality-document-heading">
+            <div>
+              <span>{level.shortLabel}</span>
+              <h2>เอกสารประกอบ{level.label}</h2>
+              <p>{level.summary} · เลือกแต่ละมาตรฐานเพื่อดูตัวชี้วัดและหลักฐานที่เผยแพร่</p>
+            </div>
+            <a href={level.manualUrl} target="_blank" rel="noreferrer">
+              <BookOpenText size={18} /> เปิดคู่มือ สมศ. <ExternalLink size={15} />
+            </a>
+          </div>
+
+          <div className="quality-standards">
+            {level.standards.map((standard) => {
+              const isOpen = openStandards.includes(standard.number)
+              const standardEvidence = evidence.filter(
+                (item) => item.education_level === level.id
+                  && item.indicator_code.startsWith(`${standard.number}.`),
+              )
+              return (
+                <article className={`quality-standard ${isOpen ? 'is-open' : ''}`} key={`${level.id}-${standard.number}`}>
+                  <button
+                    className="quality-standard__heading"
+                    type="button"
+                    aria-expanded={isOpen}
+                    onClick={() => toggleStandard(standard.number)}
+                  >
+                    <span>{standard.number}</span>
+                    <div>
+                      <small>มาตรฐานที่ {standard.number}</small>
+                      <h3>{standard.title}</h3>
+                      <p>{standard.indicators.length} ตัวชี้วัด · {standardEvidence.length} เอกสารหลักฐาน</p>
+                    </div>
+                    <ChevronDown size={22} />
+                  </button>
+                  {isOpen && (
+                    <div className="quality-indicators">
+                      {standard.indicators.map((indicator) => {
+                        const indicatorEvidence = evidence.filter(
+                          (item) => item.education_level === level.id
+                            && item.indicator_code === indicator.code,
+                        )
+                        return (
+                          <article className="quality-indicator" key={`${level.id}-${indicator.code}`}>
+                            <header>
+                              <span>ตัวชี้วัดที่ {indicator.code}</span>
+                              <strong>{indicator.title}</strong>
+                            </header>
+                            {indicatorEvidence.length ? (
+                              <div className="quality-evidence-list">
+                                {indicatorEvidence.map((item) => (
+                                  <a href={item.document_url} target="_blank" rel="noreferrer" key={item.id}>
+                                    <span><FileText size={18} /></span>
+                                    <div>
+                                      <strong>{item.title}</strong>
+                                      {item.description && <small>{item.description}</small>}
+                                    </div>
+                                    <ExternalLink size={16} />
+                                  </a>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="quality-evidence-empty">
+                                <FileText size={18} />
+                                <span>ยังไม่มีเอกสารหลักฐานที่เผยแพร่</span>
+                              </div>
+                            )}
+                          </article>
+                        )
+                      })}
+                    </div>
+                  )}
+                </article>
+              )
+            })}
+          </div>
+
+          <div className="quality-manage-note">
+            <span><ShieldCheck size={25} /></span>
+            <div>
+              <strong>จัดการลิงก์หลักฐานผ่านระบบบริหารจัดการ</strong>
+              <p>ผู้ที่ได้รับสิทธิ์สามารถเพิ่มเอกสาร PDF หรือลิงก์หลักฐานให้ตรงกับระดับการศึกษาและตัวชี้วัดได้</p>
+            </div>
+            <a className="button button--navy" href="/login">เข้าสู่ระบบ <ArrowRight size={17} /></a>
+          </div>
+
+          <p className="quality-source">
+            อ้างอิงกรอบแนวทางการประกันคุณภาพภายนอก พ.ศ. 2567–2571 ฉบับปรับปรุงเพิ่มเติม ลงวันที่ 1 ธันวาคม 2566
+          </p>
+        </div>
+      </section>
+    </>
+  )
+}
+
 function HomeOperations() {
   const operationMenu = navItems.find((item) => item.label === 'การดำเนินงาน')
   const icons = [GraduationCap, ShieldCheck, School, ClipboardCheck]
@@ -1594,7 +1841,9 @@ function ComplaintsPage() {
 
 function PublicSubPage({ path, publicContent }) {
   if (path === '/operations/national-tests') return <OperationPage type="nationalTests" />
-  if (path === '/operations/external-quality') return <OperationPage type="externalQuality" />
+  if (path === '/operations/external-quality') {
+    return <QualityAssurancePage evidence={publicContent.qualityEvidence} />
+  }
   if (path === '/operations/ita') return <OperationPage type="ita" />
   if (path === '/about/basic-info') {
     return <><PageHero eyebrow="เกี่ยวกับโรงเรียน" title="ข้อมูลพื้นฐาน" description="ข้อมูลสำคัญและภาพรวมของโรงเรียนบ้านน้ำพร" icon={Building2} /><BasicInfoPage /></>
@@ -1961,6 +2210,7 @@ function App() {
     events: [],
     awards: [],
     newsletters: [],
+    qualityEvidence: [],
   })
 
   useEffect(() => {
@@ -1983,6 +2233,7 @@ function App() {
             events: data.events || [],
             awards: data.awards || [],
             newsletters: data.newsletters || [],
+            qualityEvidence: data.qualityEvidence || [],
           })
         }
       })

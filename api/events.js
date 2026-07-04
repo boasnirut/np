@@ -38,7 +38,7 @@ function validate(item, response) {
 
 export default async function handler(request, response) {
   try {
-    const session = await requireActiveUser(request, response)
+    const session = await requireActiveUser(request, response, { permission: 'events' })
     if (!session) return undefined
     const current = await readRepoFile('data/events.csv')
     const events = parseCsv(current.content)
