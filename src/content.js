@@ -14,74 +14,62 @@ import {
 } from 'lucide-react'
 
 export const navItems = [
-  { label: 'หน้าแรก', href: '#home' },
   {
-    label: 'รู้จักโรงเรียน',
-    href: '#about',
+    label: 'เกี่ยวกับโรงเรียน',
     children: [
-      { label: 'ภาพรวมโรงเรียน', href: '#about' },
-      { label: 'แนวคิดและอัตลักษณ์', href: '#about' },
-      { label: 'ข้อมูลพื้นฐาน', href: '#services' },
+      { label: 'ข้อมูลพื้นฐาน', href: '/about/basic-info' },
+      { label: 'ข้อมูลบุคลากร', href: '/about/staff' },
+      { label: 'ประวัติโรงเรียน', href: '/about/history' },
     ],
   },
+  { label: 'ผลงานและรางวัล', href: '/achievements' },
   {
     label: 'ข่าวสาร',
-    href: '#news',
     children: [
-      { label: 'ข่าวประชาสัมพันธ์', href: '#news' },
-      { label: 'จดหมายข่าวประชาสัมพันธ์', href: '#newsletters' },
-      { label: 'ข่าววิชาการ', href: '#news' },
-      { label: 'ภาพกิจกรรม', href: '#activities' },
-    ],
-  },
-  {
-    label: 'กิจกรรม',
-    href: '#activities',
-    children: [
-      { label: 'ปฏิทินกิจกรรม', href: '#activities' },
-      { label: 'กิจกรรมโรงเรียน', href: '#activities' },
-      { label: 'ผลงานและรางวัล', href: '#achievements' },
+      { label: 'กิจกรรม', href: '/news/activities' },
+      { label: 'ประชาสัมพันธ์', href: '/news/public-relations' },
+      { label: 'ประกาศ', href: '/news/announcements' },
+      { label: 'จดหมายข่าว', href: '/news/newsletters' },
     ],
   },
   {
     label: 'บริการ',
-    href: '#services',
     children: [
-      { label: 'งานวิชาการ', href: '#services' },
-      { label: 'เอกสารออนไลน์', href: '#services' },
-      { label: 'ระบบสารสนเทศ', href: '#services' },
-      { label: 'ถาม–ตอบ', href: '#contact' },
+      { label: 'ตรวจสอบผลการเรียน', href: '/services/results' },
+      { label: 'ดาวน์โหลดเอกสาร/คำร้อง', href: '/services/downloads' },
+      { label: 'ถาม-ตอบ (Q&A)', href: '/services/qa' },
+      { label: 'แจ้งเรื่องร้องเรียน', href: '/services/complaints' },
     ],
   },
-  { label: 'ติดต่อเรา', href: '#contact' },
+  { label: 'ติดต่อเรา', href: '/contact' },
 ]
 
 export const quickLinks = [
   {
     title: 'ข่าวประชาสัมพันธ์',
     description: 'ติดตามข่าวและประกาศล่าสุด',
-    href: '#news',
+    href: '/news/public-relations',
     icon: Megaphone,
     color: 'blue',
   },
   {
     title: 'ปฏิทินโรงเรียน',
     description: 'ดูกิจกรรมและวันสำคัญ',
-    href: '#activities',
+    href: '/news/activities',
     icon: CalendarDays,
     color: 'gold',
   },
   {
     title: 'เอกสารเผยแพร่',
     description: 'ดาวน์โหลดเอกสารที่เกี่ยวข้อง',
-    href: '#services',
+    href: '/services/downloads',
     icon: FileText,
     color: 'green',
   },
   {
     title: 'ติดต่อโรงเรียน',
     description: 'ที่อยู่ โทรศัพท์ และแผนที่',
-    href: '#contact',
+    href: '/contact',
     icon: MapPin,
     color: 'sky',
   },

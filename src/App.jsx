@@ -3,26 +3,35 @@ import {
   ArrowRight,
   ArrowUp,
   Bell,
+  BookOpenText,
+  Building2,
   CalendarDays,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
   Clock3,
+  Download,
   ExternalLink,
   FileText,
+  GraduationCap,
+  HelpCircle,
+  History,
   Images,
   Leaf,
   LogIn,
   Mail,
   MapPin,
   Menu,
+  MessageSquareWarning,
   Newspaper,
   Phone,
   Quote,
   School,
   Sparkles,
   Trophy,
+  Users,
   X,
 } from 'lucide-react'
 import {
@@ -202,6 +211,11 @@ function Header({ menuOpen, setMenuOpen }) {
   const [scrolled, setScrolled] = useState(false)
   const [openDropdown, setOpenDropdown] = useState(null)
   const [openMobileSection, setOpenMobileSection] = useState(null)
+  const currentPath = window.location.pathname.replace(/\/+$/, '') || '/'
+  const isItemActive = (item) =>
+    item.children
+      ? item.children.some((child) => child.href === currentPath)
+      : item.href === currentPath
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24)
@@ -237,7 +251,7 @@ function Header({ menuOpen, setMenuOpen }) {
 
       <header className={`site-header ${scrolled ? 'site-header--scrolled' : ''}`}>
         <div className="container site-header__inner">
-          <a className="brand" href="#home" onClick={closeMenu} aria-label="โรงเรียนบ้านน้ำพร หน้าแรก">
+          <a className="brand" href="/" onClick={closeMenu} aria-label="โรงเรียนบ้านน้ำพร หน้าแรก">
             <span className="brand__logo">
               <img src="/np.png" alt="ตราสัญลักษณ์โรงเรียนบ้านน้ำพร" />
             </span>
@@ -257,7 +271,7 @@ function Header({ menuOpen, setMenuOpen }) {
                   onMouseLeave={() => setOpenDropdown(null)}
                 >
                   <button
-                    className="nav-dropdown__trigger"
+                    className={`nav-dropdown__trigger ${isItemActive(item) ? 'is-active' : ''}`}
                     type="button"
                     aria-expanded={openDropdown === item.label}
                     onClick={() =>
@@ -270,7 +284,12 @@ function Header({ menuOpen, setMenuOpen }) {
                   <div className="nav-dropdown__menu">
                     <span className="nav-dropdown__eyebrow">{item.label}</span>
                     {item.children.map((child) => (
-                      <a key={`${item.label}-${child.label}`} href={child.href} onClick={closeMenu}>
+                      <a
+                        className={child.href === currentPath ? 'is-active' : ''}
+                        key={`${item.label}-${child.label}`}
+                        href={child.href}
+                        onClick={closeMenu}
+                      >
                         <span>{child.label}</span>
                         <ChevronRight size={16} aria-hidden="true" />
                       </a>
@@ -278,7 +297,12 @@ function Header({ menuOpen, setMenuOpen }) {
                   </div>
                 </div>
               ) : (
-                <a key={item.href} href={item.href} onClick={closeMenu}>
+                <a
+                  className={isItemActive(item) ? 'is-active' : ''}
+                  key={item.href}
+                  href={item.href}
+                  onClick={closeMenu}
+                >
                   {item.label}
                 </a>
               ),
@@ -303,26 +327,27 @@ function Header({ menuOpen, setMenuOpen }) {
 
         <div className={`mobile-nav ${menuOpen ? 'mobile-nav--open' : ''}`}>
           <nav className="container" aria-label="เมนูมือถือ">
-            {navItems.map((item, index) =>
+            {navItems.map((item) =>
               item.children ? (
                 <div
                   className={`mobile-nav__group ${openMobileSection === item.label ? 'mobile-nav__group--open' : ''}`}
                   key={item.label}
                 >
                   <button
+                    className={isItemActive(item) ? 'is-active' : ''}
                     type="button"
                     aria-expanded={openMobileSection === item.label}
                     onClick={() =>
                       setOpenMobileSection((current) => (current === item.label ? null : item.label))
                     }
                   >
-                    <span>0{index + 1}</span>
                     {item.label}
                     <ChevronDown size={18} />
                   </button>
                   <div className="mobile-nav__submenu">
                     {item.children.map((child) => (
                       <a
+                        className={child.href === currentPath ? 'is-active' : ''}
                         key={`${item.label}-${child.label}`}
                         href={child.href}
                         onClick={closeMenu}
@@ -334,8 +359,12 @@ function Header({ menuOpen, setMenuOpen }) {
                   </div>
                 </div>
               ) : (
-                <a key={item.href} href={item.href} onClick={closeMenu}>
-                  <span>0{index + 1}</span>
+                <a
+                  className={isItemActive(item) ? 'is-active' : ''}
+                  key={item.href}
+                  href={item.href}
+                  onClick={closeMenu}
+                >
                   {item.label}
                   <ChevronRight size={18} />
                 </a>
@@ -587,8 +616,14 @@ function Pagination({ currentPage, totalPages, onChange, label }) {
   )
 }
 
-function News({ liveNews = [] }) {
-  const [activeCategory, setActiveCategory] = useState('ทั้งหมด')
+function News({
+  liveNews = [],
+  fixedCategory = '',
+  eyebrow = 'ข่าวสารและประกาศ',
+  title = 'เรื่องราวล่าสุดจากโรงเรียน',
+  description = 'ติดตามประกาศ กิจกรรม และเรื่องราวการเรียนรู้ได้จากพื้นที่นี้',
+}) {
+  const [activeCategory, setActiveCategory] = useState(fixedCategory || 'ทั้งหมด')
   const [activeNews, setActiveNews] = useState(null)
   const [page, setPage] = useState(1)
   const sourceNews = useMemo(
@@ -642,11 +677,11 @@ function News({ liveNews = [] }) {
         <div className="container">
           <div className="news__header reveal">
             <SectionHeading
-              eyebrow="ข่าวสารและประกาศ"
-              title="เรื่องราวล่าสุดจากโรงเรียน"
-              description="ติดตามประกาศ กิจกรรม และเรื่องราวการเรียนรู้ได้จากพื้นที่นี้"
+              eyebrow={eyebrow}
+              title={title}
+              description={description}
             />
-            <div className="news__filters" role="group" aria-label="กรองหมวดหมู่ข่าว">
+            {!fixedCategory && <div className="news__filters" role="group" aria-label="กรองหมวดหมู่ข่าว">
               {categories.map((category) => (
                 <button
                   type="button"
@@ -661,11 +696,12 @@ function News({ liveNews = [] }) {
                   {category}
                 </button>
               ))}
-            </div>
+            </div>}
           </div>
 
-          <div className="news__grid">
-            {displayedNews.map(({ icon: Icon, ...item }, index) => (
+          {displayedNews.length ? (
+            <div className="news__grid">
+              {displayedNews.map(({ icon: Icon, ...item }, index) => (
               <article
                 className={`news-card news-card--${item.accent} ${index === 0 ? 'news-card--featured' : ''}`}
                 key={item.title}
@@ -697,8 +733,15 @@ function News({ liveNews = [] }) {
                   </button>
                 </div>
               </article>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="content-empty">
+              <span><Newspaper size={34} /></span>
+              <strong>ยังไม่มีข้อมูลในหมวดนี้</strong>
+              <p>เมื่อโรงเรียนเผยแพร่ข้อมูล รายการจะแสดงในหน้านี้โดยอัตโนมัติ</p>
+            </div>
+          )}
 
           <Pagination
             currentPage={currentPage}
@@ -752,7 +795,7 @@ function News({ liveNews = [] }) {
               <Bell size={18} />
               โปรดติดตามรายละเอียดเพิ่มเติมและประกาศฉบับเต็มจากทางโรงเรียน
             </div>
-            <a className="button button--navy" href="#contact" onClick={() => setActiveNews(null)}>
+            <a className="button button--navy" href="/contact" onClick={() => setActiveNews(null)}>
               สอบถามโรงเรียน
               <ArrowRight size={18} />
             </a>
@@ -965,6 +1008,253 @@ function Achievements({ awards = [] }) {
   )
 }
 
+function PageHero({ eyebrow, title, description, icon: Icon }) {
+  return (
+    <section className="page-hero">
+      <div className="page-hero__orb page-hero__orb--one" aria-hidden="true" />
+      <div className="page-hero__orb page-hero__orb--two" aria-hidden="true" />
+      <div className="container page-hero__inner">
+        <div>
+          <nav className="breadcrumbs" aria-label="เส้นทางนำทาง">
+            <a href="/">หน้าแรก</a>
+            <ChevronRight size={15} />
+            <span>{eyebrow}</span>
+          </nav>
+          <span className="page-hero__eyebrow">{eyebrow}</span>
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </div>
+        <span className="page-hero__icon"><Icon size={58} strokeWidth={1.35} /></span>
+      </div>
+    </section>
+  )
+}
+
+function BasicInfoPage() {
+  const items = [
+    { label: 'ชื่อสถานศึกษา', value: `${schoolInfo.thaiName} · ${schoolInfo.englishName}`, icon: School },
+    { label: 'ระดับชั้นที่เปิดสอน', value: schoolInfo.educationLevels, icon: GraduationCap },
+    { label: 'ประเภทโรงเรียน', value: schoolInfo.schoolType, icon: Building2 },
+    { label: 'หน่วยงานต้นสังกัด', value: schoolInfo.affiliation, icon: BookOpenText },
+    { label: 'ที่ตั้ง', value: contactDetails.address, icon: MapPin },
+    { label: 'ช่องทางติดต่อ', value: `${contactDetails.phone} · ${contactDetails.email}`, icon: Phone },
+  ]
+  return (
+    <section className="section inner-content">
+      <div className="container">
+        <SectionHeading
+          eyebrow="ข้อมูลสถานศึกษา"
+          title="ข้อมูลพื้นฐานโรงเรียนบ้านน้ำพร"
+          description={schoolInfo.summary}
+        />
+        <div className="info-card-grid">
+          {items.map(({ label, value, icon: Icon }) => (
+            <article className="info-card" key={label}>
+              <span><Icon size={23} /></span>
+              <div><small>{label}</small><strong>{value}</strong></div>
+            </article>
+          ))}
+        </div>
+        <a className="button button--navy inner-content__action" href={contactDetails.mapHref} target="_blank" rel="noreferrer">
+          เปิดแผนที่โรงเรียน <ExternalLink size={17} />
+        </a>
+      </div>
+    </section>
+  )
+}
+
+function StaffPage() {
+  return (
+    <section className="section inner-content">
+      <div className="container">
+        <SectionHeading
+          eyebrow="บุคลากรของเรา"
+          title="คณะผู้บริหาร ครู และบุคลากร"
+          description="บุคลากรโรงเรียนบ้านน้ำพรร่วมกันดูแลผู้เรียนและสร้างพื้นที่การเรียนรู้ที่ปลอดภัย เป็นมิตร และมีคุณภาพ"
+          align="center"
+        />
+        <article className="director-profile">
+          <div className="director-profile__image">
+            <img src="/PO.png" alt="นางศิวาลัย แก้วเขียว ผู้อำนวยการโรงเรียนบ้านน้ำพร" />
+          </div>
+          <div>
+            <span>ผู้อำนวยการโรงเรียน</span>
+            <h2>นางศิวาลัย แก้วเขียว</h2>
+            <p>บริหารสถานศึกษาโดยมุ่งเน้นคุณภาพผู้เรียน การทำงานร่วมกับครอบครัว และความเข้มแข็งของชุมชน</p>
+          </div>
+        </article>
+        <div className="personnel-groups">
+          <article><Users size={27} /><strong>คณะครูผู้สอน</strong><p>ร่วมออกแบบการเรียนรู้และดูแลนักเรียนทุกช่วงวัย</p></article>
+          <article><School size={27} /><strong>บุคลากรทางการศึกษา</strong><p>สนับสนุนงานโรงเรียนและบริการนักเรียน ผู้ปกครอง และชุมชน</p></article>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function HistoryPage() {
+  return (
+    <section className="section inner-content">
+      <div className="container history-layout">
+        <div className="history-layout__seal"><img src="/np.png" alt="ตราสัญลักษณ์โรงเรียนบ้านน้ำพร" /></div>
+        <div>
+          <SectionHeading
+            eyebrow="เรื่องราวของโรงเรียน"
+            title="ประวัติโรงเรียนบ้านน้ำพร"
+            description="โรงเรียนของชุมชนที่พัฒนาโอกาสทางการศึกษาอย่างต่อเนื่อง"
+          />
+          <div className="prose-card">
+            <p>โรงเรียนบ้านน้ำพรตั้งอยู่ที่บ้านน้ำพร ตำบลปากตม อำเภอเชียงคาน จังหวัดเลย เป็นสถานศึกษาที่ทำงานเชื่อมโยงกับครอบครัวและชุมชนในพื้นที่</p>
+            <p>ปัจจุบันเปิดสอนตั้งแต่ระดับชั้นอนุบาล 2 ถึงมัธยมศึกษาปีที่ 3 ในฐานะโรงเรียนขยายโอกาส สังกัดสำนักงานเขตพื้นที่การศึกษาประถมศึกษาเลย เขต 1</p>
+            <p>โรงเรียนมุ่งพัฒนาพื้นฐานความรู้ คุณธรรม ทักษะชีวิต และเปิดโอกาสให้ผู้เรียนได้ค้นพบศักยภาพของตนเองผ่านการลงมือทำและการเรียนรู้จากบริบทจริง</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const servicePageData = {
+  results: {
+    eyebrow: 'บริการสำหรับนักเรียน',
+    title: 'ตรวจสอบผลการเรียน',
+    description: 'แนวทางการติดต่อขอตรวจสอบข้อมูลผลการเรียนและเอกสารทางการศึกษา',
+    icon: ClipboardCheck,
+    heading: 'ตรวจสอบข้อมูลอย่างถูกต้องและปลอดภัย',
+    text: 'เพื่อคุ้มครองข้อมูลของนักเรียน กรุณาติดต่อครูประจำชั้นหรืองานวิชาการของโรงเรียนโดยตรง พร้อมแจ้งชื่อ–สกุลและระดับชั้นของนักเรียน',
+    action: 'ติดต่องานวิชาการ',
+    href: '/contact',
+  },
+  downloads: {
+    eyebrow: 'เอกสารออนไลน์',
+    title: 'ดาวน์โหลดเอกสาร/คำร้อง',
+    description: 'พื้นที่รวบรวมแบบฟอร์มและเอกสารที่ใช้ติดต่อราชการกับโรงเรียน',
+    icon: Download,
+    heading: 'เอกสารและแบบคำร้องของโรงเรียน',
+    text: 'โรงเรียนกำลังจัดเตรียมไฟล์เอกสารฉบับล่าสุด หากต้องการแบบคำร้องเร่งด่วน สามารถติดต่อโรงเรียนเพื่อขอรับไฟล์ที่ถูกต้องได้ตามช่องทางด้านล่าง',
+    action: 'ขอรับเอกสาร',
+    href: '/contact',
+  },
+}
+
+function ServiceInfoPage({ type }) {
+  const page = servicePageData[type]
+  const Icon = page.icon
+  return (
+    <>
+      <PageHero {...page} />
+      <section className="section inner-content">
+        <div className="container service-detail">
+          <span><Icon size={42} /></span>
+          <h2>{page.heading}</h2>
+          <p>{page.text}</p>
+          <a className="button button--navy" href={page.href}>{page.action}<ArrowRight size={17} /></a>
+        </div>
+      </section>
+    </>
+  )
+}
+
+function QaPage() {
+  const questions = [
+    ['โรงเรียนเปิดสอนระดับชั้นใดบ้าง?', `เปิดสอนตั้งแต่ระดับชั้น${schoolInfo.educationLevels}`],
+    ['โรงเรียนตั้งอยู่ที่ไหน?', contactDetails.address],
+    ['ติดต่อโรงเรียนในวันและเวลาใด?', 'วันจันทร์–ศุกร์ เวลา 08.00–16.30 น.'],
+    ['ติดตามข่าวสารของโรงเรียนได้จากที่ใด?', 'ติดตามได้จากเมนูข่าวสาร จดหมายข่าว และ Facebook โรงเรียนบ้านน้ำพร'],
+  ]
+  return (
+    <>
+      <PageHero
+        eyebrow="บริการ"
+        title="ถาม-ตอบ (Q&A)"
+        description="คำตอบสำหรับคำถามที่พบบ่อยเกี่ยวกับโรงเรียนและการติดต่อรับบริการ"
+        icon={HelpCircle}
+      />
+      <section className="section inner-content">
+        <div className="container faq-list">
+          {questions.map(([question, answer]) => (
+            <details key={question}>
+              <summary>{question}<ChevronDown size={20} /></summary>
+              <p>{answer}</p>
+            </details>
+          ))}
+          <a className="button button--navy" href="/contact">สอบถามเพิ่มเติม<ArrowRight size={17} /></a>
+        </div>
+      </section>
+    </>
+  )
+}
+
+function ComplaintsPage() {
+  return (
+    <>
+      <PageHero
+        eyebrow="บริการ"
+        title="แจ้งเรื่องร้องเรียน"
+        description="ช่องทางรับฟังความคิดเห็น ข้อเสนอแนะ และเรื่องร้องเรียนอย่างเหมาะสม"
+        icon={MessageSquareWarning}
+      />
+      <section className="section inner-content">
+        <div className="container complaint-layout">
+          <div>
+            <SectionHeading
+              eyebrow="ช่องทางติดต่อ"
+              title="แจ้งข้อมูลกับโรงเรียนโดยตรง"
+              description="โปรดระบุรายละเอียดที่จำเป็นและช่องทางติดต่อกลับ โรงเรียนจะดูแลข้อมูลอย่างเหมาะสมและประสานผู้รับผิดชอบ"
+            />
+            <p className="complaint-layout__note">หากเป็นเหตุเร่งด่วนหรือเกี่ยวข้องกับความปลอดภัย กรุณาโทรติดต่อโรงเรียนโดยตรง</p>
+          </div>
+          <div className="complaint-channels">
+            <a href={contactDetails.phoneHref}><Phone size={23} /><span><small>โทรศัพท์</small><strong>{contactDetails.phone}</strong></span></a>
+            <a href={contactDetails.emailHref}><Mail size={23} /><span><small>อีเมล</small><strong>{contactDetails.email}</strong></span></a>
+            <a href={contactDetails.messengerHref} target="_blank" rel="noreferrer"><MessageSquareWarning size={23} /><span><small>Messenger</small><strong>ติดต่อโรงเรียนผ่านข้อความ</strong></span></a>
+          </div>
+        </div>
+      </section>
+    </>
+  )
+}
+
+function PublicSubPage({ path, publicContent }) {
+  if (path === '/about/basic-info') {
+    return <><PageHero eyebrow="เกี่ยวกับโรงเรียน" title="ข้อมูลพื้นฐาน" description="ข้อมูลสำคัญและภาพรวมของโรงเรียนบ้านน้ำพร" icon={Building2} /><BasicInfoPage /></>
+  }
+  if (path === '/about/staff') {
+    return <><PageHero eyebrow="เกี่ยวกับโรงเรียน" title="ข้อมูลบุคลากร" description="ทำความรู้จักผู้บริหาร ครู และบุคลากรของโรงเรียน" icon={Users} /><StaffPage /></>
+  }
+  if (path === '/about/history') {
+    return <><PageHero eyebrow="เกี่ยวกับโรงเรียน" title="ประวัติโรงเรียน" description="เรื่องราวของสถานศึกษาที่เติบโตเคียงข้างชุมชนบ้านน้ำพร" icon={History} /><HistoryPage /></>
+  }
+  if (path === '/achievements') {
+    return <><PageHero eyebrow="โรงเรียนบ้านน้ำพร" title="ผลงานและรางวัล" description="ความภาคภูมิใจของนักเรียน ครู และสถานศึกษา" icon={Trophy} /><Achievements awards={publicContent.awards} /></>
+  }
+  if (path === '/news/activities') {
+    return <><PageHero eyebrow="ข่าวสาร" title="กิจกรรม" description="ข่าวกิจกรรมและประสบการณ์การเรียนรู้ของนักเรียน" icon={CalendarDays} /><News liveNews={publicContent.news} fixedCategory="กิจกรรม" eyebrow="ข่าวกิจกรรม" title="กิจกรรมล่าสุดของโรงเรียน" description="ติดตามภาพและเรื่องราวจากกิจกรรมของโรงเรียน" /></>
+  }
+  if (path === '/news/public-relations') {
+    return <><PageHero eyebrow="ข่าวสาร" title="ประชาสัมพันธ์" description="ข่าวประชาสัมพันธ์และเรื่องราวล่าสุดจากโรงเรียน" icon={Bell} /><News liveNews={publicContent.news} fixedCategory="ประชาสัมพันธ์" eyebrow="ประชาสัมพันธ์" title="ข่าวประชาสัมพันธ์ล่าสุด" /></>
+  }
+  if (path === '/news/announcements') {
+    return <><PageHero eyebrow="ข่าวสาร" title="ประกาศ" description="ประกาศและข้อมูลสำคัญจากโรงเรียนบ้านน้ำพร" icon={Newspaper} /><News liveNews={publicContent.news} fixedCategory="ประกาศ" eyebrow="ประกาศโรงเรียน" title="ประกาศล่าสุด" /></>
+  }
+  if (path === '/news/newsletters') {
+    return <><PageHero eyebrow="ข่าวสาร" title="จดหมายข่าว" description="จดหมายข่าวประชาสัมพันธ์และสรุปกิจกรรมของโรงเรียน" icon={Images} /><Newsletters newsletters={publicContent.newsletters} /></>
+  }
+  if (path === '/services/results') return <ServiceInfoPage type="results" />
+  if (path === '/services/downloads') return <ServiceInfoPage type="downloads" />
+  if (path === '/services/qa') return <QaPage />
+  if (path === '/services/complaints') return <ComplaintsPage />
+  if (path === '/contact') {
+    return <><PageHero eyebrow="โรงเรียนบ้านน้ำพร" title="ติดต่อเรา" description="ช่องทางติดต่อ ที่อยู่ และแผนที่โรงเรียน" icon={Phone} /><Contact /></>
+  }
+  return (
+    <>
+      <PageHero eyebrow="เว็บไซต์โรงเรียน" title="ไม่พบหน้าที่ต้องการ" description="ลิงก์นี้อาจถูกเปลี่ยนหรือไม่มีอยู่ในระบบ" icon={School} />
+      <section className="section inner-content"><div className="container service-detail"><a className="button button--navy" href="/">กลับหน้าแรก</a></div></section>
+    </>
+  )
+}
+
 function Services() {
   return (
     <section className="section services" id="services">
@@ -1114,13 +1404,14 @@ function Contact() {
 
 function Footer() {
   const year = new Date().getFullYear() + 543
+  const footerLinks = navItems.flatMap((item) => item.children || [item])
 
   return (
     <footer className="footer">
       <div className="footer__top">
         <div className="container footer__grid">
           <div className="footer__brand">
-            <a className="brand brand--footer" href="#home">
+            <a className="brand brand--footer" href="/">
               <span className="brand__logo">
                 <img src="/np.png" alt="ตราสัญลักษณ์โรงเรียนบ้านน้ำพร" />
               </span>
@@ -1138,16 +1429,15 @@ function Footer() {
           </div>
           <div className="footer__nav">
             <h3>เมนูเว็บไซต์</h3>
-            {navItems.slice(0, 4).map((item) => (
+            {footerLinks.slice(0, 5).map((item) => (
               <a href={item.href} key={item.href}>{item.label}</a>
             ))}
           </div>
           <div className="footer__nav">
             <h3>ข้อมูลสำคัญ</h3>
-            <a href="#services">เอกสารเผยแพร่</a>
-            <a href="#activities">ปฏิทินกิจกรรม</a>
-            <a href="#services">ระบบสารสนเทศ</a>
-            <a href="#contact">ช่องทางติดต่อ</a>
+            {footerLinks.slice(5, 9).map((item) => (
+              <a href={item.href} key={item.href}>{item.label}</a>
+            ))}
           </div>
           <div className="footer__contact">
             <h3>ติดต่อเรา</h3>
@@ -1268,6 +1558,8 @@ function ContactFab() {
 }
 
 function App() {
+  const path = window.location.pathname.replace(/\/+$/, '') || '/'
+  const isHome = path === '/'
   const [menuOpen, setMenuOpen] = useState(false)
   const [showTop, setShowTop] = useState(false)
   const [publicContent, setPublicContent] = useState({
@@ -1276,6 +1568,15 @@ function App() {
     awards: [],
     newsletters: [],
   })
+
+  useEffect(() => {
+    const allPages = navItems.flatMap((item) => item.children || [item])
+    const currentPage = allPages.find((item) => item.href === path)
+    document.title = currentPage
+      ? `${currentPage.label} | โรงเรียนบ้านน้ำพร`
+      : 'โรงเรียนบ้านน้ำพร | Bannamporn School'
+    window.scrollTo({ top: 0 })
+  }, [path])
 
   useEffect(() => {
     let active = true
@@ -1331,18 +1632,26 @@ function App() {
 
   return (
     <>
-      <WelcomeSlider />
+      {isHome && <WelcomeSlider />}
       <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
-      <Hero />
-      <Billboard />
-      <About />
-      <News liveNews={publicContent.news} />
-      <Newsletters newsletters={publicContent.newsletters} />
-      <Activities liveEvents={publicContent.events} />
-      <Achievements awards={publicContent.awards} />
-      <Services />
-      <DirectorMessage />
-      <Contact />
+      {isHome ? (
+        <>
+          <Hero />
+          <Billboard />
+          <About />
+          <News liveNews={publicContent.news} />
+          <Newsletters newsletters={publicContent.newsletters} />
+          <Activities liveEvents={publicContent.events} />
+          <Achievements awards={publicContent.awards} />
+          <Services />
+          <DirectorMessage />
+          <Contact />
+        </>
+      ) : (
+        <main className="subpage-main">
+          <PublicSubPage path={path} publicContent={publicContent} />
+        </main>
+      )}
       <Footer />
       <ContactFab />
       <button
