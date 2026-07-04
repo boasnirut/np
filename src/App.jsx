@@ -40,7 +40,6 @@ import {
   contactDetails,
   navItems,
   newsItems,
-  quickLinks,
   schoolInfo,
   services,
   trustPoints,
@@ -468,22 +467,6 @@ function Hero() {
         </div>
       </section>
 
-      <section className="quick-links" aria-label="เมนูทางลัด">
-        <div className="container quick-links__grid">
-          {quickLinks.map(({ icon: Icon, title, description, href, color }) => (
-            <a className="quick-link" href={href} key={title}>
-              <span className={`quick-link__icon quick-link__icon--${color}`}>
-                <Icon size={25} aria-hidden="true" />
-              </span>
-              <span className="quick-link__copy">
-                <strong>{title}</strong>
-                <small>{description}</small>
-              </span>
-              <ChevronRight className="quick-link__arrow" size={20} aria-hidden="true" />
-            </a>
-          ))}
-        </div>
-      </section>
     </main>
   )
 }
