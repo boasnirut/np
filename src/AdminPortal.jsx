@@ -220,6 +220,7 @@ const modules = {
     defaults: {
       title: '',
       category: 'ประชาสัมพันธ์',
+      publish_date: '',
       summary: '',
       content: '',
       document_url: '',
@@ -230,6 +231,7 @@ const modules = {
     fields: [
       { name: 'title', label: 'หัวข้อข่าว', wide: true, required: true, placeholder: 'กรอกหัวข้อข่าวหรือประกาศ' },
       { name: 'category', label: 'หมวดหมู่', type: 'select', options: ['กิจกรรม', 'ประชาสัมพันธ์', 'ประกาศ'] },
+      { name: 'publish_date', label: 'วันที่เผยแพร่', type: 'date', required: true },
       { name: 'status', label: 'สถานะ', type: 'status' },
       { name: 'summary', label: 'ข้อความสรุป', type: 'textarea', wide: true, rows: 2, placeholder: 'ข้อความสั้นสำหรับสรุปเนื้อหา' },
       { name: 'content', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 7, required: true, placeholder: 'กรอกรายละเอียดข่าวสารหรือประกาศ' },
@@ -238,7 +240,7 @@ const modules = {
       { name: 'display_order', label: 'ลำดับการแสดงผล (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อเรียงรายการล่าสุดก่อน' },
     ],
     meta: (item) => `${item.category} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
-    date: (item) => item.created_at,
+    date: (item) => item.publish_date || item.created_at,
     title: (item) => item.title,
   },
   events: {
@@ -314,22 +316,27 @@ const modules = {
     imageRequired: true,
     imageHint: 'ภาพแนวตั้ง อัตราส่วนประมาณ 1:1.4 · JPG, PNG หรือ WebP ไม่เกิน 3 MB',
     imageClass: 'image-uploader--portrait',
-    defaults: { issue_number: '', display_order: '' },
+    defaults: { issue_number: '', publish_date: '', display_order: '' },
     fields: [
       { name: 'issue_number', label: 'หมายเลขฉบับ', wide: true, required: true, placeholder: 'เช่น ฉบับที่ 1/2569' },
+      { name: 'publish_date', label: 'วันที่เผยแพร่', type: 'date', required: true },
       { name: 'display_order', label: 'ลำดับการแสดงผล (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อเรียงรายการล่าสุดก่อน' },
     ],
     meta: () => 'จดหมายข่าวประชาสัมพันธ์',
-    date: (item) => item.created_at,
+    date: (item) => item.publish_date || item.created_at,
     title: (item) => item.issue_number,
   },
 }
 
 function sortRecords(items) {
   return [...items].sort((left, right) => {
+    const leftDate = String(left.created_at || left.createdAt || '')
+    const rightDate = String(right.created_at || right.createdAt || '')
+    const dateDifference = rightDate.localeCompare(leftDate)
+    if (dateDifference) return dateDifference
     const orderDifference = Number(right.display_order || 0) - Number(left.display_order || 0)
     if (orderDifference) return orderDifference
-    return String(right.created_at || '').localeCompare(String(left.created_at || ''))
+    return String(right.id || '').localeCompare(String(left.id || ''))
   })
 }
 
@@ -1147,12 +1154,12 @@ function Dashboard() {
         ]
         const [newsData, eventData, awardData, newsletterData, qualityData, memberData] = await Promise.all(requests)
         if (!active) return
-        setNews(newsData.news || [])
-        setEvents(eventData.events || [])
-        setAwards(awardData.awards || [])
-        setNewsletters(newsletterData.newsletters || [])
-        setQualityEvidence(qualityData.evidence || [])
-        setMembers(memberData.members || [])
+        setNews(sortRecords(newsData.news || []))
+        setEvents(sortRecords(eventData.events || []))
+        setAwards(sortRecords(awardData.awards || []))
+        setNewsletters(sortRecords(newsletterData.newsletters || []))
+        setQualityEvidence(sortRecords(qualityData.evidence || []))
+        setMembers(sortRecords(memberData.members || []))
       } catch (error) {
         if (error.status === 401 || error.status === 403) window.location.replace('/login')
       } finally {

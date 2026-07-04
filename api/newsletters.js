@@ -21,6 +21,7 @@ const headers = [
   'created_at',
   'updated_at',
   'updated_by',
+  'publish_date',
 ]
 const allowedImageTypes = {
   'image/jpeg': 'jpg',
@@ -31,6 +32,7 @@ const allowedImageTypes = {
 function fields(body, existing = {}, isAdmin = false) {
   return {
     issue_number: String(body.issue_number ?? existing.issue_number ?? '').trim(),
+    publish_date: String(body.publish_date ?? existing.publish_date ?? '').trim(),
     display_order: isAdmin
       ? String(body.display_order ?? existing.display_order ?? '').trim()
       : String(existing.display_order ?? '').trim(),
@@ -41,6 +43,10 @@ function fields(body, existing = {}, isAdmin = false) {
 function validate(item, response) {
   if (item.issue_number.length < 3 || item.issue_number.length > 80) {
     sendJson(response, 400, { error: 'กรุณากรอกหมายเลขฉบับให้ถูกต้อง เช่น ฉบับที่ 1/2569' })
+    return false
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(item.publish_date)) {
+    sendJson(response, 400, { error: 'กรุณาระบุวันที่เผยแพร่จดหมายข่าว' })
     return false
   }
   if (item.display_order && !Number.isFinite(Number(item.display_order))) {

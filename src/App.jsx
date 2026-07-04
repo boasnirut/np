@@ -618,7 +618,11 @@ function News({
       liveNews.length
         ? liveNews.map((item, index) => ({
             ...item,
-            date: new Date(item.created_at).toLocaleDateString('th-TH', {
+            date: new Date(
+              item.publish_date
+                ? `${item.publish_date}T00:00:00`
+                : item.created_at,
+            ).toLocaleDateString('th-TH', {
               day: 'numeric',
               month: 'long',
               year: 'numeric',
@@ -826,7 +830,20 @@ function Newsletters({ newsletters = [], paginate = true }) {
                   </a>
                   <div>
                     <Newspaper size={20} />
-                    <strong>{item.issue_number}</strong>
+                    <span>
+                      <strong>{item.issue_number}</strong>
+                      <small>
+                        {new Date(
+                          item.publish_date
+                            ? `${item.publish_date}T00:00:00`
+                            : item.created_at,
+                        ).toLocaleDateString('th-TH', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </small>
+                    </span>
                   </div>
                 </article>
               ))}

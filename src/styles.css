@@ -1912,10 +1912,22 @@ body.welcome-open {
   color: var(--navy-700);
 }
 
+.newsletter-card > div > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
 .newsletter-card strong {
   color: var(--navy-900);
   font-family: 'Anuphan', sans-serif;
   font-size: 0.88rem;
+}
+
+.newsletter-card small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.59rem;
 }
 
 .newsletters__empty {

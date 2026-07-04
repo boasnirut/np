@@ -30,6 +30,7 @@ const headers = [
   'created_at',
   'updated_at',
   'updated_by',
+  'publish_date',
 ]
 const allowedImageTypes = {
   'image/jpeg': 'jpg',
@@ -41,6 +42,7 @@ function newsFields(body, existing = {}, isAdmin = false) {
   return {
     title: String(body.title ?? existing.title ?? '').trim(),
     category: String(body.category ?? existing.category ?? 'ประชาสัมพันธ์').trim(),
+    publish_date: String(body.publish_date ?? existing.publish_date ?? '').trim(),
     summary: String(body.summary ?? existing.summary ?? '').trim(),
     content: String(body.content ?? existing.content ?? '').trim(),
     document_url: cleanExternalUrl(body.document_url ?? existing.document_url ?? ''),
@@ -59,6 +61,10 @@ function validate(fields, response) {
   }
   if (!fields.content || fields.content.length > 20_000) {
     sendJson(response, 400, { error: 'กรุณากรอกรายละเอียดข่าวไม่เกิน 20,000 ตัวอักษร' })
+    return false
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.publish_date)) {
+    sendJson(response, 400, { error: 'กรุณาระบุวันที่เผยแพร่ข่าวสาร' })
     return false
   }
   if (fields.document_url === null || fields.photo_url === null) {
