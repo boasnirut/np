@@ -803,6 +803,12 @@
   font-size: 0.56rem;
 }
 
+.admin-record-list__audit {
+  display: block;
+  margin-top: 2px;
+  line-height: 1.45;
+}
+
 .admin-record-list__actions {
   display: flex;
   gap: 5px;
@@ -1091,6 +1097,65 @@
   background: #f7fafc;
   cursor: pointer;
   grid-template-columns: auto minmax(0, 1fr);
+}
+
+.quality-link-fields {
+  gap: 8px;
+}
+
+.quality-link-fields__heading,
+.quality-link-fields__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quality-link-fields__heading {
+  justify-content: space-between;
+}
+
+.quality-link-fields__heading button,
+.quality-link-fields__row button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid #cbdbe7;
+  border-radius: 9px;
+  color: #245f91;
+  background: #f5f9fc;
+  cursor: pointer;
+}
+
+.quality-link-fields__heading button {
+  min-height: 32px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.quality-link-fields__heading button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.quality-link-fields__row input {
+  min-width: 0;
+  flex: 1;
+}
+
+.quality-link-fields__row button {
+  width: 39px;
+  height: 39px;
+  padding: 0;
+  color: #a84343;
+}
+
+.quality-link-fields > small {
+  color: #7c8b9e;
+  font-size: 0.62rem;
 }
 
 .quality-file-uploader.is-selected {

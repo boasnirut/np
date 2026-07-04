@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser } from './_lib/access.js'
+import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
 import { nextDisplayOrder, sortByDisplayOrder } from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
@@ -20,6 +20,7 @@ const headers = [
   'author',
   'created_at',
   'updated_at',
+  'updated_by',
 ]
 const allowedImageTypes = {
   'image/jpeg': 'jpg',
@@ -69,7 +70,9 @@ export default async function handler(request, response) {
     const newsletters = parseCsv(current.content)
 
     if (request.method === 'GET') {
-      return sendJson(response, 200, { newsletters: sortByDisplayOrder(newsletters) })
+      return sendJson(response, 200, {
+        newsletters: await withUserDisplayNames(sortByDisplayOrder(newsletters), session.userNames),
+      })
     }
 
     const body = await readJsonBody(request, 5_000_000)
@@ -90,6 +93,7 @@ export default async function handler(request, response) {
         author: session.sub,
         created_at: now,
         updated_at: now,
+        updated_by: '',
       }
       newsletters.push(item)
       await writeRepoFile(
@@ -98,7 +102,8 @@ export default async function handler(request, response) {
         `เพิ่มจดหมายข่าวประชาสัมพันธ์: ${item.issue_number}`,
         current.sha,
       )
-      return sendJson(response, 201, { newsletter: item })
+      const [responseItem] = await withUserDisplayNames([item], session.userNames)
+      return sendJson(response, 201, { newsletter: responseItem })
     }
 
     if (request.method === 'PUT' || request.method === 'DELETE') {
@@ -128,6 +133,7 @@ export default async function handler(request, response) {
         ...itemFields,
         image_url: imageUrl || newsletters[index].image_url,
         updated_at: new Date().toISOString(),
+        updated_by: session.sub,
       }
       await writeRepoFile(
         'data/newsletters.csv',
@@ -135,7 +141,8 @@ export default async function handler(request, response) {
         `แก้ไขจดหมายข่าวประชาสัมพันธ์: ${itemFields.issue_number}`,
         current.sha,
       )
-      return sendJson(response, 200, { newsletter: newsletters[index] })
+      const [responseItem] = await withUserDisplayNames([newsletters[index]], session.userNames)
+      return sendJson(response, 200, { newsletter: responseItem })
     }
 
     return methodNotAllowed(response, ['GET', 'POST', 'PUT', 'DELETE'])

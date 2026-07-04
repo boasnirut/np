@@ -1652,16 +1652,27 @@ function QualityAssurancePage({ evidence = [] }) {
                             </header>
                             {indicatorEvidence.length ? (
                               <div className="quality-evidence-list">
-                                {indicatorEvidence.map((item) => (
-                                  <a href={item.document_url} target="_blank" rel="noreferrer" key={item.id}>
-                                    <span><FileText size={18} /></span>
-                                    <div>
-                                      <strong>{item.title}</strong>
-                                      {item.description && <small>{item.description}</small>}
-                                    </div>
-                                    <ExternalLink size={16} />
-                                  </a>
-                                ))}
+                                {indicatorEvidence.map((item) => {
+                                  const documentUrls = item.document_urls?.length
+                                    ? item.document_urls
+                                    : [item.document_url].filter(Boolean)
+                                  return (
+                                    <article className="quality-evidence-entry" key={item.id}>
+                                      <span><FileText size={18} /></span>
+                                      <div>
+                                        <strong>{item.title}</strong>
+                                        {item.description && <small>{item.description}</small>}
+                                        <div className="quality-evidence-entry__links">
+                                          {documentUrls.map((url, index) => (
+                                            <a href={url} target="_blank" rel="noreferrer" key={`${url}-${index}`}>
+                                              หลักฐานที่ {index + 1} <ExternalLink size={14} />
+                                            </a>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </article>
+                                  )
+                                })}
                               </div>
                             ) : (
                               <div className="quality-evidence-empty">

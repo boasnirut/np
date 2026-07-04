@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser } from './_lib/access.js'
+import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
 import {
   cleanExternalUrl,
   nextDisplayOrder,
@@ -25,6 +25,7 @@ const headers = [
   'author',
   'created_at',
   'updated_at',
+  'updated_by',
 ]
 const allowedImageTypes = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
 const allowedAwardTypes = new Set(['school', 'personnel', 'student'])
@@ -86,7 +87,7 @@ export default async function handler(request, response) {
 
     if (request.method === 'GET') {
       return sendJson(response, 200, {
-        awards: sortByDisplayOrder(awards),
+        awards: await withUserDisplayNames(sortByDisplayOrder(awards), session.userNames),
       })
     }
 
@@ -104,6 +105,7 @@ export default async function handler(request, response) {
         author: session.sub,
         created_at: now,
         updated_at: now,
+        updated_by: '',
       }
       awards.push(item)
       await writeRepoFile(
@@ -112,7 +114,8 @@ export default async function handler(request, response) {
         `เพิ่มผลงานและรางวัล: ${item.title}`,
         current.sha,
       )
-      return sendJson(response, 201, { award: item })
+      const [responseItem] = await withUserDisplayNames([item], session.userNames)
+      return sendJson(response, 201, { award: responseItem })
     }
 
     if (request.method === 'PUT' || request.method === 'DELETE') {
@@ -139,6 +142,7 @@ export default async function handler(request, response) {
         ...itemFields,
         image_url: newImage || awards[index].image_url,
         updated_at: new Date().toISOString(),
+        updated_by: session.sub,
       }
       await writeRepoFile(
         'data/awards.csv',
@@ -146,7 +150,8 @@ export default async function handler(request, response) {
         `แก้ไขผลงานและรางวัล: ${itemFields.title}`,
         current.sha,
       )
-      return sendJson(response, 200, { award: awards[index] })
+      const [responseItem] = await withUserDisplayNames([awards[index]], session.userNames)
+      return sendJson(response, 200, { award: responseItem })
     }
 
     return methodNotAllowed(response, ['GET', 'POST', 'PUT', 'DELETE'])

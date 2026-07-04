@@ -11,7 +11,8 @@ export async function requireActiveUser(request, response, options = {}) {
   }
 
   const { content } = await readRepoFile('data/users.csv')
-  const user = parseCsv(content).find((item) => item.username === session.sub)
+  const users = parseCsv(content)
+  const user = users.find((item) => item.username === session.sub)
   if (!user || user.active !== 'true') {
     sendJson(response, 403, { error: 'บัญชีนี้ยังไม่ได้รับอนุมัติหรือถูกระงับการใช้งาน' })
     return null
@@ -34,5 +35,24 @@ export async function requireActiveUser(request, response, options = {}) {
     role: user.role,
     name: user.display_name,
     permissions,
+    userNames: Object.fromEntries(
+      users.map((item) => [item.username, item.display_name || item.username]),
+    ),
   }
+}
+
+export async function withUserDisplayNames(items, knownNames = null) {
+  let displayNames = knownNames
+  if (!displayNames) {
+    const { content } = await readRepoFile('data/users.csv')
+    displayNames = Object.fromEntries(
+      parseCsv(content).map((user) => [user.username, user.display_name || user.username]),
+    )
+  }
+
+  return items.map((item) => ({
+    ...item,
+    author_name: displayNames[item.author] || item.author || '',
+    updated_by_name: displayNames[item.updated_by] || item.updated_by || '',
+  }))
 }

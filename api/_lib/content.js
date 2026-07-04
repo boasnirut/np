@@ -26,3 +26,13 @@ export function sortByDisplayOrder(items) {
     return String(right.created_at || '').localeCompare(String(left.created_at || ''))
   })
 }
+
+export function evidenceDocumentUrls(item) {
+  return [
+    item.document_url,
+    item.document_url_2,
+    item.document_url_3,
+    item.document_url_4,
+    item.document_url_5,
+  ].map((url) => String(url || '').trim()).filter(Boolean)
+}

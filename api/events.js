@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser } from './_lib/access.js'
+import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
 import { readRepoFile, writeRepoFile } from './_lib/repo.js'
@@ -15,6 +15,7 @@ const headers = [
   'author',
   'created_at',
   'updated_at',
+  'updated_by',
 ]
 
 function fields(body, existing = {}) {
@@ -45,7 +46,10 @@ export default async function handler(request, response) {
 
     if (request.method === 'GET') {
       return sendJson(response, 200, {
-        events: events.sort((left, right) => left.event_date.localeCompare(right.event_date)),
+        events: await withUserDisplayNames(
+          events.sort((left, right) => left.event_date.localeCompare(right.event_date)),
+          session.userNames,
+        ),
       })
     }
 
@@ -60,6 +64,7 @@ export default async function handler(request, response) {
         author: session.sub,
         created_at: now,
         updated_at: now,
+        updated_by: '',
       }
       events.push(item)
       await writeRepoFile(
@@ -68,7 +73,8 @@ export default async function handler(request, response) {
         `เพิ่มกิจกรรม: ${item.title}`,
         current.sha,
       )
-      return sendJson(response, 201, { event: item })
+      const [responseItem] = await withUserDisplayNames([item], session.userNames)
+      return sendJson(response, 201, { event: responseItem })
     }
 
     if (request.method === 'PUT' || request.method === 'DELETE') {
@@ -89,14 +95,20 @@ export default async function handler(request, response) {
       }
       const itemFields = fields(body, events[index])
       if (!validate(itemFields, response)) return undefined
-      events[index] = { ...events[index], ...itemFields, updated_at: new Date().toISOString() }
+      events[index] = {
+        ...events[index],
+        ...itemFields,
+        updated_at: new Date().toISOString(),
+        updated_by: session.sub,
+      }
       await writeRepoFile(
         'data/events.csv',
         stringifyCsv(events, headers),
         `แก้ไขกิจกรรม: ${itemFields.title}`,
         current.sha,
       )
-      return sendJson(response, 200, { event: events[index] })
+      const [responseItem] = await withUserDisplayNames([events[index]], session.userNames)
+      return sendJson(response, 200, { event: responseItem })
     }
 
     return methodNotAllowed(response, ['GET', 'POST', 'PUT', 'DELETE'])

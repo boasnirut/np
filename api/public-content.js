@@ -1,5 +1,5 @@
 import { parseCsv } from './_lib/csv.js'
-import { sortByDisplayOrder } from './_lib/content.js'
+import { evidenceDocumentUrls, sortByDisplayOrder } from './_lib/content.js'
 import { methodNotAllowed } from './_lib/http.js'
 import { readRepoFile } from './_lib/repo.js'
 
@@ -21,7 +21,10 @@ export default async function handler(request, response) {
       ),
       awards: sortByDisplayOrder(published(parseCsv(awardsFile.content))),
       newsletters: sortByDisplayOrder(published(parseCsv(newslettersFile.content))),
-      qualityEvidence: sortByDisplayOrder(published(parseCsv(qualityFile.content))),
+      qualityEvidence: sortByDisplayOrder(published(parseCsv(qualityFile.content))).map((item) => ({
+        ...item,
+        document_urls: evidenceDocumentUrls(item),
+      })),
     }
     response.statusCode = 200
     response.setHeader('Content-Type', 'application/json; charset=utf-8')

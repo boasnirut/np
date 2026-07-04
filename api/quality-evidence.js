@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser } from './_lib/access.js'
+import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
 import {
   cleanExternalUrl,
+  evidenceDocumentUrls,
   nextDisplayOrder,
   sortByDisplayOrder,
 } from './_lib/content.js'
@@ -28,15 +29,25 @@ const headers = [
   'author',
   'created_at',
   'updated_at',
+  'updated_by',
+  'document_url_2',
+  'document_url_3',
+  'document_url_4',
+  'document_url_5',
 ]
 
 function fields(body, existing = {}, isAdmin = false) {
+  const sourceUrls = Array.isArray(body.document_urls)
+    ? body.document_urls
+    : evidenceDocumentUrls(existing)
   return {
     education_level: String(body.education_level ?? existing.education_level ?? 'early').trim(),
     indicator_code: String(body.indicator_code ?? existing.indicator_code ?? '1.1').trim(),
     title: String(body.title ?? existing.title ?? '').trim(),
     description: String(body.description ?? existing.description ?? '').trim(),
-    document_url: cleanExternalUrl(body.document_url ?? existing.document_url ?? ''),
+    document_urls: sourceUrls
+      .map((url) => cleanExternalUrl(url))
+      .filter((url) => url !== ''),
     display_order: isAdmin
       ? String(body.display_order ?? existing.display_order ?? '').trim()
       : String(existing.display_order ?? '').trim(),
@@ -57,11 +68,15 @@ function validate(item, response, hasUploadedFile = false) {
     sendJson(response, 400, { error: 'คำอธิบายเอกสารต้องไม่เกิน 500 ตัวอักษร' })
     return false
   }
-  if (item.document_url === null) {
+  if (item.document_urls.some((url) => url === null)) {
     sendJson(response, 400, { error: 'ลิงก์เอกสารต้องเป็นลิงก์ https ที่ถูกต้อง' })
     return false
   }
-  if (!item.document_url && !hasUploadedFile) {
+  if (item.document_urls.length + (hasUploadedFile ? 1 : 0) > 5) {
+    sendJson(response, 400, { error: 'เพิ่มหลักฐานได้ไม่เกิน 5 ลิงก์หรือไฟล์ต่อรายการ' })
+    return false
+  }
+  if (!item.document_urls.length && !hasUploadedFile) {
     sendJson(response, 400, { error: 'กรุณาอัปโหลดไฟล์ PDF หรือกรอกลิงก์เอกสาร' })
     return false
   }
@@ -70,6 +85,25 @@ function validate(item, response, hasUploadedFile = false) {
     return false
   }
   return true
+}
+
+function withDocumentColumns(item, urls) {
+  return {
+    ...item,
+    document_url: urls[0] || '',
+    document_url_2: urls[1] || '',
+    document_url_3: urls[2] || '',
+    document_url_4: urls[3] || '',
+    document_url_5: urls[4] || '',
+  }
+}
+
+async function presentEvidence(items, userNames) {
+  const namedItems = await withUserDisplayNames(items, userNames)
+  return namedItems.map((item) => ({
+    ...item,
+    document_urls: evidenceDocumentUrls(item),
+  }))
 }
 
 async function uploadPdf(file, id, title) {
@@ -91,7 +125,9 @@ export default async function handler(request, response) {
     const evidence = parseCsv(current.content)
 
     if (request.method === 'GET') {
-      return sendJson(response, 200, { evidence: sortByDisplayOrder(evidence) })
+      return sendJson(response, 200, {
+        evidence: await presentEvidence(sortByDisplayOrder(evidence), session.userNames),
+      })
     }
 
     const body = await readJsonBody(request, 4_500_000)
@@ -102,15 +138,16 @@ export default async function handler(request, response) {
       const id = randomUUID()
       const uploadedUrl = await uploadPdf(body.file, id, itemFields.title)
       const now = new Date().toISOString()
-      const item = {
+      const { document_urls: documentUrls, ...savedFields } = itemFields
+      const item = withDocumentColumns({
         id,
-        ...itemFields,
-        document_url: uploadedUrl || itemFields.document_url,
+        ...savedFields,
         display_order: itemFields.display_order || String(nextDisplayOrder(evidence)),
         author: session.sub,
         created_at: now,
         updated_at: now,
-      }
+        updated_by: '',
+      }, [uploadedUrl, ...documentUrls].filter(Boolean))
       evidence.push(item)
       await writeRepoFile(
         'data/quality-evidence.csv',
@@ -118,7 +155,8 @@ export default async function handler(request, response) {
         `เพิ่มหลักฐาน สมศ. ${item.indicator_code}: ${item.title}`,
         current.sha,
       )
-      return sendJson(response, 201, { evidence: item })
+      const [responseItem] = await presentEvidence([item], session.userNames)
+      return sendJson(response, 201, { evidence: responseItem })
     }
 
     if (request.method === 'PUT' || request.method === 'DELETE') {
@@ -142,19 +180,21 @@ export default async function handler(request, response) {
       const itemFields = fields(body, evidence[index], true)
       if (!validate(itemFields, response, Boolean(body.file?.data))) return undefined
       const uploadedUrl = await uploadPdf(body.file, evidence[index].id, itemFields.title)
-      evidence[index] = {
+      const { document_urls: documentUrls, ...savedFields } = itemFields
+      evidence[index] = withDocumentColumns({
         ...evidence[index],
-        ...itemFields,
-        document_url: uploadedUrl || itemFields.document_url || evidence[index].document_url,
+        ...savedFields,
         updated_at: new Date().toISOString(),
-      }
+        updated_by: session.sub,
+      }, [uploadedUrl, ...documentUrls].filter(Boolean))
       await writeRepoFile(
         'data/quality-evidence.csv',
         stringifyCsv(evidence, headers),
         `แก้ไขหลักฐาน สมศ. ${itemFields.indicator_code}: ${itemFields.title}`,
         current.sha,
       )
-      return sendJson(response, 200, { evidence: evidence[index] })
+      const [responseItem] = await presentEvidence([evidence[index]], session.userNames)
+      return sendJson(response, 200, { evidence: responseItem })
     }
 
     return methodNotAllowed(response, ['GET', 'POST', 'PUT', 'DELETE'])

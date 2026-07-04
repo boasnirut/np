@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser } from './_lib/access.js'
+import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
 import {
   cleanExternalUrl,
   nextDisplayOrder,
@@ -29,6 +29,7 @@ const headers = [
   'author',
   'created_at',
   'updated_at',
+  'updated_by',
 ]
 const allowedImageTypes = {
   'image/jpeg': 'jpg',
@@ -101,7 +102,7 @@ export default async function handler(request, response) {
 
     if (request.method === 'GET') {
       return sendJson(response, 200, {
-        news: sortByDisplayOrder(news),
+        news: await withUserDisplayNames(sortByDisplayOrder(news), session.userNames),
       })
     }
 
@@ -119,6 +120,7 @@ export default async function handler(request, response) {
         author: session.sub,
         created_at: now,
         updated_at: now,
+        updated_by: '',
       }
       news.push(item)
       await writeRepoFile(
@@ -127,7 +129,8 @@ export default async function handler(request, response) {
         `เพิ่มข่าวสาร: ${fields.title}`,
         current.sha,
       )
-      return sendJson(response, 201, { news: item })
+      const [responseItem] = await withUserDisplayNames([item], session.userNames)
+      return sendJson(response, 201, { news: responseItem })
     }
 
     if (request.method === 'PUT' || request.method === 'DELETE') {
@@ -156,6 +159,7 @@ export default async function handler(request, response) {
         ...fields,
         image_url: newImage || news[index].image_url,
         updated_at: new Date().toISOString(),
+        updated_by: session.sub,
       }
       await writeRepoFile(
         'data/news.csv',
@@ -163,7 +167,8 @@ export default async function handler(request, response) {
         `แก้ไขข่าวสาร: ${fields.title}`,
         current.sha,
       )
-      return sendJson(response, 200, { news: news[index] })
+      const [responseItem] = await withUserDisplayNames([news[index]], session.userNames)
+      return sendJson(response, 200, { news: responseItem })
     }
 
     return methodNotAllowed(response, ['GET', 'POST', 'PUT', 'DELETE'])

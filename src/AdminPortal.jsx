@@ -19,6 +19,7 @@ import {
   Megaphone,
   Newspaper,
   Pencil,
+  Plus,
   Save,
   ShieldCheck,
   Trash2,
@@ -200,7 +201,7 @@ const awardTypeLabels = {
 }
 
 const permissionOptions = [
-  { id: 'news', label: 'ข่าวสาร / ประชาสัมพันธ์ / ประกาศ', icon: Megaphone },
+  { id: 'news', label: 'ข่าวสาร', icon: Megaphone },
   { id: 'events', label: 'ปฏิทินกิจกรรม', icon: CalendarDays },
   { id: 'awards', label: 'ผลงานและรางวัล', icon: Trophy },
   { id: 'newsletters', label: 'จดหมายข่าวประชาสัมพันธ์', icon: GalleryHorizontalEnd },
@@ -212,7 +213,7 @@ const modules = {
     endpoint: '/api/news',
     responseKey: 'news',
     listKey: 'news',
-    label: 'ข่าวสารและประกาศ',
+    label: 'ข่าวสาร',
     eyebrow: 'NEWS & ANNOUNCEMENT',
     icon: Megaphone,
     image: true,
@@ -330,6 +331,20 @@ function sortRecords(items) {
     if (orderDifference) return orderDifference
     return String(right.created_at || '').localeCompare(String(left.created_at || ''))
   })
+}
+
+function RecordAudit({ item, date }) {
+  const createdDate = date ? new Date(date).toLocaleDateString('th-TH') : ''
+  const author = item.author_name || item.author || 'ไม่ระบุผู้บันทึก'
+  const editor = item.updated_by_name || item.updated_by
+
+  return (
+    <small className="admin-record-list__audit">
+      {createdDate && <>{createdDate} · </>}
+      บันทึกโดย {author}
+      {editor && <> · แก้ไขโดย {editor}</>}
+    </small>
+  )
 }
 
 function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
@@ -509,7 +524,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
                   {(item.document_url || item.photo_url) && (
                     <small className="admin-record-list__links"><Link2 size={12} /> มีลิงก์แนบ</small>
                   )}
-                  <small>{config.date(item) ? new Date(config.date(item)).toLocaleDateString('th-TH') : ''}</small>
+                  <RecordAudit item={item} date={config.date(item)} />
                 </div>
                 {isAdmin && (
                   <div className="admin-record-list__actions">
@@ -531,7 +546,7 @@ const qualityDefaults = {
   indicator_code: '1.1',
   title: '',
   description: '',
-  document_url: '',
+  document_urls: [''],
   display_order: '',
   status: 'published',
 }
@@ -560,21 +575,69 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
   }
 
   const reset = () => {
-    setForm(qualityDefaults)
+    setForm({ ...qualityDefaults, document_urls: [''] })
     setEditingId(null)
     setFile(null)
   }
 
   const edit = (item) => {
-    setForm(Object.fromEntries(Object.keys(qualityDefaults).map((key) => [key, item[key] || ''])))
+    const documentUrls = item.document_urls?.length
+      ? item.document_urls
+      : [
+          item.document_url,
+          item.document_url_2,
+          item.document_url_3,
+          item.document_url_4,
+          item.document_url_5,
+        ].filter(Boolean)
+    setForm({
+      ...Object.fromEntries(
+        Object.keys(qualityDefaults)
+          .filter((key) => key !== 'document_urls')
+          .map((key) => [key, item[key] || '']),
+      ),
+      document_urls: documentUrls.length ? documentUrls : [''],
+    })
     setEditingId(item.id)
     setFile(null)
     setMessage(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const updateDocumentUrl = (index, value) => {
+    setForm((current) => ({
+      ...current,
+      document_urls: current.document_urls.map((url, urlIndex) => (
+        urlIndex === index ? value : url
+      )),
+    }))
+    setMessage(null)
+  }
+
+  const addDocumentUrl = () => {
+    setForm((current) => (
+      current.document_urls.length >= 5
+        ? current
+        : { ...current, document_urls: [...current.document_urls, ''] }
+    ))
+    setMessage(null)
+  }
+
+  const removeDocumentUrl = (index) => {
+    setForm((current) => {
+      const documentUrls = current.document_urls.filter((_, urlIndex) => urlIndex !== index)
+      return { ...current, document_urls: documentUrls.length ? documentUrls : [''] }
+    })
+    setMessage(null)
+  }
+
   const submit = async (event) => {
     event.preventDefault()
+    const linkCount = form.document_urls.filter((url) => url.trim()).length
+    if (linkCount + (file ? 1 : 0) > 5) {
+      setMessage({ type: 'error', text: 'เพิ่มหลักฐานได้ไม่เกิน 5 รายการ โดยนับรวมไฟล์ PDF ที่อัปโหลด' })
+      return
+    }
     setSubmitting(true)
     setMessage(null)
     try {
@@ -670,16 +733,39 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
               rows={3}
             />
           </label>
-          <label className="news-field news-field--wide">
-            <span>ลิงก์เอกสารบน Google Drive หรือเว็บไซต์ภายนอก</span>
-            <input
-              type="url"
-              name="document_url"
-              value={form.document_url}
-              onChange={update}
-              placeholder="https://drive.google.com/..."
-            />
-          </label>
+          <div className="news-field news-field--wide quality-link-fields">
+            <div className="quality-link-fields__heading">
+              <span>ลิงก์เอกสารบน Google Drive หรือเว็บไซต์ภายนอก</span>
+              <button
+                type="button"
+                onClick={addDocumentUrl}
+                disabled={form.document_urls.length >= 5}
+              >
+                <Plus size={16} /> เพิ่มลิงก์
+              </button>
+            </div>
+            {form.document_urls.map((url, index) => (
+              <div className="quality-link-fields__row" key={index}>
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(event) => updateDocumentUrl(index, event.target.value)}
+                  placeholder={`ลิงก์หลักฐานที่ ${index + 1}`}
+                  aria-label={`ลิงก์หลักฐานที่ ${index + 1}`}
+                />
+                {form.document_urls.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeDocumentUrl(index)}
+                    aria-label={`ลบลิงก์หลักฐานที่ ${index + 1}`}
+                  >
+                    <X size={17} />
+                  </button>
+                )}
+              </div>
+            ))}
+            <small>เพิ่มได้สูงสุด 5 รายการ โดยนับรวมไฟล์ PDF ที่อัปโหลด</small>
+          </div>
           {isAdmin && (
             <label className="news-field">
               <span>ลำดับการแสดงผล</span>
@@ -746,8 +832,11 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
                 <div className="admin-record-list__copy">
                   <span>{qualityLevelMap[item.education_level]?.shortLabel} · ตัวชี้วัดที่ {item.indicator_code}</span>
                   <h3>{item.title}</h3>
-                  <small className="admin-record-list__links"><Link2 size={12} /> เอกสารหลักฐาน</small>
+                  <small className="admin-record-list__links">
+                    <Link2 size={12} /> {(item.document_urls?.length || 1)} ลิงก์หลักฐาน
+                  </small>
                   <small>{item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}</small>
+                  <RecordAudit item={item} date={item.created_at} />
                 </div>
                 {isAdmin && (
                   <div className="admin-record-list__actions">
@@ -1095,7 +1184,7 @@ function Dashboard() {
   const isAdmin = session?.user.role === 'admin'
   const allowedPermissions = new Set(session?.user.permissions || [])
   const moduleNavItems = [
-    { id: 'news', label: 'ข่าวสาร / ประชาสัมพันธ์ / ประกาศ', icon: Megaphone },
+    { id: 'news', label: 'ข่าวสาร', icon: Megaphone },
     { id: 'events', label: 'ปฏิทินกิจกรรม', icon: CalendarDays },
     { id: 'awards', label: 'ผลงานและรางวัล', icon: Trophy },
     { id: 'newsletters', label: 'จดหมายข่าว', icon: GalleryHorizontalEnd },
