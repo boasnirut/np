@@ -16,9 +16,18 @@ import {
 export const navItems = [
   { label: 'หน้าหลัก', href: '/' },
   {
+    label: 'เกี่ยวกับโรงเรียน',
+    children: [
+      { label: 'ข้อมูลพื้นฐาน', href: '/about/basic-info' },
+      { label: 'ข้อมูลบุคลากร', href: '/about/staff' },
+      { label: 'ประวัติโรงเรียน', href: '/about/history' },
+    ],
+  },
+  { label: 'ผลงานและรางวัล', href: '/achievements' },
+  {
     label: 'การดำเนินงาน',
     children: [
-      { label: 'การสอบวัดผลระดับชาติ RT/NT/O-NET', href: '/operations/national-tests' },
+      { label: 'การสอบวัดผลระดับชาติ', href: '/operations/national-tests' },
       { label: 'ประกันคุณภาพภายนอก (สมศ.)', href: '/operations/external-quality' },
       {
         label: 'โรงเรียนขยายโอกาสคุณภาพ',
@@ -28,15 +37,6 @@ export const navItems = [
       { label: 'ITA Online', href: '/operations/ita' },
     ],
   },
-  {
-    label: 'เกี่ยวกับโรงเรียน',
-    children: [
-      { label: 'ข้อมูลพื้นฐาน', href: '/about/basic-info' },
-      { label: 'ข้อมูลบุคลากร', href: '/about/staff' },
-      { label: 'ประวัติโรงเรียน', href: '/about/history' },
-    ],
-  },
-  { label: 'ผลงานและรางวัล', href: '/achievements' },
   {
     label: 'ข่าวสาร',
     children: [
