@@ -1089,22 +1089,55 @@ function PageHero({ eyebrow, title, description, icon: Icon }) {
 }
 
 function BasicInfoPage() {
+  const bigDataUrl = 'https://bigdata.loei1.go.th/tableSchoolID.php?id=42010113'
+  const bigDataMapUrl = 'https://goo.gl/maps/jziqSBnHDS54VrASA'
+  const bigDataWebsite = 'https://numporn.loei1.go.th'
+  const bigDataPhone = '081-873-8723'
+  const overviewStats = [
+    { value: '137 คน', label: 'นักเรียนทั้งหมด', detail: 'ชาย 71 คน · หญิง 66 คน', icon: Users },
+    { value: '11 ห้อง', label: 'ห้องเรียนทั้งหมด', detail: 'เฉลี่ย 12 คนต่อห้อง', icon: School },
+    { value: '17 คน', label: 'ครูและบุคลากร', detail: 'ผู้บริหาร 1 · ครู 14 · ลูกจ้าง 2', icon: GraduationCap },
+    { value: 'ขนาดกลาง', label: 'ขนาดโรงเรียน', detail: 'ขนาดที่ 2 ตามเกณฑ์ 7 ขนาด', icon: Building2 },
+  ]
   const items = [
     { label: 'ชื่อสถานศึกษา', value: `${schoolInfo.thaiName} · ${schoolInfo.englishName}`, icon: School },
-    { label: 'ระดับชั้นที่เปิดสอน', value: schoolInfo.educationLevels, icon: GraduationCap },
-    { label: 'ประเภทโรงเรียน', value: schoolInfo.schoolType, icon: Building2 },
+    { label: 'ระดับชั้นที่เปิดสอน', value: 'ปฐมวัย - มัธยมศึกษาตอนต้น (อนุบาล 2 - ม.3)', icon: GraduationCap },
+    { label: 'ลักษณะโรงเรียน', value: `${schoolInfo.schoolType} · โรงเรียนขนาดกลาง`, icon: Building2 },
     { label: 'หน่วยงานต้นสังกัด', value: schoolInfo.affiliation, icon: BookOpenText },
-    { label: 'ที่ตั้ง', value: contactDetails.address, icon: MapPin },
-    { label: 'ช่องทางติดต่อ', value: `${contactDetails.phone} · ${contactDetails.email}`, icon: Phone },
+    { label: 'ที่ตั้ง', value: 'เลขที่ 115 หมู่ 2 บ้านน้ำพร ถนนเลย–กกดู่ ตำบลปากตม อำเภอเชียงคาน จังหวัดเลย 42110', icon: MapPin },
+    { label: 'พิกัดโรงเรียน', value: 'ละติจูด 17.7611025 · ลองจิจูด 101.5926921', icon: MapPin },
   ]
+  const schoolCodes = [
+    { label: 'รหัส SMIS 8 หลัก', value: '42010113' },
+    { label: 'รหัส PERCODE 6 หลัก', value: '520224' },
+    { label: 'รหัสกระทรวง 10 หลัก', value: '1042520224' },
+  ]
+  const studentRows = [
+    { level: 'ระดับปฐมวัย', male: 9, female: 12, total: 21, rooms: 2 },
+    { level: 'ระดับประถมศึกษา', male: 38, female: 23, total: 61, rooms: 6 },
+    { level: 'มัธยมศึกษาตอนต้น', male: 24, female: 31, total: 55, rooms: 3 },
+  ]
+
   return (
     <section className="section inner-content">
       <div className="container">
         <SectionHeading
-          eyebrow="ข้อมูลสถานศึกษา"
+          eyebrow="ข้อมูลจากระบบ BIG DATA"
           title="ข้อมูลพื้นฐานโรงเรียนบ้านน้ำพร"
-          description={schoolInfo.summary}
+          description="ข้อมูลประจำปีการศึกษา 2569 ภาคเรียนที่ 1 จากระบบสารสนเทศเพื่อการบริหารการศึกษา สำนักงานเขตพื้นที่การศึกษาประถมศึกษาเลย เขต 1"
         />
+        <div className="basic-stats" aria-label="สถิติโรงเรียนโดยสรุป">
+          {overviewStats.map(({ value, label, detail, icon: Icon }) => (
+            <article className="basic-stat" key={label}>
+              <span><Icon size={23} /></span>
+              <div>
+                <strong>{value}</strong>
+                <h2>{label}</h2>
+                <p>{detail}</p>
+              </div>
+            </article>
+          ))}
+        </div>
         <div className="info-card-grid">
           {items.map(({ label, value, icon: Icon }) => (
             <article className="info-card" key={label}>
@@ -1113,9 +1146,86 @@ function BasicInfoPage() {
             </article>
           ))}
         </div>
-        <a className="button button--navy inner-content__action" href={contactDetails.mapHref} target="_blank" rel="noreferrer">
-          เปิดแผนที่โรงเรียน <ExternalLink size={17} />
-        </a>
+
+        <div className="basic-info-sections">
+          <article className="basic-panel">
+            <div className="basic-panel__heading">
+              <span><FileText size={23} /></span>
+              <div><small>School Identifiers</small><h2>รหัสประจำสถานศึกษา</h2></div>
+            </div>
+            <dl className="school-code-list">
+              {schoolCodes.map(({ label, value }) => (
+                <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+              ))}
+            </dl>
+          </article>
+
+          <article className="basic-panel">
+            <div className="basic-panel__heading">
+              <span><Phone size={23} /></span>
+              <div><small>Contact in BIG DATA</small><h2>ข้อมูลติดต่อในระบบ</h2></div>
+            </div>
+            <div className="bigdata-contact-list">
+              <a href={`tel:${bigDataPhone.replaceAll('-', '')}`}><Phone size={18} />{bigDataPhone}</a>
+              <a href={contactDetails.emailHref}><Mail size={18} />{contactDetails.email}</a>
+              <a href={bigDataWebsite} target="_blank" rel="noreferrer"><ExternalLink size={18} />เว็บไซต์ที่บันทึกในระบบ</a>
+              <a href={bigDataMapUrl} target="_blank" rel="noreferrer"><MapPin size={18} />เปิดพิกัดจาก BIG DATA</a>
+            </div>
+          </article>
+        </div>
+
+        <article className="student-summary">
+          <div className="student-summary__heading">
+            <div>
+              <span>ข้อมูลผู้เรียน</span>
+              <h2>จำนวนนักเรียน ปีการศึกษา 2569 ภาคเรียนที่ 1</h2>
+            </div>
+            <strong>รวม 137 คน</strong>
+          </div>
+          <div className="student-table-wrap">
+            <table className="student-table">
+              <thead>
+                <tr>
+                  <th>ระดับการศึกษา</th>
+                  <th>ชาย</th>
+                  <th>หญิง</th>
+                  <th>รวม</th>
+                  <th>ห้องเรียน</th>
+                </tr>
+              </thead>
+              <tbody>
+                {studentRows.map((row) => (
+                  <tr key={row.level}>
+                    <th>{row.level}</th>
+                    <td>{row.male}</td>
+                    <td>{row.female}</td>
+                    <td><strong>{row.total}</strong></td>
+                    <td>{row.rooms}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>รวมทั้งสิ้น</th>
+                  <td>71</td>
+                  <td>66</td>
+                  <td>137</td>
+                  <td>11</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </article>
+
+        <div className="basic-info-actions">
+          <a className="button button--navy" href={bigDataMapUrl} target="_blank" rel="noreferrer">
+            เปิดแผนที่โรงเรียน <ExternalLink size={17} />
+          </a>
+          <a className="button button--outline" href={bigDataUrl} target="_blank" rel="noreferrer">
+            ตรวจสอบข้อมูลต้นทาง <ExternalLink size={17} />
+          </a>
+        </div>
+        <p className="basic-info-source">ที่มา: ระบบ BIG DATA สพป.เลย เขต 1 · ข้อมูลปีการศึกษา 2569 ภาคเรียนที่ 1</p>
       </div>
     </section>
   )
