@@ -29,6 +29,7 @@ import {
   Phone,
   Quote,
   School,
+  ShieldCheck,
   Sparkles,
   Trophy,
   Users,
@@ -288,10 +289,11 @@ function Header({ menuOpen, setMenuOpen }) {
                         className={child.href === currentPath ? 'is-active' : ''}
                         key={`${item.label}-${child.label}`}
                         href={child.href}
+                        target={child.external ? '_blank' : undefined}
+                        rel={child.external ? 'noreferrer' : undefined}
                         onClick={closeMenu}
                       >
                         <span>{child.label}</span>
-                        <ChevronRight size={16} aria-hidden="true" />
                       </a>
                     ))}
                   </div>
@@ -350,10 +352,11 @@ function Header({ menuOpen, setMenuOpen }) {
                         className={child.href === currentPath ? 'is-active' : ''}
                         key={`${item.label}-${child.label}`}
                         href={child.href}
+                        target={child.external ? '_blank' : undefined}
+                        rel={child.external ? 'noreferrer' : undefined}
                         onClick={closeMenu}
                       >
                         {child.label}
-                        <ChevronRight size={16} />
                       </a>
                     ))}
                   </div>
@@ -366,7 +369,6 @@ function Header({ menuOpen, setMenuOpen }) {
                   onClick={closeMenu}
                 >
                   {item.label}
-                  <ChevronRight size={18} />
                 </a>
               ),
             )}
@@ -619,6 +621,7 @@ function Pagination({ currentPage, totalPages, onChange, label }) {
 function News({
   liveNews = [],
   fixedCategory = '',
+  paginate = true,
   eyebrow = 'ข่าวสารและประกาศ',
   title = 'เรื่องราวล่าสุดจากโรงเรียน',
   description = 'ติดตามประกาศ กิจกรรม และเรื่องราวการเรียนรู้ได้จากพื้นที่นี้',
@@ -654,7 +657,9 @@ function News({
   const pageSize = 6
   const totalPages = Math.max(1, Math.ceil(filteredNews.length / pageSize))
   const currentPage = Math.min(page, totalPages)
-  const displayedNews = filteredNews.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const displayedNews = paginate
+    ? filteredNews.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    : filteredNews
 
   useEffect(() => {
     if (!activeNews) return undefined
@@ -743,12 +748,14 @@ function News({
             </div>
           )}
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onChange={setPage}
-            label="เลือกหน้าข่าวสารและประกาศ"
-          />
+          {paginate && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onChange={setPage}
+              label="เลือกหน้าข่าวสารและประกาศ"
+            />
+          )}
         </div>
       </section>
 
@@ -806,12 +813,14 @@ function News({
   )
 }
 
-function Newsletters({ newsletters = [] }) {
+function Newsletters({ newsletters = [], paginate = true }) {
   const [page, setPage] = useState(1)
   const pageSize = 4
   const totalPages = Math.max(1, Math.ceil(newsletters.length / pageSize))
   const currentPage = Math.min(page, totalPages)
-  const displayedItems = newsletters.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const displayedItems = paginate
+    ? newsletters.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    : newsletters
 
   return (
     <section className="section newsletters" id="newsletters">
@@ -838,12 +847,14 @@ function Newsletters({ newsletters = [] }) {
                 </article>
               ))}
             </div>
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onChange={setPage}
-              label="เลือกหน้าจดหมายข่าวประชาสัมพันธ์"
-            />
+            {paginate && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onChange={setPage}
+                label="เลือกหน้าจดหมายข่าวประชาสัมพันธ์"
+              />
+            )}
           </>
         ) : (
           <div className="newsletters__empty">
@@ -1114,6 +1125,83 @@ function HistoryPage() {
   )
 }
 
+const operationPageData = {
+  nationalTests: {
+    eyebrow: 'การดำเนินงาน',
+    title: 'การสอบวัดผลระดับชาติ RT/NT/O-NET',
+    description: 'ข้อมูลการเตรียมความพร้อมและการดำเนินการสอบวัดผลระดับชาติของโรงเรียน',
+    icon: GraduationCap,
+    items: [
+      { title: 'RT', subtitle: 'Reading Test', description: 'การประเมินความสามารถด้านการอ่านของผู้เรียนระดับชั้นประถมศึกษาปีที่ 1' },
+      { title: 'NT', subtitle: 'National Test', description: 'การประเมินคุณภาพผู้เรียนระดับชั้นประถมศึกษาปีที่ 3' },
+      { title: 'O-NET', subtitle: 'Ordinary National Educational Test', description: 'การทดสอบทางการศึกษาระดับชาติขั้นพื้นฐานตามระดับชั้นที่กำหนด' },
+    ],
+  },
+  externalQuality: {
+    eyebrow: 'การดำเนินงาน',
+    title: 'ประกันคุณภาพภายนอก (สมศ.)',
+    description: 'การเตรียมความพร้อมและข้อมูลด้านการประเมินคุณภาพภายนอกของสถานศึกษา',
+    icon: ShieldCheck,
+    items: [
+      { title: 'ข้อมูลสถานศึกษา', subtitle: 'School Profile', description: 'ข้อมูลพื้นฐาน บริบท และผลการดำเนินงานของโรงเรียน' },
+      { title: 'หลักฐานการดำเนินงาน', subtitle: 'Evidence', description: 'เอกสารและหลักฐานที่สะท้อนคุณภาพการจัดการศึกษา' },
+      { title: 'การพัฒนาคุณภาพ', subtitle: 'Improvement', description: 'แนวทางนำผลการประเมินไปใช้พัฒนาผู้เรียนและสถานศึกษา' },
+    ],
+  },
+  ita: {
+    eyebrow: 'การดำเนินงาน',
+    title: 'ITA Online',
+    description: 'การประเมินคุณธรรมและความโปร่งใสในการดำเนินงานของสถานศึกษาออนไลน์',
+    icon: ClipboardCheck,
+    items: [
+      { title: 'การเปิดเผยข้อมูล', subtitle: 'Open Data', description: 'เผยแพร่ข้อมูลการบริหารงานและการให้บริการอย่างโปร่งใส' },
+      { title: 'การป้องกันการทุจริต', subtitle: 'Integrity', description: 'มาตรการและแนวทางส่งเสริมคุณธรรมในการดำเนินงาน' },
+      { title: 'ช่องทางการมีส่วนร่วม', subtitle: 'Participation', description: 'เปิดพื้นที่ให้ผู้มีส่วนได้ส่วนเสียเข้าถึงข้อมูลและแสดงความคิดเห็น' },
+    ],
+  },
+}
+
+function OperationPage({ type }) {
+  const page = operationPageData[type]
+  return (
+    <>
+      <PageHero
+        eyebrow={page.eyebrow}
+        title={page.title}
+        description={page.description}
+        icon={page.icon}
+      />
+      <section className="section inner-content">
+        <div className="container">
+          <SectionHeading
+            eyebrow="ข้อมูลการดำเนินงาน"
+            title={page.title}
+            description="ข้อมูลและเอกสารที่เกี่ยวข้องจะได้รับการปรับปรุงให้เป็นปัจจุบันอย่างต่อเนื่อง"
+            align="center"
+          />
+          <div className="operation-grid">
+            {page.items.map((item) => (
+              <article className="operation-card" key={item.title}>
+                <span>{item.title}</span>
+                <small>{item.subtitle}</small>
+                <p>{item.description}</p>
+              </article>
+            ))}
+          </div>
+          <div className="operation-contact">
+            <FileText size={24} />
+            <div>
+              <strong>ต้องการข้อมูลหรือเอกสารเพิ่มเติม</strong>
+              <p>สามารถติดต่อโรงเรียนเพื่อสอบถามข้อมูลฉบับล่าสุดได้โดยตรง</p>
+            </div>
+            <a href="/contact">ติดต่อโรงเรียน<ArrowRight size={16} /></a>
+          </div>
+        </div>
+      </section>
+    </>
+  )
+}
+
 const servicePageData = {
   results: {
     eyebrow: 'บริการสำหรับนักเรียน',
@@ -1216,6 +1304,9 @@ function ComplaintsPage() {
 }
 
 function PublicSubPage({ path, publicContent }) {
+  if (path === '/operations/national-tests') return <OperationPage type="nationalTests" />
+  if (path === '/operations/external-quality') return <OperationPage type="externalQuality" />
+  if (path === '/operations/ita') return <OperationPage type="ita" />
   if (path === '/about/basic-info') {
     return <><PageHero eyebrow="เกี่ยวกับโรงเรียน" title="ข้อมูลพื้นฐาน" description="ข้อมูลสำคัญและภาพรวมของโรงเรียนบ้านน้ำพร" icon={Building2} /><BasicInfoPage /></>
   }
@@ -1229,16 +1320,16 @@ function PublicSubPage({ path, publicContent }) {
     return <><PageHero eyebrow="โรงเรียนบ้านน้ำพร" title="ผลงานและรางวัล" description="ความภาคภูมิใจของนักเรียน ครู และสถานศึกษา" icon={Trophy} /><Achievements awards={publicContent.awards} /></>
   }
   if (path === '/news/activities') {
-    return <><PageHero eyebrow="ข่าวสาร" title="กิจกรรม" description="ข่าวกิจกรรมและประสบการณ์การเรียนรู้ของนักเรียน" icon={CalendarDays} /><News liveNews={publicContent.news} fixedCategory="กิจกรรม" eyebrow="ข่าวกิจกรรม" title="กิจกรรมล่าสุดของโรงเรียน" description="ติดตามภาพและเรื่องราวจากกิจกรรมของโรงเรียน" /></>
+    return <><PageHero eyebrow="ข่าวสาร" title="กิจกรรม" description="ข่าวกิจกรรมและประสบการณ์การเรียนรู้ของนักเรียน" icon={CalendarDays} /><News liveNews={publicContent.news} fixedCategory="กิจกรรม" paginate={false} eyebrow="ข่าวกิจกรรม" title="กิจกรรมล่าสุดของโรงเรียน" description="ติดตามภาพและเรื่องราวจากกิจกรรมของโรงเรียน" /></>
   }
   if (path === '/news/public-relations') {
-    return <><PageHero eyebrow="ข่าวสาร" title="ประชาสัมพันธ์" description="ข่าวประชาสัมพันธ์และเรื่องราวล่าสุดจากโรงเรียน" icon={Bell} /><News liveNews={publicContent.news} fixedCategory="ประชาสัมพันธ์" eyebrow="ประชาสัมพันธ์" title="ข่าวประชาสัมพันธ์ล่าสุด" /></>
+    return <><PageHero eyebrow="ข่าวสาร" title="ประชาสัมพันธ์" description="ข่าวประชาสัมพันธ์และเรื่องราวล่าสุดจากโรงเรียน" icon={Bell} /><News liveNews={publicContent.news} fixedCategory="ประชาสัมพันธ์" paginate={false} eyebrow="ประชาสัมพันธ์" title="ข่าวประชาสัมพันธ์ล่าสุด" /></>
   }
   if (path === '/news/announcements') {
-    return <><PageHero eyebrow="ข่าวสาร" title="ประกาศ" description="ประกาศและข้อมูลสำคัญจากโรงเรียนบ้านน้ำพร" icon={Newspaper} /><News liveNews={publicContent.news} fixedCategory="ประกาศ" eyebrow="ประกาศโรงเรียน" title="ประกาศล่าสุด" /></>
+    return <><PageHero eyebrow="ข่าวสาร" title="ประกาศ" description="ประกาศและข้อมูลสำคัญจากโรงเรียนบ้านน้ำพร" icon={Newspaper} /><News liveNews={publicContent.news} fixedCategory="ประกาศ" paginate={false} eyebrow="ประกาศโรงเรียน" title="ประกาศล่าสุด" /></>
   }
   if (path === '/news/newsletters') {
-    return <><PageHero eyebrow="ข่าวสาร" title="จดหมายข่าว" description="จดหมายข่าวประชาสัมพันธ์และสรุปกิจกรรมของโรงเรียน" icon={Images} /><Newsletters newsletters={publicContent.newsletters} /></>
+    return <><PageHero eyebrow="ข่าวสาร" title="จดหมายข่าว" description="จดหมายข่าวประชาสัมพันธ์และสรุปกิจกรรมของโรงเรียน" icon={Images} /><Newsletters newsletters={publicContent.newsletters} paginate={false} /></>
   }
   if (path === '/services/results') return <ServiceInfoPage type="results" />
   if (path === '/services/downloads') return <ServiceInfoPage type="downloads" />
@@ -1430,13 +1521,27 @@ function Footer() {
           <div className="footer__nav">
             <h3>เมนูเว็บไซต์</h3>
             {footerLinks.slice(0, 5).map((item) => (
-              <a href={item.href} key={item.href}>{item.label}</a>
+              <a
+                href={item.href}
+                key={item.href}
+                target={item.external ? '_blank' : undefined}
+                rel={item.external ? 'noreferrer' : undefined}
+              >
+                {item.label}
+              </a>
             ))}
           </div>
           <div className="footer__nav">
             <h3>ข้อมูลสำคัญ</h3>
             {footerLinks.slice(5, 9).map((item) => (
-              <a href={item.href} key={item.href}>{item.label}</a>
+              <a
+                href={item.href}
+                key={item.href}
+                target={item.external ? '_blank' : undefined}
+                rel={item.external ? 'noreferrer' : undefined}
+              >
+                {item.label}
+              </a>
             ))}
           </div>
           <div className="footer__contact">

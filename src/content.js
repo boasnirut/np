@@ -14,6 +14,20 @@ import {
 } from 'lucide-react'
 
 export const navItems = [
+  { label: 'หน้าหลัก', href: '/' },
+  {
+    label: 'การดำเนินงาน',
+    children: [
+      { label: 'การสอบวัดผลระดับชาติ RT/NT/O-NET', href: '/operations/national-tests' },
+      { label: 'ประกันคุณภาพภายนอก (สมศ.)', href: '/operations/external-quality' },
+      {
+        label: 'โรงเรียนขยายโอกาสคุณภาพ',
+        href: 'https://numporn.loei1.go.th/qoes69',
+        external: true,
+      },
+      { label: 'ITA Online', href: '/operations/ita' },
+    ],
+  },
   {
     label: 'เกี่ยวกับโรงเรียน',
     children: [

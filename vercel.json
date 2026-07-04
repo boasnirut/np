@@ -22,6 +22,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/operations/:path*",
+      "destination": "/index.html"
+    },
+    {
       "source": "/news/:path*",
       "destination": "/index.html"
     },
