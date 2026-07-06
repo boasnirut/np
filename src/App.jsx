@@ -20,6 +20,8 @@ import {
   History,
   Images,
   Leaf,
+  Link2,
+  LoaderCircle,
   LogIn,
   Mail,
   MapPin,
@@ -27,8 +29,10 @@ import {
   MessageSquareWarning,
   Newspaper,
   Phone,
+  Plus,
   Quote,
   School,
+  Send,
   ShieldCheck,
   Sparkles,
   Trophy,
@@ -1972,30 +1976,217 @@ function ServiceInfoPage({ type }) {
   )
 }
 
-function QaPage() {
-  const questions = [
+function DocumentsPage({ documents = [] }) {
+  const [activeCategory, setActiveCategory] = useState('ทั้งหมด')
+  const categories = ['ทั้งหมด', ...new Set(documents.map((item) => item.category))]
+  const filteredDocuments = activeCategory === 'ทั้งหมด'
+    ? documents
+    : documents.filter((item) => item.category === activeCategory)
+
+  return (
+    <>
+      <PageHero
+        eyebrow="เอกสารออนไลน์"
+        title="ดาวน์โหลดเอกสาร/คำร้อง"
+        description="คลังเอกสาร แบบคำร้อง คู่มือ และเอกสารวิชาการของโรงเรียนบ้านน้ำพร"
+        icon={Download}
+      />
+      <section className="section documents-page">
+        <div className="container">
+          <div className="documents-intro">
+            <div>
+              <span><FileText size={19} /> SCHOOL DOCUMENT CENTER</span>
+              <h2>เอกสารและแบบคำร้องของโรงเรียน</h2>
+              <p>เลือกเปิดหรือดาวน์โหลดเอกสารฉบับล่าสุดจาก Google Drive โดยไม่ต้องจัดเก็บไฟล์ซ้ำบนเว็บไซต์</p>
+            </div>
+            <strong>{documents.length} รายการ</strong>
+          </div>
+
+          {documents.length ? (
+            <>
+              <div className="documents-filters" role="group" aria-label="กรองประเภทเอกสาร">
+                {categories.map((category) => (
+                  <button
+                    className={activeCategory === category ? 'is-active' : ''}
+                    type="button"
+                    aria-pressed={activeCategory === category}
+                    onClick={() => setActiveCategory(category)}
+                    key={category}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+              <div className="documents-table-wrap">
+                <table className="documents-table">
+                  <thead>
+                    <tr>
+                      <th>เอกสาร</th>
+                      <th>ประเภท</th>
+                      <th>วันที่เผยแพร่</th>
+                      <th><span className="sr-only">ดาวน์โหลด</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDocuments.map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          <span className="documents-table__icon"><FileText size={20} /></span>
+                          <div>
+                            <strong>{item.title}</strong>
+                            {item.description && <small>{item.description}</small>}
+                          </div>
+                        </td>
+                        <td><span className="documents-table__category">{item.category}</span></td>
+                        <td>
+                          {new Date(`${item.publish_date}T00:00:00`).toLocaleDateString('th-TH', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </td>
+                        <td>
+                          <a href={item.document_url} target="_blank" rel="noreferrer">
+                            <Download size={16} /> ดาวน์โหลดเอกสาร
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <div className="content-empty">
+              <span><FileText size={34} /></span>
+              <strong>ยังไม่มีเอกสารเผยแพร่</strong>
+              <p>เมื่อโรงเรียนเพิ่มเอกสารจากระบบบริหาร รายการจะปรากฏในตารางนี้</p>
+            </div>
+          )}
+        </div>
+      </section>
+    </>
+  )
+}
+
+function QaPage({ publishedQuestions = [] }) {
+  const commonQuestions = [
     ['โรงเรียนเปิดสอนระดับชั้นใดบ้าง?', `เปิดสอนตั้งแต่ระดับชั้น${schoolInfo.educationLevels}`],
     ['โรงเรียนตั้งอยู่ที่ไหน?', contactDetails.address],
     ['ติดต่อโรงเรียนในวันและเวลาใด?', 'วันจันทร์–ศุกร์ เวลา 08.00–16.30 น.'],
     ['ติดตามข่าวสารของโรงเรียนได้จากที่ใด?', 'ติดตามได้จากเมนูข่าวสาร จดหมายข่าว และ Facebook โรงเรียนบ้านน้ำพร'],
   ]
+  const [form, setForm] = useState({ name: '', email: '', question: '', website: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  const submit = async (event) => {
+    event.preventDefault()
+    setSubmitting(true)
+    setMessage(null)
+    try {
+      const response = await fetch('/api/questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(body.error || 'ไม่สามารถส่งคำถามได้')
+      setForm({ name: '', email: '', question: '', website: '' })
+      setMessage({ type: 'success', text: body.message })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <>
       <PageHero
         eyebrow="บริการ"
         title="ถาม-ตอบ (Q&A)"
-        description="คำตอบสำหรับคำถามที่พบบ่อยเกี่ยวกับโรงเรียนและการติดต่อรับบริการ"
+        description="ส่งคำถามถึงโรงเรียนและติดตามคำตอบที่ผ่านการตรวจสอบแล้ว"
         icon={HelpCircle}
       />
-      <section className="section inner-content">
-        <div className="container faq-list">
-          {questions.map(([question, answer]) => (
-            <details key={question}>
-              <summary>{question}<ChevronDown size={20} /></summary>
-              <p>{answer}</p>
-            </details>
-          ))}
-          <a className="button button--navy" href="/contact">สอบถามเพิ่มเติม<ArrowRight size={17} /></a>
+      <section className="section qa-page">
+        <div className="container qa-layout">
+          <form className="public-form qa-form" onSubmit={submit}>
+            <div className="public-form__heading">
+              <span><HelpCircle size={24} /></span>
+              <div><small>ASK THE SCHOOL</small><h2>ส่งคำถามถึงโรงเรียน</h2></div>
+            </div>
+            <div className="public-form__grid">
+              <label>
+                <span>ชื่อผู้ถาม</span>
+                <input
+                  value={form.name}
+                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                  maxLength={80}
+                  required
+                />
+              </label>
+              <label>
+                <span>อีเมลสำหรับติดต่อกลับ <small>(ไม่บังคับ)</small></span>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                  maxLength={120}
+                />
+              </label>
+              <label className="public-form__wide">
+                <span>คำถาม</span>
+                <textarea
+                  value={form.question}
+                  onChange={(event) => setForm((current) => ({ ...current, question: event.target.value }))}
+                  rows={6}
+                  minLength={10}
+                  maxLength={2000}
+                  placeholder="อธิบายคำถามให้ชัดเจนเพื่อให้โรงเรียนตอบได้ตรงประเด็น"
+                  required
+                />
+              </label>
+              <label className="form-honeypot" aria-hidden="true">
+                <span>Website</span>
+                <input
+                  tabIndex="-1"
+                  autoComplete="off"
+                  value={form.website}
+                  onChange={(event) => setForm((current) => ({ ...current, website: event.target.value }))}
+                />
+              </label>
+            </div>
+            {message && <p className={`public-form__message is-${message.type}`}>{message.text}</p>}
+            <button type="submit" disabled={submitting}>
+              {submitting ? <LoaderCircle className="spin" size={18} /> : <Send size={18} />}
+              {submitting ? 'กำลังส่งคำถาม...' : 'ส่งคำถาม'}
+            </button>
+            <p className="public-form__privacy">คำถามจะผ่านการตรวจสอบและตอบโดยผู้ที่ได้รับสิทธิ์ก่อนแสดงบนเว็บไซต์</p>
+          </form>
+
+          <div className="qa-content">
+            <SectionHeading
+              eyebrow="คำถามที่เผยแพร่"
+              title="คำถามและคำตอบจากโรงเรียน"
+              description="ผู้ดูแลระบบเป็นผู้คัดเลือกคำถามที่เป็นประโยชน์ให้แสดงในส่วนนี้"
+            />
+            <div className="faq-list">
+              {publishedQuestions.map((item) => (
+                <details key={item.id}>
+                  <summary>{item.question}<ChevronDown size={20} /></summary>
+                  <p>{item.answer}</p>
+                  <small>ถามโดย {item.name}</small>
+                </details>
+              ))}
+              {commonQuestions.map(([question, answer]) => (
+                <details key={question}>
+                  <summary>{question}<ChevronDown size={20} /></summary>
+                  <p>{answer}</p>
+                </details>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
     </>
@@ -2003,6 +2194,72 @@ function QaPage() {
 }
 
 function ComplaintsPage() {
+  const [form, setForm] = useState({
+    complainant_name: '',
+    contact: '',
+    subject: '',
+    details: '',
+    evidence_urls: [''],
+    website: '',
+  })
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  const updateEvidence = (index, value) => {
+    setForm((current) => ({
+      ...current,
+      evidence_urls: current.evidence_urls.map((url, urlIndex) => (
+        index === urlIndex ? value : url
+      )),
+    }))
+  }
+
+  const addEvidence = () => {
+    setForm((current) => (
+      current.evidence_urls.length >= 5
+        ? current
+        : { ...current, evidence_urls: [...current.evidence_urls, ''] }
+    ))
+  }
+
+  const removeEvidence = (index) => {
+    setForm((current) => {
+      const urls = current.evidence_urls.filter((_, urlIndex) => urlIndex !== index)
+      return { ...current, evidence_urls: urls.length ? urls : [''] }
+    })
+  }
+
+  const submit = async (event) => {
+    event.preventDefault()
+    setSubmitting(true)
+    setMessage(null)
+    try {
+      const response = await fetch('/api/complaints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(body.error || 'ไม่สามารถส่งเรื่องได้')
+      setForm({
+        complainant_name: '',
+        contact: '',
+        subject: '',
+        details: '',
+        evidence_urls: [''],
+        website: '',
+      })
+      setMessage({
+        type: 'success',
+        text: `${body.message} เลขอ้างอิง ${body.reference}`,
+      })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <>
       <PageHero
@@ -2011,7 +2268,7 @@ function ComplaintsPage() {
         description="ช่องทางรับฟังความคิดเห็น ข้อเสนอแนะ และเรื่องร้องเรียนอย่างเหมาะสม"
         icon={MessageSquareWarning}
       />
-      <section className="section inner-content">
+      <section className="section complaints-page">
         <div className="container complaint-layout">
           <div>
             <SectionHeading
@@ -2019,13 +2276,98 @@ function ComplaintsPage() {
               title="แจ้งข้อมูลกับโรงเรียนโดยตรง"
               description="โปรดระบุรายละเอียดที่จำเป็นและช่องทางติดต่อกลับ โรงเรียนจะดูแลข้อมูลอย่างเหมาะสมและประสานผู้รับผิดชอบ"
             />
-            <p className="complaint-layout__note">หากเป็นเหตุเร่งด่วนหรือเกี่ยวข้องกับความปลอดภัย กรุณาโทรติดต่อโรงเรียนโดยตรง</p>
+            <p className="complaint-layout__note">ข้อมูลที่ส่งจะไม่แสดงบนเว็บไซต์และเข้าถึงได้เฉพาะผู้ที่ได้รับสิทธิ์ หากเป็นเหตุเร่งด่วนหรือเกี่ยวข้องกับความปลอดภัย กรุณาโทรติดต่อโรงเรียนโดยตรง</p>
+            <div className="complaint-channels">
+              <a href={contactDetails.phoneHref}><Phone size={23} /><span><small>โทรศัพท์</small><strong>{contactDetails.phone}</strong></span></a>
+              <a href={contactDetails.emailHref}><Mail size={23} /><span><small>อีเมล</small><strong>{contactDetails.email}</strong></span></a>
+            </div>
           </div>
-          <div className="complaint-channels">
-            <a href={contactDetails.phoneHref}><Phone size={23} /><span><small>โทรศัพท์</small><strong>{contactDetails.phone}</strong></span></a>
-            <a href={contactDetails.emailHref}><Mail size={23} /><span><small>อีเมล</small><strong>{contactDetails.email}</strong></span></a>
-            <a href={contactDetails.messengerHref} target="_blank" rel="noreferrer"><MessageSquareWarning size={23} /><span><small>Messenger</small><strong>ติดต่อโรงเรียนผ่านข้อความ</strong></span></a>
-          </div>
+          <form className="public-form complaint-form" onSubmit={submit}>
+            <div className="public-form__heading">
+              <span><MessageSquareWarning size={24} /></span>
+              <div><small>PRIVATE COMPLAINT FORM</small><h2>แบบฟอร์มแจ้งเรื่องร้องเรียน</h2></div>
+            </div>
+            <div className="public-form__grid">
+              <label>
+                <span>ชื่อผู้แจ้ง</span>
+                <input
+                  value={form.complainant_name}
+                  onChange={(event) => setForm((current) => ({ ...current, complainant_name: event.target.value }))}
+                  maxLength={80}
+                  required
+                />
+              </label>
+              <label>
+                <span>โทรศัพท์ อีเมล หรือช่องทางติดต่อกลับ</span>
+                <input
+                  value={form.contact}
+                  onChange={(event) => setForm((current) => ({ ...current, contact: event.target.value }))}
+                  maxLength={150}
+                  required
+                />
+              </label>
+              <label className="public-form__wide">
+                <span>หัวข้อเรื่อง</span>
+                <input
+                  value={form.subject}
+                  onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))}
+                  maxLength={180}
+                  required
+                />
+              </label>
+              <label className="public-form__wide">
+                <span>รายละเอียด</span>
+                <textarea
+                  value={form.details}
+                  onChange={(event) => setForm((current) => ({ ...current, details: event.target.value }))}
+                  rows={7}
+                  minLength={10}
+                  maxLength={5000}
+                  required
+                />
+              </label>
+              <div className="public-form__wide evidence-links">
+                <div className="evidence-links__heading">
+                  <span>ลิงก์รูปภาพหรือเอกสารหลักฐาน <small>(ไม่บังคับ)</small></span>
+                  <button type="button" onClick={addEvidence} disabled={form.evidence_urls.length >= 5}>
+                    <Plus size={15} /> เพิ่มลิงก์
+                  </button>
+                </div>
+                {form.evidence_urls.map((url, index) => (
+                  <div className="evidence-links__row" key={index}>
+                    <Link2 size={17} />
+                    <input
+                      type="url"
+                      value={url}
+                      onChange={(event) => updateEvidence(index, event.target.value)}
+                      placeholder={`https://... ลิงก์หลักฐานที่ ${index + 1}`}
+                      aria-label={`ลิงก์หลักฐานที่ ${index + 1}`}
+                    />
+                    {form.evidence_urls.length > 1 && (
+                      <button type="button" onClick={() => removeEvidence(index)} aria-label={`ลบลิงก์ที่ ${index + 1}`}>
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <small>รองรับลิงก์ https สูงสุด 5 รายการ ระบบจะไม่อัปโหลดไฟล์เข้า GitHub</small>
+              </div>
+              <label className="form-honeypot" aria-hidden="true">
+                <span>Website</span>
+                <input
+                  tabIndex="-1"
+                  autoComplete="off"
+                  value={form.website}
+                  onChange={(event) => setForm((current) => ({ ...current, website: event.target.value }))}
+                />
+              </label>
+            </div>
+            {message && <p className={`public-form__message is-${message.type}`}>{message.text}</p>}
+            <button type="submit" disabled={submitting}>
+              {submitting ? <LoaderCircle className="spin" size={18} /> : <Send size={18} />}
+              {submitting ? 'กำลังส่งเรื่อง...' : 'ส่งเรื่องร้องเรียน'}
+            </button>
+          </form>
         </div>
       </section>
     </>
@@ -2063,8 +2405,8 @@ function PublicSubPage({ path, publicContent }) {
     return <><PageHero eyebrow="ข่าวสาร" title="จดหมายข่าว" description="จดหมายข่าวประชาสัมพันธ์และสรุปกิจกรรมของโรงเรียน" icon={Images} /><Newsletters newsletters={publicContent.newsletters} paginate={false} /></>
   }
   if (path === '/services/results') return <ServiceInfoPage type="results" />
-  if (path === '/services/downloads') return <ServiceInfoPage type="downloads" />
-  if (path === '/services/qa') return <QaPage />
+  if (path === '/services/downloads') return <DocumentsPage documents={publicContent.documents} />
+  if (path === '/services/qa') return <QaPage publishedQuestions={publicContent.questions} />
   if (path === '/services/complaints') return <ComplaintsPage />
   if (path === '/contact') {
     return <><PageHero eyebrow="โรงเรียนบ้านน้ำพร" title="ติดต่อเรา" description="ช่องทางติดต่อ ที่อยู่ และแผนที่โรงเรียน" icon={Phone} /><Contact /></>
@@ -2404,6 +2746,8 @@ function App() {
     awards: [],
     newsletters: [],
     qualityEvidence: [],
+    documents: [],
+    questions: [],
   })
 
   useEffect(() => {
@@ -2427,6 +2771,8 @@ function App() {
             awards: data.awards || [],
             newsletters: data.newsletters || [],
             qualityEvidence: data.qualityEvidence || [],
+            documents: data.documents || [],
+            questions: data.questions || [],
           })
         }
       })

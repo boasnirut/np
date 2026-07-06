@@ -23,7 +23,7 @@ export async function requireActiveUser(request, response, options = {}) {
   }
 
   const permissions = user.role === 'admin'
-    ? ['news', 'events', 'awards', 'newsletters', 'quality']
+    ? ['news', 'events', 'awards', 'newsletters', 'quality', 'documents', 'qa', 'complaints']
     : String(user.permissions || '').split(';').filter(Boolean)
   if (options.permission && user.role !== 'admin' && !permissions.includes(options.permission)) {
     sendJson(response, 403, { error: 'บัญชีนี้ไม่ได้รับสิทธิ์จัดการข้อมูลส่วนนี้' })

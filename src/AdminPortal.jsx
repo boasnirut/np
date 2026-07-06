@@ -5,11 +5,13 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
+  Download,
   Eye,
   EyeOff,
   FileText,
   FileImage,
   GalleryHorizontalEnd,
+  HelpCircle,
   LayoutDashboard,
   Link2,
   LoaderCircle,
@@ -17,6 +19,7 @@ import {
   LogIn,
   LogOut,
   Megaphone,
+  MessageSquareWarning,
   Newspaper,
   Pencil,
   Plus,
@@ -206,6 +209,9 @@ const permissionOptions = [
   { id: 'awards', label: 'ผลงานและรางวัล', icon: Trophy },
   { id: 'newsletters', label: 'จดหมายข่าวประชาสัมพันธ์', icon: GalleryHorizontalEnd },
   { id: 'quality', label: 'งานประกันคุณภาพ (สมศ.)', icon: ShieldCheck },
+  { id: 'documents', label: 'เอกสารและแบบคำร้อง', icon: Download },
+  { id: 'qa', label: 'ถาม-ตอบ (Q&A)', icon: HelpCircle },
+  { id: 'complaints', label: 'เรื่องร้องเรียน', icon: MessageSquareWarning },
 ]
 
 const modules = {
@@ -325,6 +331,35 @@ const modules = {
     meta: () => 'จดหมายข่าวประชาสัมพันธ์',
     date: (item) => item.publish_date || item.created_at,
     title: (item) => item.issue_number,
+  },
+  documents: {
+    endpoint: '/api/school-documents',
+    responseKey: 'document',
+    listKey: 'documents',
+    label: 'เอกสารและแบบคำร้อง',
+    eyebrow: 'SCHOOL DOCUMENTS',
+    icon: Download,
+    defaults: {
+      title: '',
+      category: 'แบบคำร้อง',
+      description: '',
+      document_url: '',
+      publish_date: '',
+      display_order: '',
+      status: 'published',
+    },
+    fields: [
+      { name: 'title', label: 'ชื่อเอกสาร', wide: true, required: true, placeholder: 'เช่น แบบคำร้องขอใบรับรองการเป็นนักเรียน' },
+      { name: 'category', label: 'ประเภทเอกสาร', type: 'select', options: ['แบบคำร้อง', 'เอกสารวิชาการ', 'คู่มือ', 'เอกสารทั่วไป'] },
+      { name: 'publish_date', label: 'วันที่เผยแพร่', type: 'date', required: true },
+      { name: 'description', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 3, placeholder: 'คำอธิบายสั้น ๆ หรือเงื่อนไขการใช้เอกสาร' },
+      { name: 'document_url', label: 'ลิงก์ Google Drive หรือ Google Docs', type: 'url', wide: true, required: true, placeholder: 'https://drive.google.com/...' },
+      { name: 'display_order', label: 'ลำดับภายในวันที่เดียวกัน (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบนับต่อภายในวันที่นี้' },
+      { name: 'status', label: 'สถานะ', type: 'status' },
+    ],
+    meta: (item) => `${item.category} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
+    date: (item) => item.publish_date || item.created_at,
+    title: (item) => item.title,
   },
 }
 
@@ -875,6 +910,292 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
   )
 }
 
+function QaManager({ items, setItems, isAdmin, githubConfigured }) {
+  const [editingItem, setEditingItem] = useState(null)
+  const [answer, setAnswer] = useState('')
+  const [isPublished, setIsPublished] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  const openEditor = (item) => {
+    setEditingItem(item)
+    setAnswer(item.answer || '')
+    setIsPublished(item.is_published === 'true')
+    setMessage(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const closeEditor = () => {
+    setEditingItem(null)
+    setAnswer('')
+    setIsPublished(false)
+  }
+
+  const save = async (event) => {
+    event.preventDefault()
+    setSubmitting(true)
+    setMessage(null)
+    try {
+      const result = await apiRequest('/api/questions', {
+        method: 'PUT',
+        body: JSON.stringify({
+          id: editingItem.id,
+          answer,
+          is_published: isAdmin ? isPublished : editingItem.is_published,
+        }),
+      })
+      setItems((current) => sortRecords(
+        current.map((item) => (item.id === editingItem.id ? result.question : item)),
+      ))
+      setMessage({ type: 'success', text: 'บันทึกคำตอบเรียบร้อยแล้ว' })
+      closeEditor()
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const remove = async (item) => {
+    if (!window.confirm(`ยืนยันการลบคำถามจาก “${item.name}” หรือไม่`)) return
+    try {
+      await apiRequest('/api/questions', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: item.id }),
+      })
+      setItems((current) => current.filter((question) => question.id !== item.id))
+      setMessage({ type: 'success', text: 'ลบคำถามเรียบร้อยแล้ว' })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message })
+    }
+  }
+
+  return (
+    <section className="admin-service-manager">
+      {editingItem && (
+        <form className="admin-service-editor" onSubmit={save}>
+          <div className="admin-section-heading">
+            <div><span>ANSWER QUESTION</span><h2>ตอบคำถามจาก {editingItem.name}</h2></div>
+            <button className="admin-icon-button" type="button" onClick={closeEditor} aria-label="ยกเลิกตอบคำถาม"><X size={21} /></button>
+          </div>
+          <div className="admin-service-editor__question">
+            <HelpCircle size={20} />
+            <p>{editingItem.question}</p>
+          </div>
+          <label className="news-field">
+            <span>คำตอบ</span>
+            <textarea
+              value={answer}
+              onChange={(event) => setAnswer(event.target.value)}
+              rows={7}
+              placeholder="พิมพ์คำตอบสำหรับผู้ถาม"
+              required
+            />
+          </label>
+          {isAdmin && (
+            <label className="admin-publish-toggle">
+              <input
+                type="checkbox"
+                checked={isPublished}
+                onChange={(event) => setIsPublished(event.target.checked)}
+              />
+              <span>แสดงคำถามและคำตอบชุดนี้บนหน้าเว็บไซต์</span>
+            </label>
+          )}
+          <button className="admin-button admin-button--primary" type="submit" disabled={submitting || !githubConfigured}>
+            {submitting ? <LoaderCircle className="spin" size={19} /> : <Save size={19} />}
+            {submitting ? 'กำลังบันทึก...' : 'บันทึกคำตอบ'}
+          </button>
+        </form>
+      )}
+
+      {message && (
+        <p className={`admin-message admin-message--${message.type}`}>
+          {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          {message.text}
+        </p>
+      )}
+
+      <div className="admin-service-list">
+        <div className="admin-section-heading">
+          <div><span>Q&A INBOX</span><h2>คำถามจากหน้าเว็บไซต์</h2></div>
+          <HelpCircle size={27} />
+        </div>
+        {!items.length ? (
+          <div className="admin-empty"><HelpCircle size={34} /><strong>ยังไม่มีคำถามจากหน้าเว็บไซต์</strong></div>
+        ) : items.map((item) => (
+          <article className="admin-question-card" key={item.id}>
+            <header>
+              <div>
+                <span>{new Date(item.created_at).toLocaleDateString('th-TH')} · {item.name}</span>
+                <small>{item.email || 'ไม่ได้ระบุอีเมล'}</small>
+              </div>
+              <span className={`admin-content-status ${item.is_published === 'true' ? 'is-published' : ''}`}>
+                {item.is_published === 'true' ? 'แสดงบนเว็บไซต์' : item.answer ? 'ตอบแล้ว / ซ่อนอยู่' : 'รอตอบ'}
+              </span>
+            </header>
+            <h3>{item.question}</h3>
+            {item.answer && (
+              <div className="admin-question-card__answer">
+                <strong>คำตอบ</strong>
+                <p>{item.answer}</p>
+                {item.answered_by_name && <small>ตอบโดย {item.answered_by_name}</small>}
+              </div>
+            )}
+            <footer>
+              <button type="button" onClick={() => openEditor(item)}><Pencil size={16} />{item.answer ? 'แก้ไขคำตอบ' : 'ตอบคำถาม'}</button>
+              {isAdmin && <button type="button" className="is-danger" onClick={() => remove(item)}><Trash2 size={16} />ลบ</button>}
+            </footer>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function ComplaintsManager({ items, setItems, isAdmin, githubConfigured }) {
+  const [editingItem, setEditingItem] = useState(null)
+  const [form, setForm] = useState({ status: 'new', internal_note: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState(null)
+  const statusLabels = { new: 'เรื่องใหม่', reviewing: 'กำลังตรวจสอบ', resolved: 'ดำเนินการแล้ว' }
+
+  const openEditor = (item) => {
+    setEditingItem(item)
+    setForm({ status: item.status || 'new', internal_note: item.internal_note || '' })
+    setMessage(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const closeEditor = () => {
+    setEditingItem(null)
+    setForm({ status: 'new', internal_note: '' })
+  }
+
+  const save = async (event) => {
+    event.preventDefault()
+    setSubmitting(true)
+    setMessage(null)
+    try {
+      const result = await apiRequest('/api/complaints', {
+        method: 'PUT',
+        body: JSON.stringify({ id: editingItem.id, ...form }),
+      })
+      setItems((current) => sortRecords(
+        current.map((item) => (item.id === editingItem.id ? result.complaint : item)),
+      ))
+      setMessage({ type: 'success', text: 'อัปเดตเรื่องร้องเรียนเรียบร้อยแล้ว' })
+      closeEditor()
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const remove = async (item) => {
+    if (!window.confirm(`ยืนยันการลบเรื่อง “${item.subject}” หรือไม่`)) return
+    try {
+      await apiRequest('/api/complaints', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: item.id }),
+      })
+      setItems((current) => current.filter((complaint) => complaint.id !== item.id))
+      setMessage({ type: 'success', text: 'ลบเรื่องร้องเรียนเรียบร้อยแล้ว' })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message })
+    }
+  }
+
+  return (
+    <section className="admin-service-manager">
+      {editingItem && (
+        <form className="admin-service-editor" onSubmit={save}>
+          <div className="admin-section-heading">
+            <div><span>COMPLAINT WORKFLOW</span><h2>จัดการเรื่องร้องเรียน</h2></div>
+            <button className="admin-icon-button" type="button" onClick={closeEditor} aria-label="ยกเลิกจัดการเรื่อง"><X size={21} /></button>
+          </div>
+          <div className="admin-service-editor__question">
+            <MessageSquareWarning size={20} />
+            <div><strong>{editingItem.subject}</strong><p>{editingItem.details}</p></div>
+          </div>
+          <div className="news-editor__grid">
+            <label className="news-field">
+              <span>สถานะ</span>
+              <select
+                value={form.status}
+                onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}
+              >
+                <option value="new">เรื่องใหม่</option>
+                <option value="reviewing">กำลังตรวจสอบ</option>
+                <option value="resolved">ดำเนินการแล้ว</option>
+              </select>
+            </label>
+            <label className="news-field news-field--wide">
+              <span>บันทึกภายใน</span>
+              <textarea
+                value={form.internal_note}
+                onChange={(event) => setForm((current) => ({ ...current, internal_note: event.target.value }))}
+                rows={5}
+                placeholder="บันทึกการตรวจสอบหรือการดำเนินงาน (ไม่แสดงบนหน้าเว็บไซต์)"
+              />
+            </label>
+          </div>
+          <button className="admin-button admin-button--primary" type="submit" disabled={submitting || !githubConfigured}>
+            {submitting ? <LoaderCircle className="spin" size={19} /> : <Save size={19} />}
+            {submitting ? 'กำลังบันทึก...' : 'บันทึกสถานะ'}
+          </button>
+        </form>
+      )}
+
+      {message && (
+        <p className={`admin-message admin-message--${message.type}`}>
+          {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          {message.text}
+        </p>
+      )}
+
+      <div className="admin-service-list">
+        <div className="admin-section-heading">
+          <div><span>COMPLAINT INBOX</span><h2>เรื่องร้องเรียนจากหน้าเว็บไซต์</h2></div>
+          <MessageSquareWarning size={27} />
+        </div>
+        {!items.length ? (
+          <div className="admin-empty"><MessageSquareWarning size={34} /><strong>ยังไม่มีเรื่องร้องเรียน</strong></div>
+        ) : items.map((item) => (
+          <article className="admin-complaint-card" key={item.id}>
+            <header>
+              <div>
+                <span>{new Date(item.created_at).toLocaleString('th-TH')}</span>
+                <h3>{item.subject}</h3>
+              </div>
+              <span className={`admin-content-status is-${item.status}`}>{statusLabels[item.status]}</span>
+            </header>
+            <p>{item.details}</p>
+            <div className="admin-complaint-card__contact">
+              <strong>ผู้แจ้ง:</strong> {item.complainant_name} · <strong>ติดต่อ:</strong> {item.contact}
+            </div>
+            {item.evidence_urls?.length > 0 && (
+              <div className="admin-complaint-card__links">
+                {item.evidence_urls.map((url, index) => (
+                  <a href={url} target="_blank" rel="noreferrer" key={`${url}-${index}`}>
+                    <Link2 size={14} /> หลักฐานที่ {index + 1}
+                  </a>
+                ))}
+              </div>
+            )}
+            {item.internal_note && <div className="admin-complaint-card__note"><strong>บันทึกภายใน</strong><p>{item.internal_note}</p></div>}
+            <footer>
+              <button type="button" onClick={() => openEditor(item)}><Pencil size={16} />จัดการ</button>
+              {isAdmin && <button type="button" className="is-danger" onClick={() => remove(item)}><Trash2 size={16} />ลบ</button>}
+            </footer>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function MembersManager({ members, setMembers, currentUsername }) {
   const [editingMember, setEditingMember] = useState(null)
   const [form, setForm] = useState({
@@ -1144,6 +1465,9 @@ function Dashboard() {
   const [awards, setAwards] = useState([])
   const [newsletters, setNewsletters] = useState([])
   const [qualityEvidence, setQualityEvidence] = useState([])
+  const [documents, setDocuments] = useState([])
+  const [questions, setQuestions] = useState([])
+  const [complaints, setComplaints] = useState([])
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -1165,15 +1489,31 @@ function Dashboard() {
           canManage('awards') ? apiRequest('/api/awards') : Promise.resolve({ awards: [] }),
           canManage('newsletters') ? apiRequest('/api/newsletters') : Promise.resolve({ newsletters: [] }),
           canManage('quality') ? apiRequest('/api/quality-evidence') : Promise.resolve({ evidence: [] }),
+          canManage('documents') ? apiRequest('/api/school-documents') : Promise.resolve({ documents: [] }),
+          canManage('qa') ? apiRequest('/api/questions') : Promise.resolve({ questions: [] }),
+          canManage('complaints') ? apiRequest('/api/complaints') : Promise.resolve({ complaints: [] }),
           sessionData.user.role === 'admin' ? apiRequest('/api/members') : Promise.resolve({ members: [] }),
         ]
-        const [newsData, eventData, awardData, newsletterData, qualityData, memberData] = await Promise.all(requests)
+        const [
+          newsData,
+          eventData,
+          awardData,
+          newsletterData,
+          qualityData,
+          documentData,
+          questionData,
+          complaintData,
+          memberData,
+        ] = await Promise.all(requests)
         if (!active) return
         setNews(sortRecords(newsData.news || []))
         setEvents(sortRecords(eventData.events || []))
         setAwards(sortRecords(awardData.awards || []))
         setNewsletters(sortRecords(newsletterData.newsletters || []))
         setQualityEvidence(sortRecords(qualityData.evidence || []))
+        setDocuments(sortRecords(documentData.documents || []))
+        setQuestions(sortRecords(questionData.questions || []))
+        setComplaints(sortRecords(complaintData.complaints || []))
         setMembers(sortRecords(memberData.members || []))
       } catch (error) {
         if (error.status === 401 || error.status === 403) window.location.replace('/login')
@@ -1191,8 +1531,11 @@ function Dashboard() {
     awards: awards.length,
     newsletters: newsletters.length,
     quality: qualityEvidence.length,
+    documents: documents.length,
+    questions: questions.filter((item) => !item.answer).length,
+    complaints: complaints.filter((item) => item.status !== 'resolved').length,
     pending: members.filter((member) => member.status === 'pending').length,
-  }), [news, events, awards, newsletters, qualityEvidence, members])
+  }), [news, events, awards, newsletters, qualityEvidence, documents, questions, complaints, members])
 
   const logout = async () => {
     await apiRequest('/api/auth/logout', { method: 'POST', body: '{}' }).catch(() => undefined)
@@ -1211,6 +1554,9 @@ function Dashboard() {
     { id: 'awards', label: 'ผลงานและรางวัล', icon: Trophy },
     { id: 'newsletters', label: 'จดหมายข่าว', icon: GalleryHorizontalEnd },
     { id: 'quality', label: 'งานประกันคุณภาพ (สมศ.)', icon: ShieldCheck },
+    { id: 'documents', label: 'เอกสารและแบบคำร้อง', icon: Download },
+    { id: 'qa', label: `ถาม-ตอบ${stats.questions ? ` (${stats.questions})` : ''}`, icon: HelpCircle },
+    { id: 'complaints', label: `เรื่องร้องเรียน${stats.complaints ? ` (${stats.complaints})` : ''}`, icon: MessageSquareWarning },
   ].filter((item) => isAdmin || allowedPermissions.has(item.id))
   const navItems = [
     ...moduleNavItems,
@@ -1266,6 +1612,9 @@ function Dashboard() {
           <article><span><Trophy size={22} /></span><div><small>ผลงานและรางวัล</small><strong>{stats.awards}</strong></div></article>
           <article><span><GalleryHorizontalEnd size={22} /></span><div><small>จดหมายข่าว</small><strong>{stats.newsletters}</strong></div></article>
           <article><span><ShieldCheck size={22} /></span><div><small>หลักฐาน สมศ.</small><strong>{stats.quality}</strong></div></article>
+          <article><span><Download size={22} /></span><div><small>เอกสาร</small><strong>{stats.documents}</strong></div></article>
+          <article><span><HelpCircle size={22} /></span><div><small>คำถามรอตอบ</small><strong>{stats.questions}</strong></div></article>
+          <article><span><MessageSquareWarning size={22} /></span><div><small>เรื่องที่กำลังดำเนินการ</small><strong>{stats.complaints}</strong></div></article>
           {isAdmin && <article><span><Users size={22} /></span><div><small>รออนุมัติ</small><strong>{stats.pending}</strong></div></article>}
         </section>
 
@@ -1296,6 +1645,12 @@ function Dashboard() {
             isAdmin={isAdmin}
             githubConfigured={session.githubConfigured}
           />
+        ) : activeModule === 'documents' ? (
+          <RecordManager type="documents" items={documents} setItems={setDocuments} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+        ) : activeModule === 'qa' ? (
+          <QaManager items={questions} setItems={setQuestions} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+        ) : activeModule === 'complaints' ? (
+          <ComplaintsManager items={complaints} setItems={setComplaints} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'none' ? (
           <div className="admin-empty admin-no-permission">
             <ShieldCheck size={36} />

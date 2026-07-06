@@ -1378,6 +1378,223 @@
   display: none;
 }
 
+.admin-service-manager {
+  display: grid;
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.admin-service-editor,
+.admin-service-list {
+  padding: 24px;
+  border: 1px solid #dfe7ee;
+  border-radius: 19px;
+  background: #fff;
+  box-shadow: 0 12px 38px rgba(10, 44, 88, 0.06);
+}
+
+.admin-service-editor__question {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  color: #1d5f99;
+  background: #eef5fb;
+}
+
+.admin-service-editor__question > svg {
+  flex: 0 0 auto;
+}
+
+.admin-service-editor__question strong {
+  color: #17385f;
+  font-size: 0.76rem;
+}
+
+.admin-service-editor__question p {
+  margin: 0;
+  color: #3f5871;
+  font-size: 0.72rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.admin-publish-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 14px 0;
+  color: #284862;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.admin-publish-toggle input {
+  width: 17px;
+  height: 17px;
+  accent-color: #1766aa;
+}
+
+.admin-service-list {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-question-card,
+.admin-complaint-card {
+  padding: 17px;
+  border: 1px solid #e1e9ef;
+  border-radius: 14px;
+  background: #fbfcfd;
+}
+
+.admin-question-card > header,
+.admin-complaint-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.admin-question-card > header > div,
+.admin-complaint-card > header > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.admin-question-card > header span,
+.admin-complaint-card > header span {
+  color: #b47808;
+  font-size: 0.61rem;
+  font-weight: 800;
+}
+
+.admin-question-card > header small {
+  color: #8996a5;
+  font-size: 0.58rem;
+}
+
+.admin-question-card > h3,
+.admin-complaint-card h3 {
+  margin: 10px 0 0;
+  color: #15375f;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.admin-question-card__answer,
+.admin-complaint-card__note {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-left: 3px solid #368363;
+  border-radius: 0 10px 10px 0;
+  background: #eef8f3;
+}
+
+.admin-question-card__answer strong,
+.admin-complaint-card__note strong {
+  color: #28694e;
+  font-size: 0.62rem;
+}
+
+.admin-question-card__answer p,
+.admin-complaint-card__note p,
+.admin-complaint-card > p {
+  margin: 3px 0 0;
+  color: #4d6276;
+  font-size: 0.69rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.admin-question-card__answer small {
+  color: #7c8d9d;
+  font-size: 0.56rem;
+}
+
+.admin-content-status {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border-radius: 99px;
+  color: #87600e !important;
+  background: #fff2d5;
+  font-size: 0.55rem !important;
+}
+
+.admin-content-status.is-published,
+.admin-content-status.is-resolved {
+  color: #2a704e !important;
+  background: #e4f5ec;
+}
+
+.admin-content-status.is-reviewing {
+  color: #225e97 !important;
+  background: #e6f1fb;
+}
+
+.admin-content-status.is-new {
+  color: #9a4242 !important;
+  background: #ffeded;
+}
+
+.admin-question-card > footer,
+.admin-complaint-card > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-top: 13px;
+}
+
+.admin-question-card > footer button,
+.admin-complaint-card > footer button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 8px;
+  color: #245f99;
+  background: #eaf3fc;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.admin-question-card > footer button.is-danger,
+.admin-complaint-card > footer button.is-danger {
+  color: #a13737;
+  background: #ffeded;
+}
+
+.admin-complaint-card__contact {
+  margin-top: 11px;
+  color: #647789;
+  font-size: 0.63rem;
+}
+
+.admin-complaint-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.admin-complaint-card__links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: #225e97;
+  background: #eaf3fc;
+  font-size: 0.59rem;
+  font-weight: 700;
+}
+
 .admin-news-list article {
   display: grid;
   align-items: center;
@@ -1481,6 +1698,16 @@
 
   .admin-page {
     display: block;
+  }
+
+  .admin-service-editor,
+  .admin-service-list {
+    padding: 17px;
+  }
+
+  .admin-question-card > header,
+  .admin-complaint-card > header {
+    flex-direction: column;
   }
 
   .admin-sidebar {

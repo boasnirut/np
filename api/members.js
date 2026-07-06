@@ -17,7 +17,16 @@ const headers = [
 ]
 const allowedStatuses = new Set(['true', 'pending', 'suspended'])
 const allowedRoles = new Set(['member', 'admin'])
-const allowedPermissions = new Set(['news', 'events', 'awards', 'newsletters', 'quality'])
+const allowedPermissions = new Set([
+  'news',
+  'events',
+  'awards',
+  'newsletters',
+  'quality',
+  'documents',
+  'qa',
+  'complaints',
+])
 
 function memberPermissions(user) {
   if (user.role === 'admin') return [...allowedPermissions]

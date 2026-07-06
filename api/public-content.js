@@ -10,12 +10,22 @@ import { readRepoFile } from './_lib/repo.js'
 export default async function handler(request, response) {
   if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
   try {
-    const [newsFile, eventsFile, awardsFile, newslettersFile, qualityFile] = await Promise.all([
+    const [
+      newsFile,
+      eventsFile,
+      awardsFile,
+      newslettersFile,
+      qualityFile,
+      documentsFile,
+      questionsFile,
+    ] = await Promise.all([
       readRepoFile('data/news.csv'),
       readRepoFile('data/events.csv'),
       readRepoFile('data/awards.csv'),
       readRepoFile('data/newsletters.csv'),
       readRepoFile('data/quality-evidence.csv'),
+      readRepoFile('data/school-documents.csv'),
+      readRepoFile('data/questions.csv'),
     ])
     const published = (rows) => rows.filter((item) => item.status === 'published')
     const body = {
@@ -32,6 +42,20 @@ export default async function handler(request, response) {
         ...item,
         document_urls: evidenceDocumentUrls(item),
       })),
+      documents: sortByDateAndDisplayOrder(
+        published(parseCsv(documentsFile.content)),
+        'publish_date',
+      ),
+      questions: parseCsv(questionsFile.content)
+        .filter((item) => item.status === 'answered' && item.is_published === 'true')
+        .sort((left, right) => String(right.answered_at).localeCompare(String(left.answered_at)))
+        .map((item) => ({
+          id: item.id,
+          name: item.name,
+          question: item.question,
+          answer: item.answer,
+          answered_at: item.answered_at,
+        })),
     }
     response.statusCode = 200
     response.setHeader('Content-Type', 'application/json; charset=utf-8')
