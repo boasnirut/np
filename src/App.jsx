@@ -1458,7 +1458,7 @@ function StaffPage() {
     { image: '/TC14.png', name: 'นางสาวรัตติกานต์ ราชศรีเมือง', position: 'ครู โรงเรียนบ้านน้ำพร' },
   ]
   const supportStaff = [
-    { image: '/TC16.png', name: 'นางสาวทิวาพร คำพรม', position: 'เจ้าหน้าที่ธุรการ' },
+    { image: '/TC16.png', name: 'นางสาวธิวาพร คำพรม', position: 'เจ้าหน้าที่ธุรการ' },
     { image: '/TC17.png', name: 'นายประสิทธิ์ ไพฑูรย์', position: 'นักการภารโรง' },
   ]
 
