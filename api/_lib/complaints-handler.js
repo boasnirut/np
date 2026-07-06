@@ -1,14 +1,14 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser } from './_lib/access.js'
-import { updateCsvFile } from './_lib/csv-repo.js'
-import { parseCsv } from './_lib/csv.js'
-import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
-import { readRepoFile, RepositoryConfigError } from './_lib/repo.js'
+import { requireActiveUser } from './access.js'
+import { updateCsvFile } from './csv-repo.js'
+import { parseCsv } from './csv.js'
+import { methodNotAllowed, readJsonBody, sendJson } from './http.js'
+import { readRepoFile, RepositoryConfigError } from './repo.js'
 import {
   decryptSecret,
   encryptSecret,
   SecretBoxConfigError,
-} from './_lib/secret-box.js'
+} from './secret-box.js'
 
 const headers = [
   'id',

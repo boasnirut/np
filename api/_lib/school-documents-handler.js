@@ -1,16 +1,16 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
+import { requireActiveUser, withUserDisplayNames } from './access.js'
 import {
   nextDisplayOrderForDate,
   sortByDateAndDisplayOrder,
-} from './_lib/content.js'
-import { parseCsv, stringifyCsv } from './_lib/csv.js'
-import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
+} from './content.js'
+import { parseCsv, stringifyCsv } from './csv.js'
+import { methodNotAllowed, readJsonBody, sendJson } from './http.js'
 import {
   readRepoFile,
   RepositoryConfigError,
   writeRepoFile,
-} from './_lib/repo.js'
+} from './repo.js'
 
 const headers = [
   'id',

@@ -333,7 +333,7 @@ const modules = {
     title: (item) => item.issue_number,
   },
   documents: {
-    endpoint: '/api/school-documents',
+    endpoint: '/api/services?resource=documents',
     responseKey: 'document',
     listKey: 'documents',
     label: 'เอกสารและแบบคำร้อง',
@@ -936,7 +936,7 @@ function QaManager({ items, setItems, isAdmin, githubConfigured }) {
     setSubmitting(true)
     setMessage(null)
     try {
-      const result = await apiRequest('/api/questions', {
+      const result = await apiRequest('/api/services?resource=questions', {
         method: 'PUT',
         body: JSON.stringify({
           id: editingItem.id,
@@ -959,7 +959,7 @@ function QaManager({ items, setItems, isAdmin, githubConfigured }) {
   const remove = async (item) => {
     if (!window.confirm(`ยืนยันการลบคำถามจาก “${item.name}” หรือไม่`)) return
     try {
-      await apiRequest('/api/questions', {
+      await apiRequest('/api/services?resource=questions', {
         method: 'DELETE',
         body: JSON.stringify({ id: item.id }),
       })
@@ -1077,7 +1077,7 @@ function ComplaintsManager({ items, setItems, isAdmin, githubConfigured }) {
     setSubmitting(true)
     setMessage(null)
     try {
-      const result = await apiRequest('/api/complaints', {
+      const result = await apiRequest('/api/services?resource=complaints', {
         method: 'PUT',
         body: JSON.stringify({ id: editingItem.id, ...form }),
       })
@@ -1096,7 +1096,7 @@ function ComplaintsManager({ items, setItems, isAdmin, githubConfigured }) {
   const remove = async (item) => {
     if (!window.confirm(`ยืนยันการลบเรื่อง “${item.subject}” หรือไม่`)) return
     try {
-      await apiRequest('/api/complaints', {
+      await apiRequest('/api/services?resource=complaints', {
         method: 'DELETE',
         body: JSON.stringify({ id: item.id }),
       })
@@ -1489,9 +1489,9 @@ function Dashboard() {
           canManage('awards') ? apiRequest('/api/awards') : Promise.resolve({ awards: [] }),
           canManage('newsletters') ? apiRequest('/api/newsletters') : Promise.resolve({ newsletters: [] }),
           canManage('quality') ? apiRequest('/api/quality-evidence') : Promise.resolve({ evidence: [] }),
-          canManage('documents') ? apiRequest('/api/school-documents') : Promise.resolve({ documents: [] }),
-          canManage('qa') ? apiRequest('/api/questions') : Promise.resolve({ questions: [] }),
-          canManage('complaints') ? apiRequest('/api/complaints') : Promise.resolve({ complaints: [] }),
+          canManage('documents') ? apiRequest('/api/services?resource=documents') : Promise.resolve({ documents: [] }),
+          canManage('qa') ? apiRequest('/api/services?resource=questions') : Promise.resolve({ questions: [] }),
+          canManage('complaints') ? apiRequest('/api/services?resource=complaints') : Promise.resolve({ complaints: [] }),
           sessionData.user.role === 'admin' ? apiRequest('/api/members') : Promise.resolve({ members: [] }),
         ]
         const [

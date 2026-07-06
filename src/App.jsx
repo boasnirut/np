@@ -2085,7 +2085,7 @@ function QaPage({ publishedQuestions = [] }) {
     setSubmitting(true)
     setMessage(null)
     try {
-      const response = await fetch('/api/questions', {
+      const response = await fetch('/api/services?resource=questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -2234,7 +2234,7 @@ function ComplaintsPage() {
     setSubmitting(true)
     setMessage(null)
     try {
-      const response = await fetch('/api/complaints', {
+      const response = await fetch('/api/services?resource=complaints', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
