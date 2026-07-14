@@ -1,4 +1,4 @@
 id,username,password_hash,salt,role,display_name,created_at,active,permissions
 admin-001,boasnirut,ENV,ENV,admin,ผู้ดูแลระบบโรงเรียนบ้านน้ำพร,2026-07-01T00:00:00.000Z,true,*
 aeb78865-1383-4e83-b72a-b19f42953191,ittipukongpod,ba03e0b63e6897246035df1a2f032ab20022d508eb6b6a12847ebfc0a9d8b15da023b48c0c1121b39399f7c9d808ac0fb4a6a3d9aae91d4e9e0a700be3071505,55028d87ad1b245794bceae84d4901b6,member,อิทธิภู กองพอด,2026-07-01T14:46:24.063Z,true,news;events;awards;newsletters
-c37add15-b6bf-4e9e-92db-de331bffd9e3,boasnirut1,3c19f777daf99389ba094664073c96a8b6791704642c37ebe33daf810bc6de34c82017d0e64d3dfbe2bb24bafc914360bcc3caed1b4289c55c9bdc57f1fd2a13,7c45dda2971bdf7a0ecf4f0899af4a07,member,นิรุทธิ์ เสวะนา,2026-07-04T12:17:09.176Z,true,quality
+c37add15-b6bf-4e9e-92db-de331bffd9e3,boasnirut1,3c19f777daf99389ba094664073c96a8b6791704642c37ebe33daf810bc6de34c82017d0e64d3dfbe2bb24bafc914360bcc3caed1b4289c55c9bdc57f1fd2a13,7c45dda2971bdf7a0ecf4f0899af4a07,member,นิรุทธิ์ เสวะนา,2026-07-04T12:17:09.176Z,suspended,quality
