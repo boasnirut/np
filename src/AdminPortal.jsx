@@ -223,6 +223,10 @@ const modules = {
     eyebrow: 'NEWS & ANNOUNCEMENT',
     icon: Megaphone,
     image: true,
+    documentUpload: {
+      label: 'แนบไฟล์ PDF ข่าวสาร',
+      hint: 'เลือก PDF ไม่เกิน 3 MB ระบบจะฝากไว้ที่ Google Drive และเติมเป็นลิงก์ PDF',
+    },
     defaults: {
       title: '',
       category: 'ประชาสัมพันธ์',
@@ -277,6 +281,10 @@ const modules = {
     eyebrow: 'ACHIEVEMENTS & AWARDS',
     icon: Trophy,
     image: true,
+    documentUpload: {
+      label: 'แนบไฟล์ PDF ผลงาน/รางวัล',
+      hint: 'เลือก PDF ไม่เกิน 3 MB ระบบจะฝากไว้ที่ Google Drive และเติมเป็นลิงก์ PDF',
+    },
     defaults: {
       title: '',
       award_type: 'school',
@@ -339,6 +347,10 @@ const modules = {
     label: 'เอกสารและแบบคำร้อง',
     eyebrow: 'SCHOOL DOCUMENTS',
     icon: Download,
+    documentUpload: {
+      label: 'อัปโหลดไฟล์เอกสาร PDF',
+      hint: 'เลือก PDF ไม่เกิน 3 MB ระบบจะฝากไว้ที่ Google Drive หรือจะวางลิงก์เองก็ได้',
+    },
     defaults: {
       title: '',
       category: 'แบบคำร้อง',
@@ -353,7 +365,7 @@ const modules = {
       { name: 'category', label: 'ประเภทเอกสาร', type: 'select', options: ['แบบคำร้อง', 'เอกสารวิชาการ', 'คู่มือ', 'เอกสารทั่วไป'] },
       { name: 'publish_date', label: 'วันที่เผยแพร่', type: 'date', required: true },
       { name: 'description', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 3, placeholder: 'คำอธิบายสั้น ๆ หรือเงื่อนไขการใช้เอกสาร' },
-      { name: 'document_url', label: 'ลิงก์ Google Drive หรือ Google Docs', type: 'url', wide: true, required: true, placeholder: 'https://drive.google.com/...' },
+      { name: 'document_url', label: 'ลิงก์ Google Drive หรือ Google Docs', type: 'url', wide: true, placeholder: 'https://drive.google.com/...' },
       { name: 'display_order', label: 'ลำดับภายในวันที่เดียวกัน (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบนับต่อภายในวันที่นี้' },
       { name: 'status', label: 'สถานะ', type: 'status' },
     ],
@@ -410,6 +422,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
   const [form, setForm] = useState(config.defaults)
   const [editingId, setEditingId] = useState(null)
   const [image, setImage] = useState(null)
+  const [documentFile, setDocumentFile] = useState(null)
   const [preview, setPreview] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState(null)
@@ -418,6 +431,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setForm(config.defaults)
     setEditingId(null)
     setImage(null)
+    setDocumentFile(null)
     setPreview('')
     setMessage(null)
   }, [config])
@@ -437,6 +451,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setForm(config.defaults)
     setEditingId(null)
     setImage(null)
+    setDocumentFile(null)
     setPreview('')
   }
 
@@ -444,6 +459,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setForm(Object.fromEntries(Object.keys(config.defaults).map((key) => [key, item[key] || ''])))
     setEditingId(item.id)
     setImage(null)
+    setDocumentFile(null)
     setPreview(item.image_url || '')
     setMessage(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -457,9 +473,17 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
       const imageData = image
         ? { name: image.name, type: image.type, data: await fileToDataUrl(image) }
         : null
+      const documentFileData = documentFile
+        ? { name: documentFile.name, type: documentFile.type, data: await fileToDataUrl(documentFile) }
+        : null
       const result = await apiRequest(config.endpoint, {
         method: editingId ? 'PUT' : 'POST',
-        body: JSON.stringify({ ...form, id: editingId, image: imageData }),
+        body: JSON.stringify({
+          ...form,
+          id: editingId,
+          image: imageData,
+          document_file: documentFileData,
+        }),
       })
       const item = result[config.responseKey]
       setItems((current) =>
@@ -467,7 +491,12 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
           ? current.map((existing) => (existing.id === editingId ? item : existing))
           : [item, ...current]),
       )
-      setMessage({ type: 'success', text: editingId ? 'บันทึกการแก้ไขเรียบร้อยแล้ว' : 'เพิ่มข้อมูลและส่งขึ้น GitHub เรียบร้อยแล้ว' })
+      setMessage({
+        type: 'success',
+        text: editingId
+          ? 'บันทึกการแก้ไขเรียบร้อยแล้ว'
+          : 'เพิ่มข้อมูลเรียบร้อยแล้ว ไฟล์ถูกฝากไว้ที่ Google Drive และข้อมูลถูกบันทึกขึ้น GitHub',
+      })
       reset()
     } catch (error) {
       setMessage({ type: 'error', text: error.message })
@@ -530,7 +559,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
                   value={form[field.name]}
                   onChange={update}
                   placeholder={field.placeholder}
-                  required={field.required}
+                  required={field.required && !(field.name === 'document_url' && documentFile)}
                 />
               )}
             </label>
@@ -546,6 +575,23 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
               accept="image/jpeg,image/png,image/webp"
               onChange={chooseImage}
               required={config.imageRequired && !editingId}
+            />
+          </label>
+        )}
+        {config.documentUpload && (
+          <label className={`quality-file-uploader ${documentFile ? 'is-selected' : ''}`}>
+            <span><FileText size={27} /></span>
+            <div>
+              <strong>{documentFile ? documentFile.name : config.documentUpload.label}</strong>
+              <small>{config.documentUpload.hint}</small>
+            </div>
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={(event) => {
+                setDocumentFile(event.target.files?.[0] || null)
+                setMessage(null)
+              }}
             />
           </label>
         )}
@@ -712,7 +758,9 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
       )
       setMessage({
         type: 'success',
-        text: editingId ? 'บันทึกการแก้ไขหลักฐานเรียบร้อยแล้ว' : 'เพิ่มหลักฐานและส่งขึ้น GitHub เรียบร้อยแล้ว',
+        text: editingId
+          ? 'บันทึกการแก้ไขหลักฐานเรียบร้อยแล้ว'
+          : 'เพิ่มหลักฐานเรียบร้อยแล้ว ไฟล์ถูกฝากไว้ที่ Google Drive และข้อมูลถูกบันทึกขึ้น GitHub',
       })
       reset()
     } catch (error) {
@@ -848,7 +896,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
           <span><FileText size={27} /></span>
           <div>
             <strong>{file ? file.name : 'อัปโหลดไฟล์ PDF'}</strong>
-            <small>เลือกอัปโหลดไฟล์ PDF ไม่เกิน 3 MB หรือใช้ลิงก์เอกสารด้านบน</small>
+            <small>เลือกอัปโหลดไฟล์ PDF ไม่เกิน 3 MB ระบบจะฝากไว้ที่ Google Drive หรือใช้ลิงก์เอกสารด้านบน</small>
           </div>
           <input
             type="file"
@@ -1603,6 +1651,12 @@ function Dashboard() {
           <div className="admin-config-alert">
             <AlertCircle size={22} />
             <div><strong>รอการเชื่อมต่อ GitHub</strong><p>การบันทึกข้อมูลจะเปิดใช้งานเมื่อเพิ่ม GITHUB_TOKEN ใน Vercel</p></div>
+          </div>
+        )}
+        {!session?.googleDriveConfigured && (
+          <div className="admin-config-alert">
+            <AlertCircle size={22} />
+            <div><strong>รอการเชื่อมต่อ Google Drive</strong><p>การอัปโหลดไฟล์จะใช้งานได้หลังเพิ่ม Service Account และแชร์โฟลเดอร์ Drive ให้ถูกต้อง</p></div>
           </div>
         )}
 

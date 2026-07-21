@@ -8,10 +8,14 @@ import {
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
 import {
-  rawGithubUrl,
+  dataUrlBytes,
+  GoogleDriveConfigError,
+  GoogleDriveUploadError,
+  uploadToDrive,
+} from './_lib/drive.js'
+import {
   readRepoFile,
   RepositoryConfigError,
-  writeBinaryRepoFile,
   writeRepoFile,
 } from './_lib/repo.js'
 
@@ -37,6 +41,7 @@ const allowedImageTypes = {
   'image/png': 'png',
   'image/webp': 'webp',
 }
+const allowedDocumentTypes = new Set(['application/pdf'])
 
 function newsFields(body, existing = {}, isAdmin = false) {
   return {
@@ -86,16 +91,42 @@ async function uploadImage(image, id, title) {
     error.code = 'INVALID_IMAGE'
     throw error
   }
-  const encoded = String(image.data).replace(/^data:[^;]+;base64,/, '')
-  const bytes = Buffer.from(encoded, 'base64')
+  const bytes = dataUrlBytes(image.data)
   if (!bytes.length || bytes.length > 3_000_000) {
     const error = new Error('รูปภาพต้องมีขนาดไม่เกิน 3 MB')
     error.code = 'INVALID_IMAGE'
     throw error
   }
-  const path = `public/uploads/news/${id}-${Date.now()}.${extension}`
-  await writeBinaryRepoFile(path, bytes, `เพิ่มรูปข่าว: ${title}`)
-  return rawGithubUrl(path)
+  const uploaded = await uploadToDrive({
+    bytes,
+    mimeType: image.type,
+    name: `${id}-${Date.now()}-${title}.${extension}`,
+    category: 'news-image',
+    image: true,
+  })
+  return uploaded.imageUrl
+}
+
+async function uploadDocument(file, id, title) {
+  if (!file?.data || !file?.type) return ''
+  if (!allowedDocumentTypes.has(file.type)) {
+    const error = new Error('รองรับไฟล์ PDF เท่านั้น')
+    error.code = 'INVALID_DOCUMENT'
+    throw error
+  }
+  const bytes = dataUrlBytes(file.data)
+  if (!bytes.length || bytes.length > 3_000_000) {
+    const error = new Error('ไฟล์ PDF ต้องมีขนาดไม่เกิน 3 MB')
+    error.code = 'INVALID_DOCUMENT'
+    throw error
+  }
+  const uploaded = await uploadToDrive({
+    bytes,
+    mimeType: file.type,
+    name: file.name || `${id}-${Date.now()}-${title}.pdf`,
+    category: 'news-document',
+  })
+  return uploaded.viewUrl
 }
 
 export default async function handler(request, response) {
@@ -121,9 +152,11 @@ export default async function handler(request, response) {
       if (!validate(fields, response)) return undefined
       const id = randomUUID()
       const now = new Date().toISOString()
+      const documentUrl = await uploadDocument(body.document_file, id, fields.title)
       const item = {
         id,
         ...fields,
+        document_url: documentUrl || fields.document_url,
         display_order: fields.display_order || String(
           nextDisplayOrderForDate(news, 'publish_date', fields.publish_date),
         ),
@@ -165,10 +198,12 @@ export default async function handler(request, response) {
       const fields = newsFields(body, news[index], session.role === 'admin')
       if (!validate(fields, response)) return undefined
       const newImage = await uploadImage(body.image, news[index].id, fields.title)
+      const newDocumentUrl = await uploadDocument(body.document_file, news[index].id, fields.title)
       news[index] = {
         ...news[index],
         ...fields,
         image_url: newImage || news[index].image_url,
+        document_url: newDocumentUrl || fields.document_url,
         updated_at: new Date().toISOString(),
         updated_by: session.sub,
       }
@@ -187,8 +222,15 @@ export default async function handler(request, response) {
     if (error instanceof RepositoryConfigError) {
       return sendJson(response, 503, { error: 'ระบบยังไม่ได้เชื่อมต่อ GitHub' })
     }
-    if (error.code === 'INVALID_IMAGE') {
+    if (error.code === 'INVALID_IMAGE' || error.code === 'INVALID_DOCUMENT') {
       return sendJson(response, 400, { error: error.message })
+    }
+    if (error instanceof GoogleDriveConfigError) {
+      return sendJson(response, 503, { error: 'ระบบยังไม่ได้ตั้งค่า Google Drive Service Account ใน Vercel' })
+    }
+    if (error instanceof GoogleDriveUploadError) {
+      console.error('Google Drive upload error', error.details || error)
+      return sendJson(response, 502, { error: error.message })
     }
     if (error.message === 'PAYLOAD_TOO_LARGE') {
       return sendJson(response, 413, { error: 'ข้อมูลหรือรูปภาพมีขนาดใหญ่เกินไป' })

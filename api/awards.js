@@ -6,8 +6,14 @@ import {
   sortByDateAndDisplayOrder,
 } from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
+import {
+  dataUrlBytes,
+  GoogleDriveConfigError,
+  GoogleDriveUploadError,
+  uploadToDrive,
+} from './_lib/drive.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
-import { rawGithubUrl, readRepoFile, writeBinaryRepoFile, writeRepoFile } from './_lib/repo.js'
+import { readRepoFile, writeRepoFile } from './_lib/repo.js'
 
 const headers = [
   'id',
@@ -28,6 +34,7 @@ const headers = [
   'updated_by',
 ]
 const allowedImageTypes = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+const allowedDocumentTypes = new Set(['application/pdf'])
 const allowedAwardTypes = new Set(['school', 'personnel', 'student'])
 
 function fields(body, existing = {}, isAdmin = false) {
@@ -71,11 +78,30 @@ async function uploadImage(image, id, title) {
   if (!image?.data || !image?.type) return ''
   const extension = allowedImageTypes[image.type]
   if (!extension) throw new Error('INVALID_IMAGE')
-  const bytes = Buffer.from(String(image.data).replace(/^data:[^;]+;base64,/, ''), 'base64')
+  const bytes = dataUrlBytes(image.data)
   if (!bytes.length || bytes.length > 3_000_000) throw new Error('INVALID_IMAGE')
-  const path = `public/uploads/awards/${id}-${Date.now()}.${extension}`
-  await writeBinaryRepoFile(path, bytes, `เพิ่มรูปผลงาน: ${title}`)
-  return rawGithubUrl(path)
+  const uploaded = await uploadToDrive({
+    bytes,
+    mimeType: image.type,
+    name: `${id}-${Date.now()}-${title}.${extension}`,
+    category: 'award-image',
+    image: true,
+  })
+  return uploaded.imageUrl
+}
+
+async function uploadDocument(file, id, title) {
+  if (!file?.data || !file?.type) return ''
+  if (!allowedDocumentTypes.has(file.type)) throw new Error('INVALID_DOCUMENT')
+  const bytes = dataUrlBytes(file.data)
+  if (!bytes.length || bytes.length > 3_000_000) throw new Error('INVALID_DOCUMENT')
+  const uploaded = await uploadToDrive({
+    bytes,
+    mimeType: file.type,
+    name: file.name || `${id}-${Date.now()}-${title}.pdf`,
+    category: 'award-document',
+  })
+  return uploaded.viewUrl
 }
 
 export default async function handler(request, response) {
@@ -100,9 +126,11 @@ export default async function handler(request, response) {
       if (!validate(itemFields, response)) return undefined
       const id = randomUUID()
       const now = new Date().toISOString()
+      const documentUrl = await uploadDocument(body.document_file, id, itemFields.title)
       const item = {
         id,
         ...itemFields,
+        document_url: documentUrl || itemFields.document_url,
         display_order: itemFields.display_order || String(
           nextDisplayOrderForDate(awards, 'award_date', itemFields.award_date),
         ),
@@ -142,10 +170,12 @@ export default async function handler(request, response) {
       const itemFields = fields(body, awards[index], session.role === 'admin')
       if (!validate(itemFields, response)) return undefined
       const newImage = await uploadImage(body.image, awards[index].id, itemFields.title)
+      const newDocumentUrl = await uploadDocument(body.document_file, awards[index].id, itemFields.title)
       awards[index] = {
         ...awards[index],
         ...itemFields,
         image_url: newImage || awards[index].image_url,
+        document_url: newDocumentUrl || itemFields.document_url,
         updated_at: new Date().toISOString(),
         updated_by: session.sub,
       }
@@ -163,6 +193,16 @@ export default async function handler(request, response) {
   } catch (error) {
     if (error.message === 'INVALID_IMAGE') {
       return sendJson(response, 400, { error: 'รูปภาพต้องเป็น JPG, PNG หรือ WebP และไม่เกิน 3 MB' })
+    }
+    if (error.message === 'INVALID_DOCUMENT') {
+      return sendJson(response, 400, { error: 'ไฟล์เอกสารต้องเป็น PDF และไม่เกิน 3 MB' })
+    }
+    if (error instanceof GoogleDriveConfigError) {
+      return sendJson(response, 503, { error: 'ระบบยังไม่ได้ตั้งค่า Google Drive Service Account ใน Vercel' })
+    }
+    if (error instanceof GoogleDriveUploadError) {
+      console.error('Google Drive upload error', error.details || error)
+      return sendJson(response, 502, { error: error.message })
     }
     console.error('Awards API error', error)
     return sendJson(response, 500, { error: 'ไม่สามารถดำเนินการกับผลงานและรางวัลได้ในขณะนี้' })

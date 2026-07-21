@@ -1,5 +1,6 @@
 import { createSessionToken, setSessionCookie, verifyPassword } from '../_lib/auth.js'
 import { parseCsv } from '../_lib/csv.js'
+import { googleDriveConfigured } from '../_lib/drive.js'
 import { methodNotAllowed, readJsonBody, sendJson } from '../_lib/http.js'
 import { githubConfigured, readRepoFile } from '../_lib/repo.js'
 
@@ -34,6 +35,7 @@ export default async function handler(request, response) {
         role: user.role,
       },
       githubConfigured: githubConfigured(),
+      googleDriveConfigured: googleDriveConfigured(),
     })
   } catch (error) {
     console.error('Login error', error)

@@ -1,4 +1,5 @@
 import { requireActiveUser } from '../_lib/access.js'
+import { googleDriveConfigured } from '../_lib/drive.js'
 import { methodNotAllowed, sendJson } from '../_lib/http.js'
 import { githubConfigured } from '../_lib/repo.js'
 
@@ -16,5 +17,6 @@ export default async function handler(request, response) {
       permissions: session.permissions,
     },
     githubConfigured: githubConfigured(),
+    googleDriveConfigured: googleDriveConfigured(),
   })
 }

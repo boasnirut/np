@@ -18,7 +18,7 @@
 
 ## ภาพรวมระบบ
 
-เว็บไซต์นี้พัฒนาด้วย React และ Vite ใช้ Vercel สำหรับเผยแพร่เว็บและให้บริการ Serverless API ส่วนข้อมูลที่แก้ไขผ่านระบบบริหารจัดการจะบันทึกเป็น CSV ใน GitHub repository เดียวกันผ่าน GitHub Contents API
+เว็บไซต์นี้พัฒนาด้วย React และ Vite ใช้ Vercel สำหรับเผยแพร่เว็บและให้บริการ Serverless API ส่วนข้อมูลที่แก้ไขผ่านระบบบริหารจัดการจะบันทึกเป็น CSV ใน GitHub repository เดียวกันผ่าน GitHub Contents API และไฟล์ที่แนบผ่านระบบบริหารจัดการจะถูกฝากไว้ที่ Google Drive ผ่าน Service Account
 
 ระบบรองรับคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์มือถือ มีเมนูแบบ Dropdown, หน้าต้อนรับแบบสไลด์, Billboard Banner, ข่าวสาร ผลงาน เอกสารบริการ แบบฟอร์ม Q&A และช่องทางรับเรื่องร้องเรียน
 
@@ -28,9 +28,11 @@ flowchart LR
     C[สมาชิกและผู้ดูแลระบบ] --> D[ระบบบริหารจัดการ]
     B --> E[Vercel Serverless API]
     D --> E
-    E --> F[(CSV และไฟล์สื่อใน GitHub)]
+    E --> F[(CSV ใน GitHub)]
+    E --> H[(ไฟล์แนบใน Google Drive)]
     F --> G[Vercel Auto Deployment]
     G --> B
+    H --> B
 ```
 
 ## เมนูและหน้าสาธารณะ
@@ -128,11 +130,25 @@ flowchart LR
 - ผลงานและรางวัล: ประเภท วันที่ ผู้ได้รับ ระดับ รายละเอียด รูปภาพ และลิงก์เอกสาร
 - จดหมายข่าว: หมายเลขฉบับ วันที่ และภาพแนวตั้งอัตราส่วนประมาณ 1:1.4
 - หลักฐาน สมศ.: ระดับการศึกษา ตัวชี้วัด รายละเอียด และหลักฐานสูงสุด 5 รายการ
-- เอกสารและแบบคำร้อง: ชื่อ ประเภท วันที่ รายละเอียด และลิงก์ Google Drive/Google Docs
+- เอกสารและแบบคำร้อง: ชื่อ ประเภท วันที่ รายละเอียด ลิงก์ Google Drive/Google Docs หรืออัปโหลด PDF เข้า Google Drive อัตโนมัติ
 - Q&A: ตอบคำถามและเลือกแสดง/ซ่อนคำถามบนเว็บไซต์
 - เรื่องร้องเรียน: ตรวจข้อมูลหลักฐาน อัปเดตสถานะ และบันทึกหมายเหตุภายใน
 
-รูปภาพข่าว ผลงาน และจดหมายข่าวรองรับ JPG, PNG และ WebP ขนาดไม่เกิน 3 MB ส่วนหลักฐาน สมศ. รองรับ PDF ขนาดไม่เกิน 3 MB หรือลิงก์ HTTPS
+รูปภาพข่าว ผลงาน และจดหมายข่าวรองรับ JPG, PNG และ WebP ขนาดไม่เกิน 3 MB ส่วนไฟล์ PDF ของข่าว ผลงาน เอกสาร/แบบคำร้อง และหลักฐาน สมศ. รองรับขนาดไม่เกิน 3 MB หรือใช้ลิงก์ HTTPS/Google Drive ที่มีอยู่แล้วก็ได้
+
+### การอัปโหลดไฟล์ไป Google Drive
+
+ระบบใช้ Google Drive API แบบ Service Account สำหรับไฟล์ที่เลือกอัปโหลดจากหน้าบริหารจัดการ ได้แก่:
+
+- รูปภาพข่าวสาร
+- รูปภาพผลงานและรางวัล
+- รูปภาพจดหมายข่าวประชาสัมพันธ์
+- PDF ข่าวสาร
+- PDF ผลงานและรางวัล
+- PDF เอกสารและแบบคำร้อง
+- PDF หลักฐานงานประกันคุณภาพ (สมศ.)
+
+เมื่อกดบันทึก API จะอัปโหลดไฟล์เข้าโฟลเดอร์ Google Drive ที่กำหนดใน `GOOGLE_DRIVE_FOLDER_ID` ตั้งค่าสิทธิ์ไฟล์เป็นเปิดดูผ่านลิงก์ได้ แล้วบันทึก URL ของไฟล์ลง CSV ใน GitHub แทนการเก็บไฟล์จริงใน repository
 
 ## การจัดเรียงและการเผยแพร่ข้อมูล
 
@@ -180,7 +196,7 @@ flowchart LR
 | `data/questions.csv` | คำถาม คำตอบ และสถานะการเผยแพร่ |
 | `data/complaints.csv` | เรื่องร้องเรียนที่เข้ารหัสและสถานะดำเนินงาน |
 
-ไฟล์สื่อที่อัปโหลดผ่านระบบบริหารจะอยู่ใน `public/uploads/<ประเภท>/` และถูกบันทึกผ่าน GitHub API
+ไฟล์สื่อใหม่ที่อัปโหลดผ่านระบบบริหารจัดการจะถูกฝากไว้ใน Google Drive และเก็บเฉพาะ URL ไว้ใน CSV ส่วนไฟล์เก่าบางรายการอาจยังอ้างอิง URL จาก `public/uploads/<ประเภท>/` บน GitHub ได้ตามข้อมูลเดิม
 
 > [!CAUTION]
 > Repository เป็นสาธารณะ จึงไม่ควรกรอกข้อมูลส่วนบุคคลหรือข้อมูลลับในข่าว เอกสารทั่วไป และ Q&A ข้อมูลร้องเรียนเป็นส่วนเดียวที่เข้ารหัสก่อนบันทึก
@@ -193,6 +209,7 @@ flowchart LR
 - CSS แบบ Responsive
 - Vercel Hosting และ Serverless Functions
 - GitHub Contents API
+- Google Drive API ผ่าน Service Account
 - CSV เป็นแหล่งข้อมูลหลัก
 - HMAC-SHA256 สำหรับ session และ `scrypt` สำหรับรหัสผ่านสมาชิก
 - AES-256-GCM สำหรับข้อมูลร้องเรียน
@@ -233,9 +250,25 @@ flowchart LR
 | `GITHUB_OWNER` | ไม่บังคับ | ค่าเริ่มต้น `boasnirut` |
 | `GITHUB_REPO` | ไม่บังคับ | ค่าเริ่มต้น `np` |
 | `GITHUB_BRANCH` | ไม่บังคับ | ค่าเริ่มต้น `main` |
+| `GOOGLE_DRIVE_FOLDER_ID` | ใช่ | ID โฟลเดอร์ Google Drive ที่ให้ระบบอัปโหลดไฟล์ |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | ใช่ | อีเมลของ Service Account ที่ถูกแชร์เป็น Editor ในโฟลเดอร์ Drive |
+| `GOOGLE_PRIVATE_KEY` | ใช่ | Private key จากไฟล์ JSON ของ Service Account โดยเก็บเป็นค่า secret ใน Vercel |
 | `COMPLAINTS_ENCRYPTION_KEY` | ใช่ | คีย์ลับถาวรสำหรับเข้ารหัสและถอดรหัสเรื่องร้องเรียน |
 
 ตัวอย่างสำหรับการพัฒนาอยู่ใน `.env.example` ห้าม commit ค่า secret จริงลง GitHub
+
+### การตั้งค่า Google Drive Service Account
+
+1. เข้า Google Cloud Console แล้วสร้าง Project สำหรับเว็บไซต์โรงเรียน
+2. เปิดใช้งาน Google Drive API
+3. สร้าง Service Account และสร้าง Key แบบ JSON
+4. เปิด Google Drive แล้วสร้างโฟลเดอร์กลาง เช่น `Bannamporn Website Uploads`
+5. คัดลอก Folder ID จาก URL ของโฟลเดอร์ เช่น `https://drive.google.com/drive/folders/<Folder ID>`
+6. แชร์โฟลเดอร์นั้นให้ `client_email` ของ Service Account เป็นสิทธิ์ Editor
+7. เพิ่มค่า `GOOGLE_DRIVE_FOLDER_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL` และ `GOOGLE_PRIVATE_KEY` ใน Vercel Project Settings → Environment Variables
+8. Redeploy เว็บไซต์เพื่อให้ Serverless API อ่านค่าใหม่
+
+สำหรับ `GOOGLE_PRIVATE_KEY` ให้ใช้ค่าจาก JSON key ในช่อง `private_key` ทั้งก้อน รวมบรรทัด `-----BEGIN PRIVATE KEY-----` และ `-----END PRIVATE KEY-----` ได้เลย หากวางใน Vercel แบบบรรทัดเดียวให้คง `\n` ตามที่ JSON ให้มา ระบบจะแปลงเป็นบรรทัดจริงให้อัตโนมัติ
 
 ### สิทธิ์ GitHub Token ขั้นต่ำ
 

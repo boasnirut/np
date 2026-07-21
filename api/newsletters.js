@@ -2,12 +2,16 @@ import { randomUUID } from 'node:crypto'
 import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
 import { nextDisplayOrderForDate, sortByDateAndDisplayOrder } from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
+import {
+  dataUrlBytes,
+  GoogleDriveConfigError,
+  GoogleDriveUploadError,
+  uploadToDrive,
+} from './_lib/drive.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
 import {
-  rawGithubUrl,
   readRepoFile,
   RepositoryConfigError,
-  writeBinaryRepoFile,
   writeRepoFile,
 } from './_lib/repo.js'
 
@@ -60,11 +64,16 @@ async function uploadImage(image, id, issueNumber) {
   if (!image?.data || !image?.type) return ''
   const extension = allowedImageTypes[image.type]
   if (!extension) throw new Error('INVALID_IMAGE')
-  const bytes = Buffer.from(String(image.data).replace(/^data:[^;]+;base64,/, ''), 'base64')
+  const bytes = dataUrlBytes(image.data)
   if (!bytes.length || bytes.length > 3_000_000) throw new Error('INVALID_IMAGE')
-  const path = `public/uploads/newsletters/${id}-${Date.now()}.${extension}`
-  await writeBinaryRepoFile(path, bytes, `เพิ่มภาพจดหมายข่าว: ${issueNumber}`)
-  return rawGithubUrl(path)
+  const uploaded = await uploadToDrive({
+    bytes,
+    mimeType: image.type,
+    name: `${id}-${Date.now()}-${issueNumber}.${extension}`,
+    category: 'newsletter-image',
+    image: true,
+  })
+  return uploaded.imageUrl
 }
 
 export default async function handler(request, response) {
@@ -163,6 +172,13 @@ export default async function handler(request, response) {
     }
     if (error.message === 'INVALID_IMAGE') {
       return sendJson(response, 400, { error: 'รูปภาพต้องเป็น JPG, PNG หรือ WebP และไม่เกิน 3 MB' })
+    }
+    if (error instanceof GoogleDriveConfigError) {
+      return sendJson(response, 503, { error: 'ระบบยังไม่ได้ตั้งค่า Google Drive Service Account ใน Vercel' })
+    }
+    if (error instanceof GoogleDriveUploadError) {
+      console.error('Google Drive upload error', error.details || error)
+      return sendJson(response, 502, { error: error.message })
     }
     if (error.message === 'PAYLOAD_TOO_LARGE') {
       return sendJson(response, 413, { error: 'ข้อมูลหรือรูปภาพมีขนาดใหญ่เกินไป' })

@@ -7,12 +7,16 @@ import {
   sortByDisplayOrder,
 } from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
+import {
+  dataUrlBytes,
+  GoogleDriveConfigError,
+  GoogleDriveUploadError,
+  uploadToDrive,
+} from './_lib/drive.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
 import {
-  rawGithubUrl,
   readRepoFile,
   RepositoryConfigError,
-  writeBinaryRepoFile,
   writeRepoFile,
 } from './_lib/repo.js'
 import { qualityIndicator, qualityLevelMap } from '../src/qualityStandards.js'
@@ -109,11 +113,15 @@ async function presentEvidence(items, userNames) {
 async function uploadPdf(file, id, title) {
   if (!file?.data) return ''
   if (file.type !== 'application/pdf') throw new Error('INVALID_PDF')
-  const bytes = Buffer.from(String(file.data).replace(/^data:[^;]+;base64,/, ''), 'base64')
+  const bytes = dataUrlBytes(file.data)
   if (!bytes.length || bytes.length > 3_000_000) throw new Error('INVALID_PDF')
-  const path = `public/uploads/quality/${id}-${Date.now()}.pdf`
-  await writeBinaryRepoFile(path, bytes, `เพิ่มหลักฐาน สมศ.: ${title}`)
-  return rawGithubUrl(path)
+  const uploaded = await uploadToDrive({
+    bytes,
+    mimeType: file.type,
+    name: file.name || `${id}-${Date.now()}-${title}.pdf`,
+    category: 'quality-evidence',
+  })
+  return uploaded.viewUrl
 }
 
 export default async function handler(request, response) {
@@ -204,6 +212,13 @@ export default async function handler(request, response) {
     }
     if (error.message === 'INVALID_PDF') {
       return sendJson(response, 400, { error: 'รองรับไฟล์ PDF ขนาดไม่เกิน 3 MB' })
+    }
+    if (error instanceof GoogleDriveConfigError) {
+      return sendJson(response, 503, { error: 'ระบบยังไม่ได้ตั้งค่า Google Drive Service Account ใน Vercel' })
+    }
+    if (error instanceof GoogleDriveUploadError) {
+      console.error('Google Drive upload error', error.details || error)
+      return sendJson(response, 502, { error: error.message })
     }
     if (error.message === 'PAYLOAD_TOO_LARGE') {
       return sendJson(response, 413, { error: 'ไฟล์เอกสารมีขนาดใหญ่เกินไป' })
