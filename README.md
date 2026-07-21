@@ -18,7 +18,7 @@
 
 ## ภาพรวมระบบ
 
-เว็บไซต์นี้พัฒนาด้วย React และ Vite ใช้ Vercel สำหรับเผยแพร่เว็บและให้บริการ Serverless API ส่วนข้อมูลที่แก้ไขผ่านระบบบริหารจัดการจะบันทึกเป็น CSV ใน GitHub repository เดียวกันผ่าน GitHub Contents API และไฟล์ที่แนบผ่านระบบบริหารจัดการจะถูกฝากไว้ที่ Google Drive ผ่าน Service Account
+เว็บไซต์นี้พัฒนาด้วย React และ Vite ใช้ Vercel สำหรับเผยแพร่เว็บและให้บริการ Serverless API ส่วนข้อมูลที่แก้ไขผ่านระบบบริหารจัดการจะบันทึกเป็น CSV ใน GitHub repository เดียวกันผ่าน GitHub Contents API และไฟล์ที่แนบผ่านระบบบริหารจัดการจะถูกฝากไว้ที่ Google Drive ผ่าน OAuth 2.0 ของบัญชีโรงเรียน
 
 ระบบรองรับคอมพิวเตอร์ แท็บเล็ต และโทรศัพท์มือถือ มีเมนูแบบ Dropdown, หน้าต้อนรับแบบสไลด์, Billboard Banner, ข่าวสาร ผลงาน เอกสารบริการ แบบฟอร์ม Q&A และช่องทางรับเรื่องร้องเรียน
 
@@ -138,7 +138,7 @@ flowchart LR
 
 ### การอัปโหลดไฟล์ไป Google Drive
 
-ระบบใช้ Google Drive API แบบ Service Account สำหรับไฟล์ที่เลือกอัปโหลดจากหน้าบริหารจัดการ ได้แก่:
+ระบบใช้ Google Drive API แบบ OAuth 2.0 และ Refresh Token สำหรับไฟล์ที่เลือกอัปโหลดจากหน้าบริหารจัดการ ได้แก่:
 
 - รูปภาพข่าวสาร
 - รูปภาพผลงานและรางวัล
@@ -148,7 +148,7 @@ flowchart LR
 - PDF เอกสารและแบบคำร้อง
 - PDF หลักฐานงานประกันคุณภาพ (สมศ.)
 
-เมื่อกดบันทึก API จะอัปโหลดไฟล์เข้าโฟลเดอร์ Google Drive ที่กำหนดใน `GOOGLE_DRIVE_FOLDER_ID` ตั้งค่าสิทธิ์ไฟล์เป็นเปิดดูผ่านลิงก์ได้ แล้วบันทึก URL ของไฟล์ลง CSV ใน GitHub แทนการเก็บไฟล์จริงใน repository
+เมื่อกดบันทึก API จะใช้ Refresh Token ขอ Access Token ใหม่โดยอัตโนมัติ จากนั้นค้นหาหรือสร้างโฟลเดอร์ `Bannamporn Website Uploads` ใน My Drive ของบัญชีที่อนุญาต ตั้งค่าสิทธิ์ไฟล์เป็นเปิดดูผ่านลิงก์ได้ แล้วบันทึก URL ของไฟล์ลง CSV ใน GitHub แทนการเก็บไฟล์จริงใน repository ระบบใช้ scope `drive.file` เพื่อเข้าถึงเฉพาะไฟล์และโฟลเดอร์ที่เว็บไซต์สร้างขึ้น
 
 ## การจัดเรียงและการเผยแพร่ข้อมูล
 
@@ -209,7 +209,7 @@ flowchart LR
 - CSS แบบ Responsive
 - Vercel Hosting และ Serverless Functions
 - GitHub Contents API
-- Google Drive API ผ่าน Service Account
+- Google Drive API ผ่าน OAuth 2.0 และ Refresh Token
 - CSV เป็นแหล่งข้อมูลหลัก
 - HMAC-SHA256 สำหรับ session และ `scrypt` สำหรับรหัสผ่านสมาชิก
 - AES-256-GCM สำหรับข้อมูลร้องเรียน
@@ -250,27 +250,28 @@ flowchart LR
 | `GITHUB_OWNER` | ไม่บังคับ | ค่าเริ่มต้น `boasnirut` |
 | `GITHUB_REPO` | ไม่บังคับ | ค่าเริ่มต้น `np` |
 | `GITHUB_BRANCH` | ไม่บังคับ | ค่าเริ่มต้น `main` |
-| `GOOGLE_DRIVE_FOLDER_ID` | ใช่ | ID โฟลเดอร์ภายใน Shared Drive ที่ให้ระบบอัปโหลดไฟล์ |
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | ใช่ | อีเมลของ Service Account ที่ถูกแชร์เป็น Editor ในโฟลเดอร์ Drive |
-| `GOOGLE_PRIVATE_KEY` | ใช่ | Private key จากไฟล์ JSON ของ Service Account โดยเก็บเป็นค่า secret ใน Vercel |
+| `GOOGLE_OAUTH_CLIENT_ID` | ใช่ | Client ID ของ OAuth 2.0 Client ชนิด Web application |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | ใช่ | Client Secret ของ OAuth 2.0 Client โดยเก็บเป็นค่า secret ใน Vercel |
+| `GOOGLE_OAUTH_REFRESH_TOKEN` | ใช่ | Refresh Token ที่อนุญาต scope `drive.file` โดยเก็บเป็นค่า secret ใน Vercel |
+| `GOOGLE_DRIVE_FOLDER_NAME` | ไม่บังคับ | ชื่อโฟลเดอร์ที่ระบบสร้างใน My Drive ค่าเริ่มต้น `Bannamporn Website Uploads` |
 | `COMPLAINTS_ENCRYPTION_KEY` | ใช่ | คีย์ลับถาวรสำหรับเข้ารหัสและถอดรหัสเรื่องร้องเรียน |
 
 ตัวอย่างสำหรับการพัฒนาอยู่ใน `.env.example` ห้าม commit ค่า secret จริงลง GitHub
 
-### การตั้งค่า Google Drive Service Account
+### การตั้งค่า Google Drive OAuth 2.0
 
 1. เข้า Google Cloud Console แล้วสร้าง Project สำหรับเว็บไซต์โรงเรียน
 2. เปิดใช้งาน Google Drive API
-3. สร้าง Service Account และสร้าง Key แบบ JSON
-4. เปิด Google Drive ด้วยบัญชี Google Workspace แล้วสร้าง **Shared Drive (ไดรฟ์ที่แชร์)** จากนั้นสร้างโฟลเดอร์กลางภายใน Shared Drive เช่น `Bannamporn Website Uploads` ห้ามใช้โฟลเดอร์ใน My Drive เพราะ Service Account ไม่มีโควตาพื้นที่จัดเก็บ
-5. คัดลอก Folder ID จาก URL ของโฟลเดอร์ เช่น `https://drive.google.com/drive/folders/<Folder ID>`
-6. เพิ่ม `client_email` ของ Service Account เป็นสมาชิกของ Shared Drive หรือแชร์โฟลเดอร์ให้บัญชีดังกล่าว โดยกำหนดสิทธิ์ Content manager หรือ Manager
-7. เพิ่มค่า `GOOGLE_DRIVE_FOLDER_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL` และ `GOOGLE_PRIVATE_KEY` ใน Vercel Project Settings → Environment Variables
-8. Redeploy เว็บไซต์เพื่อให้ Serverless API อ่านค่าใหม่
+3. ตั้งค่า OAuth consent screen และเพิ่ม scope `https://www.googleapis.com/auth/drive.file`
+4. สร้าง OAuth Client ID ชนิด **Web application** และเพิ่ม Authorized redirect URI เป็น `https://developers.google.com/oauthplayground`
+5. เปิด [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/) กดรูปเฟือง เปิด **Use your own OAuth credentials** แล้วกรอก Client ID และ Client Secret
+6. กำหนด Access type เป็น **Offline** และ Force prompt เป็น **Consent Screen**
+7. ใส่ scope `https://www.googleapis.com/auth/drive.file` แล้วกด **Authorize APIs** ด้วยบัญชี Google Drive ที่ต้องการใช้พื้นที่จัดเก็บ
+8. กด **Exchange authorization code for tokens** แล้วคัดลอก Refresh Token
+9. เพิ่มค่า `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` และ `GOOGLE_OAUTH_REFRESH_TOKEN` ใน Vercel Project Settings → Environment Variables
+10. Redeploy เว็บไซต์เพื่อให้ Serverless API อ่านค่าใหม่ การอัปโหลดครั้งแรกจะสร้างโฟลเดอร์ `Bannamporn Website Uploads` ใน My Drive ให้อัตโนมัติ
 
-ระบบส่ง `supportsAllDrives=true` ให้ Google Drive API ทั้งตอนสร้างไฟล์และตั้งค่าสิทธิ์ จึงรองรับโฟลเดอร์ที่อยู่ใน Shared Drive โดยตรง
-
-สำหรับ `GOOGLE_PRIVATE_KEY` ให้ใช้ค่าจาก JSON key ในช่อง `private_key` ทั้งก้อน รวมบรรทัด `-----BEGIN PRIVATE KEY-----` และ `-----END PRIVATE KEY-----` ได้เลย หากวางใน Vercel แบบบรรทัดเดียวให้คง `\n` ตามที่ JSON ให้มา ระบบจะแปลงเป็นบรรทัดจริงให้อัตโนมัติ
+Client Secret และ Refresh Token เป็นข้อมูลลับ ห้ามใส่ในโค้ด ห้าม commit ลง GitHub และห้ามส่งผ่านแชต หลังได้รับ Refresh Token แล้วสามารถนำ redirect URI ของ OAuth Playground ออกจาก OAuth Client ได้
 
 ### สิทธิ์ GitHub Token ขั้นต่ำ
 

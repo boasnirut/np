@@ -1656,7 +1656,7 @@ function Dashboard() {
         {!session?.googleDriveConfigured && (
           <div className="admin-config-alert">
             <AlertCircle size={22} />
-            <div><strong>รอการเชื่อมต่อ Google Drive</strong><p>การอัปโหลดไฟล์จะใช้งานได้หลังเพิ่ม Service Account และแชร์โฟลเดอร์ Drive ให้ถูกต้อง</p></div>
+            <div><strong>รอการเชื่อมต่อ Google Drive</strong><p>การอัปโหลดไฟล์จะใช้งานได้หลังเพิ่ม OAuth 2.0 Client ID, Client Secret และ Refresh Token ใน Vercel</p></div>
           </div>
         )}
 

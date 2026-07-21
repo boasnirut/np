@@ -4,6 +4,8 @@ const tokenUrl = 'https://oauth2.googleapis.com/token'
 const uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id%2CwebViewLink%2CwebContentLink'
 const permissionsUrl = 'https://www.googleapis.com/drive/v3/files'
 const scope = 'https://www.googleapis.com/auth/drive.file'
+const oauthFolderName = process.env.GOOGLE_DRIVE_FOLDER_NAME || 'Bannamporn Website Uploads'
+let cachedOAuthFolderId = ''
 
 export class GoogleDriveConfigError extends Error {
   constructor() {
@@ -36,7 +38,15 @@ function privateKey() {
   return String(process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n')
 }
 
-export function googleDriveConfigured() {
+function oauthConfigured() {
+  return Boolean(
+    process.env.GOOGLE_OAUTH_CLIENT_ID
+    && process.env.GOOGLE_OAUTH_CLIENT_SECRET
+    && process.env.GOOGLE_OAUTH_REFRESH_TOKEN,
+  )
+}
+
+function serviceAccountConfigured() {
   return Boolean(
     process.env.GOOGLE_DRIVE_FOLDER_ID
     && process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
@@ -44,8 +54,30 @@ export function googleDriveConfigured() {
   )
 }
 
-async function accessToken() {
-  if (!googleDriveConfigured()) throw new GoogleDriveConfigError()
+export function googleDriveConfigured() {
+  return oauthConfigured() || serviceAccountConfigured()
+}
+
+async function oauthAccessToken() {
+  const response = await fetch(tokenUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: process.env.GOOGLE_OAUTH_CLIENT_ID,
+      client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+      refresh_token: process.env.GOOGLE_OAUTH_REFRESH_TOKEN,
+      grant_type: 'refresh_token',
+    }),
+  })
+
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok || !body.access_token) {
+    throw new GoogleDriveUploadError('ไม่สามารถเชื่อมต่อบัญชี Google Drive ผ่าน OAuth 2.0 ได้', JSON.stringify(body))
+  }
+  return body.access_token
+}
+
+async function serviceAccountAccessToken() {
 
   const now = Math.floor(Date.now() / 1000)
   const header = base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
@@ -80,6 +112,60 @@ async function accessToken() {
   return body.access_token
 }
 
+async function accessToken() {
+  if (oauthConfigured()) return oauthAccessToken()
+  if (serviceAccountConfigured()) return serviceAccountAccessToken()
+  throw new GoogleDriveConfigError()
+}
+
+async function oauthFolderId(token) {
+  if (cachedOAuthFolderId) return cachedOAuthFolderId
+
+  const query = [
+    "mimeType = 'application/vnd.google-apps.folder'",
+    'trashed = false',
+    "appProperties has { key='bannampornWebsite' and value='uploads' }",
+  ].join(' and ')
+  const searchParams = new URLSearchParams({
+    q: query,
+    spaces: 'drive',
+    pageSize: '10',
+    fields: 'files(id,name)',
+  })
+  const searchResponse = await fetch(`${permissionsUrl}?${searchParams}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  const searchBody = await searchResponse.json().catch(() => ({}))
+  if (!searchResponse.ok) {
+    throw new GoogleDriveUploadError('ค้นหาโฟลเดอร์อัปโหลดใน Google Drive ไม่สำเร็จ', JSON.stringify(searchBody))
+  }
+
+  if (searchBody.files?.[0]?.id) {
+    cachedOAuthFolderId = searchBody.files[0].id
+    return cachedOAuthFolderId
+  }
+
+  const createResponse = await fetch(`${permissionsUrl}?supportsAllDrives=true&fields=id%2Cname`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: oauthFolderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      appProperties: { bannampornWebsite: 'uploads' },
+    }),
+  })
+  const folder = await createResponse.json().catch(() => ({}))
+  if (!createResponse.ok || !folder.id) {
+    throw new GoogleDriveUploadError('สร้างโฟลเดอร์อัปโหลดใน Google Drive ไม่สำเร็จ', JSON.stringify(folder))
+  }
+
+  cachedOAuthFolderId = folder.id
+  return cachedOAuthFolderId
+}
+
 function safeName(name, fallbackExtension = '') {
   const clean = String(name || '')
     .normalize('NFC')
@@ -110,11 +196,14 @@ export async function uploadToDrive({
   }
 
   const token = await accessToken()
+  const parentId = oauthConfigured()
+    ? await oauthFolderId(token)
+    : process.env.GOOGLE_DRIVE_FOLDER_ID
   const boundary = `codex_drive_${Date.now()}_${Math.random().toString(16).slice(2)}`
   const fileName = safeName(name)
   const metadata = {
     name: `${category}-${fileName}`,
-    parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
+    parents: [parentId],
   }
   const delimiter = `--${boundary}\r\n`
   const closeDelimiter = `\r\n--${boundary}--`
