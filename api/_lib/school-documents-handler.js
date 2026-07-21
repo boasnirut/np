@@ -201,7 +201,7 @@ export default async function handler(request, response) {
       return sendJson(response, 400, { error: 'รองรับไฟล์ PDF ขนาดไม่เกิน 3 MB' })
     }
     if (error instanceof GoogleDriveConfigError) {
-      return sendJson(response, 503, { error: 'ระบบยังไม่ได้ตั้งค่า Google Drive Service Account ใน Vercel' })
+      return sendJson(response, 503, { error: 'ระบบยังไม่ได้ตั้งค่า Google Drive OAuth 2.0 ใน Vercel' })
     }
     if (error instanceof GoogleDriveUploadError) {
       console.error('Google Drive upload error', error.details || error)

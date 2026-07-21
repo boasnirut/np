@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
-import { nextDisplayOrderForDate, sortByDateAndDisplayOrder } from './_lib/content.js'
+import { cleanExternalUrl, nextDisplayOrderForDate, sortByDateAndDisplayOrder } from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
 import {
   dataUrlBytes,
@@ -37,6 +37,7 @@ function fields(body, existing = {}, isAdmin = false) {
   return {
     issue_number: String(body.issue_number ?? existing.issue_number ?? '').trim(),
     publish_date: String(body.publish_date ?? existing.publish_date ?? '').trim(),
+    image_url: cleanExternalUrl(body.image_url ?? existing.image_url ?? ''),
     display_order: isAdmin
       ? String(body.display_order ?? existing.display_order ?? '').trim()
       : String(existing.display_order ?? '').trim(),
@@ -55,6 +56,10 @@ function validate(item, response) {
   }
   if (item.display_order && !Number.isFinite(Number(item.display_order))) {
     sendJson(response, 400, { error: 'ลำดับการแสดงผลต้องเป็นตัวเลข' })
+    return false
+  }
+  if (item.image_url === null) {
+    sendJson(response, 400, { error: 'ลิงก์รูปภาพต้องเป็นลิงก์ https ที่ถูกต้อง' })
     return false
   }
   return true
@@ -99,7 +104,7 @@ export default async function handler(request, response) {
       const itemFields = fields(body, {}, session.role === 'admin')
       if (!validate(itemFields, response)) return undefined
       const id = randomUUID()
-      const imageUrl = await uploadImage(body.image, id, itemFields.issue_number)
+      const imageUrl = await uploadImage(body.image, id, itemFields.issue_number) || itemFields.image_url
       if (!imageUrl) return sendJson(response, 400, { error: 'กรุณาแนบภาพจดหมายข่าวประชาสัมพันธ์' })
 
       const now = new Date().toISOString()
@@ -151,7 +156,7 @@ export default async function handler(request, response) {
       newsletters[index] = {
         ...newsletters[index],
         ...itemFields,
-        image_url: imageUrl || newsletters[index].image_url,
+        image_url: imageUrl || itemFields.image_url || newsletters[index].image_url,
         updated_at: new Date().toISOString(),
         updated_by: session.sub,
       }
@@ -174,7 +179,7 @@ export default async function handler(request, response) {
       return sendJson(response, 400, { error: 'รูปภาพต้องเป็น JPG, PNG หรือ WebP และไม่เกิน 3 MB' })
     }
     if (error instanceof GoogleDriveConfigError) {
-      return sendJson(response, 503, { error: 'ระบบยังไม่ได้ตั้งค่า Google Drive Service Account ใน Vercel' })
+      return sendJson(response, 503, { error: 'ระบบยังไม่ได้ตั้งค่า Google Drive OAuth 2.0 ใน Vercel' })
     }
     if (error instanceof GoogleDriveUploadError) {
       console.error('Google Drive upload error', error.details || error)

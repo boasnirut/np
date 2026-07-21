@@ -45,6 +45,7 @@ function fields(body, existing = {}, isAdmin = false) {
     level: String(body.level ?? existing.level ?? '').trim(),
     recipient: String(body.recipient ?? existing.recipient ?? '').trim(),
     description: String(body.description ?? existing.description ?? '').trim(),
+    image_url: cleanExternalUrl(body.image_url ?? existing.image_url ?? ''),
     document_url: cleanExternalUrl(body.document_url ?? existing.document_url ?? ''),
     photo_url: cleanExternalUrl(body.photo_url ?? existing.photo_url ?? ''),
     display_order: isAdmin
@@ -63,8 +64,8 @@ function validate(item, response) {
     sendJson(response, 400, { error: 'ประเภทผลงานและรางวัลไม่ถูกต้อง' })
     return false
   }
-  if (item.document_url === null || item.photo_url === null) {
-    sendJson(response, 400, { error: 'ลิงก์เอกสารและ Google Photos ต้องเป็นลิงก์ https ที่ถูกต้อง' })
+  if (item.image_url === null || item.document_url === null || item.photo_url === null) {
+    sendJson(response, 400, { error: 'ลิงก์รูปภาพ เอกสาร และ Google Photos ต้องเป็นลิงก์ https ที่ถูกต้อง' })
     return false
   }
   if (item.display_order && !Number.isFinite(Number(item.display_order))) {
@@ -134,7 +135,7 @@ export default async function handler(request, response) {
         display_order: itemFields.display_order || String(
           nextDisplayOrderForDate(awards, 'award_date', itemFields.award_date),
         ),
-        image_url: await uploadImage(body.image, id, itemFields.title),
+        image_url: await uploadImage(body.image, id, itemFields.title) || itemFields.image_url,
         author: session.sub,
         created_at: now,
         updated_at: now,
@@ -174,7 +175,7 @@ export default async function handler(request, response) {
       awards[index] = {
         ...awards[index],
         ...itemFields,
-        image_url: newImage || awards[index].image_url,
+        image_url: newImage || itemFields.image_url || awards[index].image_url,
         document_url: newDocumentUrl || itemFields.document_url,
         updated_at: new Date().toISOString(),
         updated_by: session.sub,
@@ -198,7 +199,7 @@ export default async function handler(request, response) {
       return sendJson(response, 400, { error: 'ไฟล์เอกสารต้องเป็น PDF และไม่เกิน 3 MB' })
     }
     if (error instanceof GoogleDriveConfigError) {
-      return sendJson(response, 503, { error: 'ระบบยังไม่ได้ตั้งค่า Google Drive Service Account ใน Vercel' })
+      return sendJson(response, 503, { error: 'ระบบยังไม่ได้ตั้งค่า Google Drive OAuth 2.0 ใน Vercel' })
     }
     if (error instanceof GoogleDriveUploadError) {
       console.error('Google Drive upload error', error.details || error)

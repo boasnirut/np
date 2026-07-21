@@ -50,6 +50,7 @@ function newsFields(body, existing = {}, isAdmin = false) {
     publish_date: String(body.publish_date ?? existing.publish_date ?? '').trim(),
     summary: String(body.summary ?? existing.summary ?? '').trim(),
     content: String(body.content ?? existing.content ?? '').trim(),
+    image_url: cleanExternalUrl(body.image_url ?? existing.image_url ?? ''),
     document_url: cleanExternalUrl(body.document_url ?? existing.document_url ?? ''),
     photo_url: cleanExternalUrl(body.photo_url ?? existing.photo_url ?? ''),
     display_order: isAdmin
@@ -72,8 +73,8 @@ function validate(fields, response) {
     sendJson(response, 400, { error: 'กรุณาระบุวันที่เผยแพร่ข่าวสาร' })
     return false
   }
-  if (fields.document_url === null || fields.photo_url === null) {
-    sendJson(response, 400, { error: 'ลิงก์เอกสารและ Google Photos ต้องเป็นลิงก์ https ที่ถูกต้อง' })
+  if (fields.image_url === null || fields.document_url === null || fields.photo_url === null) {
+    sendJson(response, 400, { error: 'ลิงก์รูปภาพ เอกสาร และ Google Photos ต้องเป็นลิงก์ https ที่ถูกต้อง' })
     return false
   }
   if (fields.display_order && !Number.isFinite(Number(fields.display_order))) {
@@ -160,7 +161,7 @@ export default async function handler(request, response) {
         display_order: fields.display_order || String(
           nextDisplayOrderForDate(news, 'publish_date', fields.publish_date),
         ),
-        image_url: await uploadImage(body.image, id, fields.title),
+        image_url: await uploadImage(body.image, id, fields.title) || fields.image_url,
         author: session.sub,
         created_at: now,
         updated_at: now,
@@ -202,7 +203,7 @@ export default async function handler(request, response) {
       news[index] = {
         ...news[index],
         ...fields,
-        image_url: newImage || news[index].image_url,
+        image_url: newImage || fields.image_url || news[index].image_url,
         document_url: newDocumentUrl || fields.document_url,
         updated_at: new Date().toISOString(),
         updated_by: session.sub,
@@ -226,7 +227,7 @@ export default async function handler(request, response) {
       return sendJson(response, 400, { error: error.message })
     }
     if (error instanceof GoogleDriveConfigError) {
-      return sendJson(response, 503, { error: 'ระบบยังไม่ได้ตั้งค่า Google Drive Service Account ใน Vercel' })
+      return sendJson(response, 503, { error: 'ระบบยังไม่ได้ตั้งค่า Google Drive OAuth 2.0 ใน Vercel' })
     }
     if (error instanceof GoogleDriveUploadError) {
       console.error('Google Drive upload error', error.details || error)

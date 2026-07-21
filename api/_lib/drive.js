@@ -2,6 +2,7 @@ import { createSign } from 'node:crypto'
 
 const tokenUrl = 'https://oauth2.googleapis.com/token'
 const uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id%2CwebViewLink%2CwebContentLink'
+const resumableUploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id%2Cname%2CmimeType%2CwebViewLink%2CwebContentLink%2CappProperties'
 const permissionsUrl = 'https://www.googleapis.com/drive/v3/files'
 const scope = 'https://www.googleapis.com/auth/drive.file'
 const oauthFolderName = process.env.GOOGLE_DRIVE_FOLDER_NAME || 'Bannamporn Website Uploads'
@@ -183,6 +184,97 @@ function driveViewUrl(fileId) {
   return `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/view?usp=sharing`
 }
 
+function driveFileResult(file, image = false) {
+  return {
+    id: file.id,
+    name: file.name || '',
+    mimeType: file.mimeType || '',
+    appProperties: file.appProperties || {},
+    viewUrl: driveViewUrl(file.id),
+    imageUrl: image ? driveImageUrl(file.id) : driveViewUrl(file.id),
+    webViewLink: file.webViewLink || driveViewUrl(file.id),
+    webContentLink: file.webContentLink || '',
+  }
+}
+
+async function makePublic(token, fileId) {
+  const permissionResponse = await fetch(`${permissionsUrl}/${encodeURIComponent(fileId)}/permissions?supportsAllDrives=true`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+  })
+  if (!permissionResponse.ok) {
+    const details = await permissionResponse.text().catch(() => '')
+    throw new GoogleDriveUploadError('ตั้งค่าสิทธิ์อ่านไฟล์บน Google Drive ไม่สำเร็จ', details)
+  }
+}
+
+export async function createResumableDriveUpload({
+  name,
+  mimeType,
+  size,
+  category,
+  uploader,
+}) {
+  const token = await accessToken()
+  const parentId = oauthConfigured()
+    ? await oauthFolderId(token)
+    : process.env.GOOGLE_DRIVE_FOLDER_ID
+  const metadata = {
+    name: `${category}-${safeName(name)}`,
+    parents: [parentId],
+    appProperties: {
+      bannampornUploadCategory: String(category || ''),
+      bannampornUploader: String(uploader || ''),
+    },
+  }
+  const response = await fetch(resumableUploadUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json; charset=UTF-8',
+      'X-Upload-Content-Type': mimeType || 'application/octet-stream',
+      'X-Upload-Content-Length': String(size),
+    },
+    body: JSON.stringify(metadata),
+  })
+  const sessionUrl = response.headers.get('location')
+  if (!response.ok || !sessionUrl) {
+    const details = await response.text().catch(() => '')
+    throw new GoogleDriveUploadError('ไม่สามารถเริ่มอัปโหลดไฟล์ไป Google Drive ได้', details)
+  }
+  return sessionUrl
+}
+
+export async function completeResumableDriveUpload(fileId, {
+  image = false,
+  expectedCategory = '',
+  expectedUploader = '',
+} = {}) {
+  const token = await accessToken()
+  const fields = 'id%2Cname%2CmimeType%2CwebViewLink%2CwebContentLink%2CappProperties'
+  const response = await fetch(`${permissionsUrl}/${encodeURIComponent(fileId)}?supportsAllDrives=true&fields=${fields}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  const file = await response.json().catch(() => ({}))
+  if (!response.ok || !file.id) {
+    throw new GoogleDriveUploadError('ตรวจสอบไฟล์ที่อัปโหลดไป Google Drive ไม่สำเร็จ', JSON.stringify(file))
+  }
+  if (
+    file.appProperties?.bannampornUploadCategory !== expectedCategory
+    || file.appProperties?.bannampornUploader !== expectedUploader
+  ) {
+    const error = new Error('ไม่มีสิทธิ์ยืนยันไฟล์อัปโหลดนี้')
+    error.code = 'DRIVE_UPLOAD_FORBIDDEN'
+    throw error
+  }
+  await makePublic(token, file.id)
+  return driveFileResult(file, image)
+}
+
 export async function uploadToDrive({
   bytes,
   mimeType,
@@ -232,25 +324,8 @@ export async function uploadToDrive({
   }
 
   if (publicFile) {
-    const permissionResponse = await fetch(`${permissionsUrl}/${encodeURIComponent(file.id)}/permissions?supportsAllDrives=true`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ role: 'reader', type: 'anyone' }),
-    })
-    if (!permissionResponse.ok) {
-      const details = await permissionResponse.text().catch(() => '')
-      throw new GoogleDriveUploadError('ตั้งค่าสิทธิ์อ่านไฟล์บน Google Drive ไม่สำเร็จ', details)
-    }
+    await makePublic(token, file.id)
   }
 
-  return {
-    id: file.id,
-    viewUrl: driveViewUrl(file.id),
-    imageUrl: image ? driveImageUrl(file.id) : driveViewUrl(file.id),
-    webViewLink: file.webViewLink || driveViewUrl(file.id),
-    webContentLink: file.webContentLink || '',
-  }
+  return driveFileResult(file, image)
 }

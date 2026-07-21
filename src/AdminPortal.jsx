@@ -188,13 +188,56 @@ function AuthLayout({ mode }) {
   )
 }
 
-function fileToDataUrl(file) {
+const maxUploadBytes = 100 * 1024 * 1024
+
+function uploadFileBytes(uploadUrl, file, onProgress) {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
+    const request = new XMLHttpRequest()
+    request.open('PUT', uploadUrl)
+    request.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100))
+    }
+    request.onload = () => {
+      let body = {}
+      try {
+        body = request.responseText ? JSON.parse(request.responseText) : {}
+      } catch {
+        body = {}
+      }
+      if (request.status === 200 || request.status === 201) {
+        resolve(body)
+        return
+      }
+      reject(new Error(body.error?.message || 'อัปโหลดไฟล์ไป Google Drive ไม่สำเร็จ'))
+    }
+    request.onerror = () => reject(new Error('การเชื่อมต่อระหว่างอัปโหลดไฟล์ขัดข้อง กรุณาลองใหม่'))
+    request.send(file)
   })
+}
+
+async function uploadFileToDrive(file, category, onProgress) {
+  if (!file) return null
+  if (file.size <= 0 || file.size > maxUploadBytes) {
+    throw new Error('ไฟล์ต้องมีขนาดไม่เกิน 100 MB')
+  }
+  const started = await apiRequest('/api/services?resource=uploads', {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'start',
+      category,
+      name: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      size: file.size,
+    }),
+  })
+  const uploaded = await uploadFileBytes(started.uploadUrl, file, onProgress)
+  if (!uploaded.id) throw new Error('Google Drive ไม่ได้ส่งรหัสไฟล์กลับมา กรุณาลองใหม่')
+  const completed = await apiRequest('/api/services?resource=uploads', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'complete', category, fileId: uploaded.id }),
+  })
+  return completed.file
 }
 
 const awardTypeLabels = {
@@ -223,9 +266,11 @@ const modules = {
     eyebrow: 'NEWS & ANNOUNCEMENT',
     icon: Megaphone,
     image: true,
+    imageUploadCategory: 'news-image',
     documentUpload: {
       label: 'แนบไฟล์ PDF ข่าวสาร',
-      hint: 'เลือก PDF ไม่เกิน 3 MB ระบบจะฝากไว้ที่ Google Drive และเติมเป็นลิงก์ PDF',
+      hint: 'เลือก PDF ไม่เกิน 100 MB ระบบจะฝากไว้ที่ Google Drive และเติมเป็นลิงก์ PDF',
+      category: 'news-document',
     },
     defaults: {
       title: '',
@@ -281,9 +326,11 @@ const modules = {
     eyebrow: 'ACHIEVEMENTS & AWARDS',
     icon: Trophy,
     image: true,
+    imageUploadCategory: 'award-image',
     documentUpload: {
       label: 'แนบไฟล์ PDF ผลงาน/รางวัล',
-      hint: 'เลือก PDF ไม่เกิน 3 MB ระบบจะฝากไว้ที่ Google Drive และเติมเป็นลิงก์ PDF',
+      hint: 'เลือก PDF ไม่เกิน 100 MB ระบบจะฝากไว้ที่ Google Drive และเติมเป็นลิงก์ PDF',
+      category: 'award-document',
     },
     defaults: {
       title: '',
@@ -327,8 +374,9 @@ const modules = {
     eyebrow: 'SCHOOL NEWSLETTER',
     icon: GalleryHorizontalEnd,
     image: true,
+    imageUploadCategory: 'newsletter-image',
     imageRequired: true,
-    imageHint: 'ภาพแนวตั้ง อัตราส่วนประมาณ 1:1.4 · JPG, PNG หรือ WebP ไม่เกิน 3 MB',
+    imageHint: 'ภาพแนวตั้ง อัตราส่วนประมาณ 1:1.4 · JPG, PNG หรือ WebP ไม่เกิน 100 MB',
     imageClass: 'image-uploader--portrait',
     defaults: { issue_number: '', publish_date: '', display_order: '' },
     fields: [
@@ -349,7 +397,8 @@ const modules = {
     icon: Download,
     documentUpload: {
       label: 'อัปโหลดไฟล์เอกสาร PDF',
-      hint: 'เลือก PDF ไม่เกิน 3 MB ระบบจะฝากไว้ที่ Google Drive หรือจะวางลิงก์เองก็ได้',
+      hint: 'เลือก PDF ไม่เกิน 100 MB ระบบจะฝากไว้ที่ Google Drive หรือจะวางลิงก์เองก็ได้',
+      category: 'school-document',
     },
     defaults: {
       title: '',
@@ -425,6 +474,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
   const [documentFile, setDocumentFile] = useState(null)
   const [preview, setPreview] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [message, setMessage] = useState(null)
 
   useEffect(() => {
@@ -433,6 +483,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setImage(null)
     setDocumentFile(null)
     setPreview('')
+    setUploadProgress(0)
     setMessage(null)
   }, [config])
 
@@ -453,6 +504,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setImage(null)
     setDocumentFile(null)
     setPreview('')
+    setUploadProgress(0)
   }
 
   const edit = (item) => {
@@ -462,27 +514,29 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setDocumentFile(null)
     setPreview(item.image_url || '')
     setMessage(null)
+    setUploadProgress(0)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const submit = async (event) => {
     event.preventDefault()
     setSubmitting(true)
+    setUploadProgress(0)
     setMessage(null)
     try {
-      const imageData = image
-        ? { name: image.name, type: image.type, data: await fileToDataUrl(image) }
+      const uploadedImage = image
+        ? await uploadFileToDrive(image, config.imageUploadCategory, setUploadProgress)
         : null
-      const documentFileData = documentFile
-        ? { name: documentFile.name, type: documentFile.type, data: await fileToDataUrl(documentFile) }
+      const uploadedDocument = documentFile
+        ? await uploadFileToDrive(documentFile, config.documentUpload.category, setUploadProgress)
         : null
       const result = await apiRequest(config.endpoint, {
         method: editingId ? 'PUT' : 'POST',
         body: JSON.stringify({
           ...form,
           id: editingId,
-          image: imageData,
-          document_file: documentFileData,
+          image_url: uploadedImage?.imageUrl,
+          document_url: uploadedDocument?.viewUrl || form.document_url,
         }),
       })
       const item = result[config.responseKey]
@@ -502,6 +556,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
       setMessage({ type: 'error', text: error.message })
     } finally {
       setSubmitting(false)
+      setUploadProgress(0)
     }
   }
 
@@ -568,7 +623,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
         {config.image && (
           <label className={`image-uploader ${config.imageClass || ''} ${preview ? 'image-uploader--selected' : ''}`}>
             {preview ? <img src={preview} alt="ตัวอย่างรูปภาพ" /> : (
-              <><span><FileImage size={27} /></span><strong>เลือกรูปภาพ</strong><small>{config.imageHint || 'JPG, PNG หรือ WebP ขนาดไม่เกิน 3 MB'}</small></>
+              <><span><FileImage size={27} /></span><strong>เลือกรูปภาพ</strong><small>{config.imageHint || 'JPG, PNG หรือ WebP ขนาดไม่เกิน 100 MB'}</small></>
             )}
             <input
               type="file"
@@ -603,7 +658,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
         )}
         <button className="admin-button admin-button--primary" type="submit" disabled={submitting || !githubConfigured}>
           {submitting ? <LoaderCircle className="spin" size={19} /> : <Save size={19} />}
-          {submitting ? 'กำลังบันทึก...' : editingId ? 'บันทึกการแก้ไข' : 'เพิ่มข้อมูล'}
+          {submitting ? (uploadProgress ? `กำลังอัปโหลด ${uploadProgress}%` : 'กำลังบันทึก...') : editingId ? 'บันทึกการแก้ไข' : 'เพิ่มข้อมูล'}
         </button>
       </form>
 
@@ -659,6 +714,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
   const [editingId, setEditingId] = useState(null)
   const [file, setFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [message, setMessage] = useState(null)
   const selectedLevel = qualityLevelMap[form.education_level] || qualityLevels[0]
   const indicators = selectedLevel.standards.flatMap((standard) => standard.indicators)
@@ -681,6 +737,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
     setForm({ ...qualityDefaults, document_urls: [''] })
     setEditingId(null)
     setFile(null)
+    setUploadProgress(0)
   }
 
   const edit = (item) => {
@@ -703,6 +760,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
     })
     setEditingId(item.id)
     setFile(null)
+    setUploadProgress(0)
     setMessage(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -738,18 +796,23 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
     event.preventDefault()
     const linkCount = form.document_urls.filter((url) => url.trim()).length
     if (linkCount + (file ? 1 : 0) > 5) {
-      setMessage({ type: 'error', text: 'เพิ่มหลักฐานได้ไม่เกิน 5 รายการ โดยนับรวมไฟล์ PDF ที่อัปโหลด' })
+      setMessage({ type: 'error', text: 'เพิ่มหลักฐานได้ไม่เกิน 5 รายการ โดยนับรวมไฟล์ที่อัปโหลด' })
       return
     }
     setSubmitting(true)
+    setUploadProgress(0)
     setMessage(null)
     try {
-      const fileData = file
-        ? { name: file.name, type: file.type, data: await fileToDataUrl(file) }
+      const uploadedFile = file
+        ? await uploadFileToDrive(file, 'quality-evidence', setUploadProgress)
         : null
+      const documentUrls = [
+        uploadedFile?.viewUrl,
+        ...form.document_urls,
+      ].filter((url) => String(url || '').trim())
       const result = await apiRequest('/api/quality-evidence', {
         method: editingId ? 'PUT' : 'POST',
-        body: JSON.stringify({ ...form, id: editingId, file: fileData }),
+        body: JSON.stringify({ ...form, id: editingId, document_urls: documentUrls }),
       })
       setItems((current) =>
         sortRecords(editingId
@@ -767,6 +830,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
       setMessage({ type: 'error', text: error.message })
     } finally {
       setSubmitting(false)
+      setUploadProgress(0)
     }
   }
 
@@ -869,7 +933,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
                 )}
               </div>
             ))}
-            <small>เพิ่มได้สูงสุด 5 รายการ โดยนับรวมไฟล์ PDF ที่อัปโหลด</small>
+            <small>เพิ่มได้สูงสุด 5 รายการ โดยนับรวมไฟล์ที่อัปโหลด</small>
           </div>
           {isAdmin && (
             <label className="news-field">
@@ -895,12 +959,11 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
         <label className={`quality-file-uploader ${file ? 'is-selected' : ''}`}>
           <span><FileText size={27} /></span>
           <div>
-            <strong>{file ? file.name : 'อัปโหลดไฟล์ PDF'}</strong>
-            <small>เลือกอัปโหลดไฟล์ PDF ไม่เกิน 3 MB ระบบจะฝากไว้ที่ Google Drive หรือใช้ลิงก์เอกสารด้านบน</small>
+            <strong>{file ? file.name : 'อัปโหลดไฟล์หลักฐาน'}</strong>
+            <small>รองรับไฟล์ทุกประเภท ขนาดไม่เกิน 100 MB ระบบจะฝากไว้ที่ Google Drive หรือใช้ลิงก์ด้านบน</small>
           </div>
           <input
             type="file"
-            accept="application/pdf"
             onChange={(event) => setFile(event.target.files?.[0] || null)}
           />
         </label>
@@ -918,7 +981,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
         )}
         <button className="admin-button admin-button--primary" type="submit" disabled={submitting || !githubConfigured}>
           {submitting ? <LoaderCircle className="spin" size={19} /> : <Save size={19} />}
-          {submitting ? 'กำลังบันทึก...' : editingId ? 'บันทึกการแก้ไข' : 'เพิ่มเอกสารหลักฐาน'}
+          {submitting ? (uploadProgress ? `กำลังอัปโหลด ${uploadProgress}%` : 'กำลังบันทึก...') : editingId ? 'บันทึกการแก้ไข' : 'เพิ่มเอกสารหลักฐาน'}
         </button>
       </form>
 
