@@ -1,7 +1,7 @@
 import { createSign } from 'node:crypto'
 
 const tokenUrl = 'https://oauth2.googleapis.com/token'
-const uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id%2CwebViewLink%2CwebContentLink'
+const uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id%2CwebViewLink%2CwebContentLink'
 const permissionsUrl = 'https://www.googleapis.com/drive/v3/files'
 const scope = 'https://www.googleapis.com/auth/drive.file'
 
@@ -143,7 +143,7 @@ export async function uploadToDrive({
   }
 
   if (publicFile) {
-    const permissionResponse = await fetch(`${permissionsUrl}/${encodeURIComponent(file.id)}/permissions`, {
+    const permissionResponse = await fetch(`${permissionsUrl}/${encodeURIComponent(file.id)}/permissions?supportsAllDrives=true`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,

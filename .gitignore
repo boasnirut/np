@@ -5,6 +5,8 @@ dist
 .env.*
 !.env.example
 *.log
+*service-account*.json
+namporn-*.json
 .DS_Store
 Thumbs.db
 /np.png

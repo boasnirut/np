@@ -250,7 +250,7 @@ flowchart LR
 | `GITHUB_OWNER` | ไม่บังคับ | ค่าเริ่มต้น `boasnirut` |
 | `GITHUB_REPO` | ไม่บังคับ | ค่าเริ่มต้น `np` |
 | `GITHUB_BRANCH` | ไม่บังคับ | ค่าเริ่มต้น `main` |
-| `GOOGLE_DRIVE_FOLDER_ID` | ใช่ | ID โฟลเดอร์ Google Drive ที่ให้ระบบอัปโหลดไฟล์ |
+| `GOOGLE_DRIVE_FOLDER_ID` | ใช่ | ID โฟลเดอร์ภายใน Shared Drive ที่ให้ระบบอัปโหลดไฟล์ |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | ใช่ | อีเมลของ Service Account ที่ถูกแชร์เป็น Editor ในโฟลเดอร์ Drive |
 | `GOOGLE_PRIVATE_KEY` | ใช่ | Private key จากไฟล์ JSON ของ Service Account โดยเก็บเป็นค่า secret ใน Vercel |
 | `COMPLAINTS_ENCRYPTION_KEY` | ใช่ | คีย์ลับถาวรสำหรับเข้ารหัสและถอดรหัสเรื่องร้องเรียน |
@@ -262,11 +262,13 @@ flowchart LR
 1. เข้า Google Cloud Console แล้วสร้าง Project สำหรับเว็บไซต์โรงเรียน
 2. เปิดใช้งาน Google Drive API
 3. สร้าง Service Account และสร้าง Key แบบ JSON
-4. เปิด Google Drive แล้วสร้างโฟลเดอร์กลาง เช่น `Bannamporn Website Uploads`
+4. เปิด Google Drive ด้วยบัญชี Google Workspace แล้วสร้าง **Shared Drive (ไดรฟ์ที่แชร์)** จากนั้นสร้างโฟลเดอร์กลางภายใน Shared Drive เช่น `Bannamporn Website Uploads` ห้ามใช้โฟลเดอร์ใน My Drive เพราะ Service Account ไม่มีโควตาพื้นที่จัดเก็บ
 5. คัดลอก Folder ID จาก URL ของโฟลเดอร์ เช่น `https://drive.google.com/drive/folders/<Folder ID>`
-6. แชร์โฟลเดอร์นั้นให้ `client_email` ของ Service Account เป็นสิทธิ์ Editor
+6. เพิ่ม `client_email` ของ Service Account เป็นสมาชิกของ Shared Drive หรือแชร์โฟลเดอร์ให้บัญชีดังกล่าว โดยกำหนดสิทธิ์ Content manager หรือ Manager
 7. เพิ่มค่า `GOOGLE_DRIVE_FOLDER_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL` และ `GOOGLE_PRIVATE_KEY` ใน Vercel Project Settings → Environment Variables
 8. Redeploy เว็บไซต์เพื่อให้ Serverless API อ่านค่าใหม่
+
+ระบบส่ง `supportsAllDrives=true` ให้ Google Drive API ทั้งตอนสร้างไฟล์และตั้งค่าสิทธิ์ จึงรองรับโฟลเดอร์ที่อยู่ใน Shared Drive โดยตรง
 
 สำหรับ `GOOGLE_PRIVATE_KEY` ให้ใช้ค่าจาก JSON key ในช่อง `private_key` ทั้งก้อน รวมบรรทัด `-----BEGIN PRIVATE KEY-----` และ `-----END PRIVATE KEY-----` ได้เลย หากวางใน Vercel แบบบรรทัดเดียวให้คง `\n` ตามที่ JSON ให้มา ระบบจะแปลงเป็นบรรทัดจริงให้อัตโนมัติ
 
