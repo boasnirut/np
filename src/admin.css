@@ -1103,6 +1103,10 @@
   gap: 8px;
 }
 
+.record-attachment-links {
+  margin-top: 18px;
+}
+
 .quality-link-fields__heading,
 .quality-link-fields__row {
   display: flex;

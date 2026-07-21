@@ -1,5 +1,6 @@
 import { parseCsv } from './_lib/csv.js'
 import {
+  contentAttachmentUrls,
   evidenceDocumentUrls,
   sortByDateAndDisplayOrder,
   sortByDisplayOrder,
@@ -29,15 +30,17 @@ export default async function handler(request, response) {
     ])
     const published = (rows) => rows.filter((item) => item.status === 'published')
     const body = {
-      news: sortByDateAndDisplayOrder(published(parseCsv(newsFile.content)), 'publish_date'),
-      events: published(parseCsv(eventsFile.content)).sort((left, right) =>
-        right.event_date.localeCompare(left.event_date),
-      ),
-      awards: sortByDateAndDisplayOrder(published(parseCsv(awardsFile.content)), 'award_date'),
+      news: sortByDateAndDisplayOrder(published(parseCsv(newsFile.content)), 'publish_date')
+        .map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
+      events: published(parseCsv(eventsFile.content))
+        .sort((left, right) => right.event_date.localeCompare(left.event_date))
+        .map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
+      awards: sortByDateAndDisplayOrder(published(parseCsv(awardsFile.content)), 'award_date')
+        .map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
       newsletters: sortByDateAndDisplayOrder(
         published(parseCsv(newslettersFile.content)),
         'publish_date',
-      ),
+      ).map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
       qualityEvidence: sortByDisplayOrder(published(parseCsv(qualityFile.content))).map((item) => ({
         ...item,
         document_urls: evidenceDocumentUrls(item),
@@ -45,7 +48,7 @@ export default async function handler(request, response) {
       documents: sortByDateAndDisplayOrder(
         published(parseCsv(documentsFile.content)),
         'publish_date',
-      ),
+      ).map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
       questions: parseCsv(questionsFile.content)
         .filter((item) => item.status === 'answered' && item.is_published === 'true')
         .sort((left, right) => String(right.answered_at).localeCompare(String(left.answered_at)))

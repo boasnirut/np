@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
-import { cleanExternalUrl, nextDisplayOrderForDate, sortByDateAndDisplayOrder } from './_lib/content.js'
+import {
+  cleanAttachmentUrls,
+  cleanExternalUrl,
+  contentAttachmentUrls,
+  nextDisplayOrderForDate,
+  sortByDateAndDisplayOrder,
+  withAttachmentColumns,
+} from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
 import {
   dataUrlBytes,
@@ -26,6 +33,11 @@ const headers = [
   'updated_at',
   'updated_by',
   'publish_date',
+  'document_url',
+  'document_url_2',
+  'document_url_3',
+  'document_url_4',
+  'document_url_5',
 ]
 const allowedImageTypes = {
   'image/jpeg': 'jpg',
@@ -34,10 +46,14 @@ const allowedImageTypes = {
 }
 
 function fields(body, existing = {}, isAdmin = false) {
+  const sourceUrls = Array.isArray(body.document_urls)
+    ? body.document_urls
+    : contentAttachmentUrls(existing)
   return {
     issue_number: String(body.issue_number ?? existing.issue_number ?? '').trim(),
     publish_date: String(body.publish_date ?? existing.publish_date ?? '').trim(),
     image_url: cleanExternalUrl(body.image_url ?? existing.image_url ?? ''),
+    document_urls: cleanAttachmentUrls(sourceUrls),
     display_order: isAdmin
       ? String(body.display_order ?? existing.display_order ?? '').trim()
       : String(existing.display_order ?? '').trim(),
@@ -60,6 +76,14 @@ function validate(item, response) {
   }
   if (item.image_url === null) {
     sendJson(response, 400, { error: 'ลิงก์รูปภาพต้องเป็นลิงก์ https ที่ถูกต้อง' })
+    return false
+  }
+  if (item.document_urls.some((url) => url === null)) {
+    sendJson(response, 400, { error: 'ลิงก์ไฟล์แนบต้องเป็นลิงก์ https ที่ถูกต้อง' })
+    return false
+  }
+  if (item.document_urls.length > 5) {
+    sendJson(response, 400, { error: 'แนบไฟล์หรือลิงก์ได้รวมไม่เกิน 5 รายการ' })
     return false
   }
   return true
@@ -90,11 +114,12 @@ export default async function handler(request, response) {
     const newsletters = parseCsv(current.content)
 
     if (request.method === 'GET') {
+      const namedNewsletters = await withUserDisplayNames(
+        sortByDateAndDisplayOrder(newsletters, 'publish_date'),
+        session.userNames,
+      )
       return sendJson(response, 200, {
-        newsletters: await withUserDisplayNames(
-          sortByDateAndDisplayOrder(newsletters, 'publish_date'),
-          session.userNames,
-        ),
+        newsletters: namedNewsletters.map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
       })
     }
 
@@ -108,9 +133,10 @@ export default async function handler(request, response) {
       if (!imageUrl) return sendJson(response, 400, { error: 'กรุณาแนบภาพจดหมายข่าวประชาสัมพันธ์' })
 
       const now = new Date().toISOString()
-      const item = {
+      const { document_urls: documentUrls, ...savedFields } = itemFields
+      const item = withAttachmentColumns({
         id,
-        ...itemFields,
+        ...savedFields,
         image_url: imageUrl,
         display_order: itemFields.display_order || String(
           nextDisplayOrderForDate(newsletters, 'publish_date', itemFields.publish_date),
@@ -119,7 +145,7 @@ export default async function handler(request, response) {
         created_at: now,
         updated_at: now,
         updated_by: '',
-      }
+      }, documentUrls)
       newsletters.push(item)
       await writeRepoFile(
         'data/newsletters.csv',
@@ -153,13 +179,14 @@ export default async function handler(request, response) {
       const itemFields = fields(body, newsletters[index], true)
       if (!validate(itemFields, response)) return undefined
       const imageUrl = await uploadImage(body.image, newsletters[index].id, itemFields.issue_number)
-      newsletters[index] = {
+      const { document_urls: documentUrls, ...savedFields } = itemFields
+      newsletters[index] = withAttachmentColumns({
         ...newsletters[index],
-        ...itemFields,
+        ...savedFields,
         image_url: imageUrl || itemFields.image_url || newsletters[index].image_url,
         updated_at: new Date().toISOString(),
         updated_by: session.sub,
-      }
+      }, documentUrls)
       await writeRepoFile(
         'data/newsletters.csv',
         stringifyCsv(newsletters, headers),

@@ -1,9 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
 import {
+  cleanAttachmentUrls,
   cleanExternalUrl,
+  contentAttachmentUrls,
   nextDisplayOrderForDate,
   sortByDateAndDisplayOrder,
+  withAttachmentColumns,
 } from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
 import {
@@ -32,12 +35,19 @@ const headers = [
   'created_at',
   'updated_at',
   'updated_by',
+  'document_url_2',
+  'document_url_3',
+  'document_url_4',
+  'document_url_5',
 ]
 const allowedImageTypes = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
 const allowedDocumentTypes = new Set(['application/pdf'])
-const allowedAwardTypes = new Set(['school', 'personnel', 'student'])
+const allowedAwardTypes = new Set(['school', 'personnel', 'student', 'teacher_work'])
 
 function fields(body, existing = {}, isAdmin = false) {
+  const sourceUrls = Array.isArray(body.document_urls)
+    ? body.document_urls
+    : contentAttachmentUrls(existing)
   return {
     title: String(body.title ?? existing.title ?? '').trim(),
     award_type: String(body.award_type ?? existing.award_type ?? 'school').trim(),
@@ -46,8 +56,7 @@ function fields(body, existing = {}, isAdmin = false) {
     recipient: String(body.recipient ?? existing.recipient ?? '').trim(),
     description: String(body.description ?? existing.description ?? '').trim(),
     image_url: cleanExternalUrl(body.image_url ?? existing.image_url ?? ''),
-    document_url: cleanExternalUrl(body.document_url ?? existing.document_url ?? ''),
-    photo_url: cleanExternalUrl(body.photo_url ?? existing.photo_url ?? ''),
+    document_urls: cleanAttachmentUrls(sourceUrls),
     display_order: isAdmin
       ? String(body.display_order ?? existing.display_order ?? '').trim()
       : String(existing.display_order ?? '').trim(),
@@ -55,7 +64,7 @@ function fields(body, existing = {}, isAdmin = false) {
   }
 }
 
-function validate(item, response) {
+function validate(item, response, extraFiles = 0) {
   if (item.title.length < 3 || !item.award_date) {
     sendJson(response, 400, { error: 'กรุณากรอกชื่อผลงานและวันที่ให้ครบถ้วน' })
     return false
@@ -64,8 +73,12 @@ function validate(item, response) {
     sendJson(response, 400, { error: 'ประเภทผลงานและรางวัลไม่ถูกต้อง' })
     return false
   }
-  if (item.image_url === null || item.document_url === null || item.photo_url === null) {
-    sendJson(response, 400, { error: 'ลิงก์รูปภาพ เอกสาร และ Google Photos ต้องเป็นลิงก์ https ที่ถูกต้อง' })
+  if (item.image_url === null || item.document_urls.some((url) => url === null)) {
+    sendJson(response, 400, { error: 'ลิงก์รูปภาพและไฟล์แนบต้องเป็นลิงก์ https ที่ถูกต้อง' })
+    return false
+  }
+  if (item.document_urls.length + extraFiles > 5) {
+    sendJson(response, 400, { error: 'แนบไฟล์หรือลิงก์ได้รวมไม่เกิน 5 รายการ' })
     return false
   }
   if (item.display_order && !Number.isFinite(Number(item.display_order))) {
@@ -113,25 +126,26 @@ export default async function handler(request, response) {
     const awards = parseCsv(current.content)
 
     if (request.method === 'GET') {
+      const namedAwards = await withUserDisplayNames(
+        sortByDateAndDisplayOrder(awards, 'award_date'),
+        session.userNames,
+      )
       return sendJson(response, 200, {
-        awards: await withUserDisplayNames(
-          sortByDateAndDisplayOrder(awards, 'award_date'),
-          session.userNames,
-        ),
+        awards: namedAwards.map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
       })
     }
 
     const body = await readJsonBody(request, 5_000_000)
     if (request.method === 'POST') {
       const itemFields = fields(body, {}, session.role === 'admin')
-      if (!validate(itemFields, response)) return undefined
+      if (!validate(itemFields, response, body.document_file?.data ? 1 : 0)) return undefined
       const id = randomUUID()
       const now = new Date().toISOString()
       const documentUrl = await uploadDocument(body.document_file, id, itemFields.title)
-      const item = {
+      const { document_urls: documentUrls, ...savedFields } = itemFields
+      const item = withAttachmentColumns({
         id,
-        ...itemFields,
-        document_url: documentUrl || itemFields.document_url,
+        ...savedFields,
         display_order: itemFields.display_order || String(
           nextDisplayOrderForDate(awards, 'award_date', itemFields.award_date),
         ),
@@ -140,7 +154,7 @@ export default async function handler(request, response) {
         created_at: now,
         updated_at: now,
         updated_by: '',
-      }
+      }, [documentUrl, ...documentUrls].filter(Boolean))
       awards.push(item)
       await writeRepoFile(
         'data/awards.csv',
@@ -169,17 +183,17 @@ export default async function handler(request, response) {
         return sendJson(response, 200, { success: true })
       }
       const itemFields = fields(body, awards[index], session.role === 'admin')
-      if (!validate(itemFields, response)) return undefined
+      if (!validate(itemFields, response, body.document_file?.data ? 1 : 0)) return undefined
       const newImage = await uploadImage(body.image, awards[index].id, itemFields.title)
       const newDocumentUrl = await uploadDocument(body.document_file, awards[index].id, itemFields.title)
-      awards[index] = {
+      const { document_urls: documentUrls, ...savedFields } = itemFields
+      awards[index] = withAttachmentColumns({
         ...awards[index],
-        ...itemFields,
+        ...savedFields,
         image_url: newImage || itemFields.image_url || awards[index].image_url,
-        document_url: newDocumentUrl || itemFields.document_url,
         updated_at: new Date().toISOString(),
         updated_by: session.sub,
-      }
+      }, [newDocumentUrl, ...documentUrls].filter(Boolean))
       await writeRepoFile(
         'data/awards.csv',
         stringifyCsv(awards, headers),

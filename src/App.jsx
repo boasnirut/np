@@ -63,6 +63,32 @@ const billboardSlides = [
   { src: '/B3.jpg', alt: 'ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 3' },
   { src: '/B4.jpg', alt: 'ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 4' },
 ]
+
+function contentAttachmentUrls(item) {
+  return [...new Set([
+    ...(Array.isArray(item?.document_urls) ? item.document_urls : []),
+    item?.document_url,
+    item?.document_url_2,
+    item?.document_url_3,
+    item?.document_url_4,
+    item?.document_url_5,
+    item?.photo_url,
+  ].map((url) => String(url || '').trim()).filter(Boolean))].slice(0, 5)
+}
+
+function AttachmentLinks({ item, compact = false }) {
+  const urls = contentAttachmentUrls(item)
+  if (!urls.length) return null
+  return (
+    <div className={`content-links ${compact ? 'content-links--compact' : ''}`}>
+      {urls.map((url, index) => (
+        <a href={url} target="_blank" rel="noreferrer" key={url}>
+          <FileText size={compact ? 16 : 18} /> ไฟล์แนบ {index + 1}
+        </a>
+      ))}
+    </div>
+  )
+}
 const getLocalDateKey = () => {
   const now = new Date()
   const month = String(now.getMonth() + 1).padStart(2, '0')
@@ -777,20 +803,7 @@ function News({
             <h2 id="news-dialog-title">{activeNews.title}</h2>
             {activeNews.image_url && <img className="modal__image" src={displayImageUrl(activeNews.image_url)} alt="" />}
             <p className="modal__content">{activeNews.content || activeNews.excerpt}</p>
-            {(activeNews.document_url || activeNews.photo_url) && (
-              <div className="content-links">
-                {activeNews.document_url && (
-                  <a href={activeNews.document_url} target="_blank" rel="noreferrer">
-                    <FileText size={18} /> เปิดเอกสาร PDF
-                  </a>
-                )}
-                {activeNews.photo_url && (
-                  <a href={activeNews.photo_url} target="_blank" rel="noreferrer">
-                    <Images size={18} /> ดูภาพใน Google Photos
-                  </a>
-                )}
-              </div>
-            )}
+            <AttachmentLinks item={activeNews} />
             <div className="modal__note">
               <Bell size={18} />
               โปรดติดตามรายละเอียดเพิ่มเติมและประกาศฉบับเต็มจากทางโรงเรียน
@@ -850,6 +863,7 @@ function Newsletters({ newsletters = [], paginate = true }) {
                       </small>
                     </span>
                   </div>
+                  <AttachmentLinks item={item} compact />
                 </article>
               ))}
             </div>
@@ -886,6 +900,7 @@ function Activities({ liveEvents = [] }) {
           meta: [item.start_time ? `${item.start_time} น.` : '', item.location, item.details]
             .filter(Boolean)
             .join(' · '),
+          document_urls: contentAttachmentUrls(item),
           color: index % 3 === 0 ? 'blue' : index % 3 === 1 ? 'green' : 'gold',
         }
       })
@@ -937,6 +952,7 @@ function Activities({ liveEvents = [] }) {
                 <div className="schedule-item__copy">
                   <h3>{item.title}</h3>
                   <p>{item.meta}</p>
+                  <AttachmentLinks item={item} compact />
                 </div>
                 <ChevronRight size={21} aria-hidden="true" />
               </article>
@@ -971,6 +987,12 @@ const achievementGroups = [
     description: 'ความสามารถและความภาคภูมิใจของนักเรียนโรงเรียนบ้านน้ำพร',
     icon: GraduationCap,
   },
+  {
+    type: 'teacher_work',
+    title: 'Best Practice/นวัตกรรม/วิจัยชั้นเรียน',
+    description: 'พื้นที่เผยแพร่แนวปฏิบัติที่เป็นเลิศ นวัตกรรม และงานวิจัยในชั้นเรียนของครู',
+    icon: Sparkles,
+  },
 ]
 
 function AchievementCard({ award, onOpen }) {
@@ -1000,20 +1022,7 @@ function AchievementCard({ award, onOpen }) {
         <button className="achievement-card__detail" type="button" onClick={() => onOpen(award)}>
           ดูภาพและรายละเอียด <ArrowRight size={16} />
         </button>
-        {(award.document_url || award.photo_url) && (
-          <div className="content-links content-links--compact">
-            {award.document_url && (
-              <a href={award.document_url} target="_blank" rel="noreferrer">
-                <FileText size={16} /> เอกสาร PDF
-              </a>
-            )}
-            {award.photo_url && (
-              <a href={award.photo_url} target="_blank" rel="noreferrer">
-                <Images size={16} /> Google Photos
-              </a>
-            )}
-          </div>
-        )}
+        <AttachmentLinks item={award} compact />
       </div>
     </article>
   )
@@ -1023,9 +1032,11 @@ function Achievements({ awards = [], grouped = false }) {
   const [page, setPage] = useState(1)
   const [activeAward, setActiveAward] = useState(null)
   const pageSize = 6
-  const totalPages = Math.max(1, Math.ceil(awards.length / pageSize))
+  const regularAwards = awards.filter((award) => award.award_type !== 'teacher_work')
+  const teacherWorks = awards.filter((award) => award.award_type === 'teacher_work')
+  const totalPages = Math.max(1, Math.ceil(regularAwards.length / pageSize))
   const currentPage = Math.min(page, totalPages)
-  const displayedAwards = awards.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const displayedAwards = regularAwards.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   useEffect(() => {
     if (!activeAward) return undefined
@@ -1078,26 +1089,13 @@ function Achievements({ awards = [], grouped = false }) {
           {activeAward.recipient && (
             <div className="achievement-modal__recipient">
               <Trophy size={18} />
-              <div><small>ผู้ได้รับผลงานหรือรางวัล</small><strong>{activeAward.recipient}</strong></div>
+              <div><small>ผู้ได้รับรางวัล/เจ้าของผลงาน</small><strong>{activeAward.recipient}</strong></div>
             </div>
           )}
           <p className="modal__content">
             {activeAward.description || 'ยังไม่มีรายละเอียดเพิ่มเติมสำหรับรายการนี้'}
           </p>
-          {(activeAward.document_url || activeAward.photo_url) && (
-            <div className="content-links">
-              {activeAward.document_url && (
-                <a href={activeAward.document_url} target="_blank" rel="noreferrer">
-                  <FileText size={18} /> เปิดเอกสาร PDF
-                </a>
-              )}
-              {activeAward.photo_url && (
-                <a href={activeAward.photo_url} target="_blank" rel="noreferrer">
-                  <Images size={18} /> ดูภาพใน Google Photos
-                </a>
-              )}
-            </div>
-          )}
+          <AttachmentLinks item={activeAward} />
         </div>
       </article>
     </div>
@@ -1174,6 +1172,28 @@ function Achievements({ awards = [], grouped = false }) {
               <p>ข้อมูลผลงานที่เผยแพร่จากระบบบริหารจะแสดงในส่วนนี้</p>
             </div>
           )}
+          <section className="achievement-group achievement-group--teacher-work">
+            <header>
+              <span><Sparkles size={25} /></span>
+              <div>
+                <h2>Best Practice/นวัตกรรม/วิจัยชั้นเรียน</h2>
+                <p>พื้นที่สำหรับครูเผยแพร่ผลงาน แนวปฏิบัติที่เป็นเลิศ นวัตกรรม และงานวิจัยในชั้นเรียน</p>
+              </div>
+              <strong>{teacherWorks.length} รายการ</strong>
+            </header>
+            {teacherWorks.length ? (
+              <div className="achievements__grid">
+                {teacherWorks.slice(0, 3).map((award) => (
+                  <AchievementCard award={award} onOpen={setActiveAward} key={award.id} />
+                ))}
+              </div>
+            ) : (
+              <div className="achievement-group__empty">
+                <Sparkles size={27} />
+                <span>ยังไม่มีผลงานครูเผยแพร่ในหมวดนี้</span>
+              </div>
+            )}
+          </section>
         </div>
       </section>
       {awardDialog}
@@ -2047,9 +2067,13 @@ function DocumentsPage({ documents = [] }) {
                           })}
                         </td>
                         <td>
-                          <a href={item.document_url} target="_blank" rel="noreferrer">
-                            <Download size={16} /> ดาวน์โหลดเอกสาร
-                          </a>
+                          <div className="documents-table__downloads">
+                            {contentAttachmentUrls(item).map((url, index) => (
+                              <a href={url} target="_blank" rel="noreferrer" key={url}>
+                                <Download size={16} /> ดาวน์โหลด {index + 1}
+                              </a>
+                            ))}
+                          </div>
                         </td>
                       </tr>
                     ))}

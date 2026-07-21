@@ -1,9 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
 import {
+  cleanAttachmentUrls,
   cleanExternalUrl,
+  contentAttachmentUrls,
   nextDisplayOrderForDate,
   sortByDateAndDisplayOrder,
+  withAttachmentColumns,
 } from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
@@ -35,6 +38,10 @@ const headers = [
   'updated_at',
   'updated_by',
   'publish_date',
+  'document_url_2',
+  'document_url_3',
+  'document_url_4',
+  'document_url_5',
 ]
 const allowedImageTypes = {
   'image/jpeg': 'jpg',
@@ -44,6 +51,9 @@ const allowedImageTypes = {
 const allowedDocumentTypes = new Set(['application/pdf'])
 
 function newsFields(body, existing = {}, isAdmin = false) {
+  const sourceUrls = Array.isArray(body.document_urls)
+    ? body.document_urls
+    : contentAttachmentUrls(existing)
   return {
     title: String(body.title ?? existing.title ?? '').trim(),
     category: String(body.category ?? existing.category ?? 'ประชาสัมพันธ์').trim(),
@@ -51,8 +61,7 @@ function newsFields(body, existing = {}, isAdmin = false) {
     summary: String(body.summary ?? existing.summary ?? '').trim(),
     content: String(body.content ?? existing.content ?? '').trim(),
     image_url: cleanExternalUrl(body.image_url ?? existing.image_url ?? ''),
-    document_url: cleanExternalUrl(body.document_url ?? existing.document_url ?? ''),
-    photo_url: cleanExternalUrl(body.photo_url ?? existing.photo_url ?? ''),
+    document_urls: cleanAttachmentUrls(sourceUrls),
     display_order: isAdmin
       ? String(body.display_order ?? existing.display_order ?? '').trim()
       : String(existing.display_order ?? '').trim(),
@@ -60,7 +69,7 @@ function newsFields(body, existing = {}, isAdmin = false) {
   }
 }
 
-function validate(fields, response) {
+function validate(fields, response, extraFiles = 0) {
   if (fields.title.length < 3 || fields.title.length > 180) {
     sendJson(response, 400, { error: 'หัวข้อต้องมีความยาว 3–180 ตัวอักษร' })
     return false
@@ -73,8 +82,12 @@ function validate(fields, response) {
     sendJson(response, 400, { error: 'กรุณาระบุวันที่เผยแพร่ข่าวสาร' })
     return false
   }
-  if (fields.image_url === null || fields.document_url === null || fields.photo_url === null) {
-    sendJson(response, 400, { error: 'ลิงก์รูปภาพ เอกสาร และ Google Photos ต้องเป็นลิงก์ https ที่ถูกต้อง' })
+  if (fields.image_url === null || fields.document_urls.some((url) => url === null)) {
+    sendJson(response, 400, { error: 'ลิงก์รูปภาพและไฟล์แนบต้องเป็นลิงก์ https ที่ถูกต้อง' })
+    return false
+  }
+  if (fields.document_urls.length + extraFiles > 5) {
+    sendJson(response, 400, { error: 'แนบไฟล์หรือลิงก์ได้รวมไม่เกิน 5 รายการ' })
     return false
   }
   if (fields.display_order && !Number.isFinite(Number(fields.display_order))) {
@@ -139,25 +152,26 @@ export default async function handler(request, response) {
     const news = parseCsv(current.content)
 
     if (request.method === 'GET') {
+      const namedNews = await withUserDisplayNames(
+        sortByDateAndDisplayOrder(news, 'publish_date'),
+        session.userNames,
+      )
       return sendJson(response, 200, {
-        news: await withUserDisplayNames(
-          sortByDateAndDisplayOrder(news, 'publish_date'),
-          session.userNames,
-        ),
+        news: namedNews.map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
       })
     }
 
     const body = await readJsonBody(request, 5_000_000)
     if (request.method === 'POST') {
       const fields = newsFields(body, {}, session.role === 'admin')
-      if (!validate(fields, response)) return undefined
+      if (!validate(fields, response, body.document_file?.data ? 1 : 0)) return undefined
       const id = randomUUID()
       const now = new Date().toISOString()
       const documentUrl = await uploadDocument(body.document_file, id, fields.title)
-      const item = {
+      const { document_urls: documentUrls, ...savedFields } = fields
+      const item = withAttachmentColumns({
         id,
-        ...fields,
-        document_url: documentUrl || fields.document_url,
+        ...savedFields,
         display_order: fields.display_order || String(
           nextDisplayOrderForDate(news, 'publish_date', fields.publish_date),
         ),
@@ -166,7 +180,7 @@ export default async function handler(request, response) {
         created_at: now,
         updated_at: now,
         updated_by: '',
-      }
+      }, [documentUrl, ...documentUrls].filter(Boolean))
       news.push(item)
       await writeRepoFile(
         'data/news.csv',
@@ -197,17 +211,17 @@ export default async function handler(request, response) {
       }
 
       const fields = newsFields(body, news[index], session.role === 'admin')
-      if (!validate(fields, response)) return undefined
+      if (!validate(fields, response, body.document_file?.data ? 1 : 0)) return undefined
       const newImage = await uploadImage(body.image, news[index].id, fields.title)
       const newDocumentUrl = await uploadDocument(body.document_file, news[index].id, fields.title)
-      news[index] = {
+      const { document_urls: documentUrls, ...savedFields } = fields
+      news[index] = withAttachmentColumns({
         ...news[index],
-        ...fields,
+        ...savedFields,
         image_url: newImage || fields.image_url || news[index].image_url,
-        document_url: newDocumentUrl || fields.document_url,
         updated_at: new Date().toISOString(),
         updated_by: session.sub,
-      }
+      }, [newDocumentUrl, ...documentUrls].filter(Boolean))
       await writeRepoFile(
         'data/news.csv',
         stringifyCsv(news, headers),

@@ -1,8 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import { requireActiveUser, withUserDisplayNames } from './access.js'
 import {
+  cleanAttachmentUrls,
+  contentAttachmentUrls,
   nextDisplayOrderForDate,
   sortByDateAndDisplayOrder,
+  withAttachmentColumns,
 } from './content.js'
 import { parseCsv, stringifyCsv } from './csv.js'
 import {
@@ -31,28 +34,22 @@ const headers = [
   'created_at',
   'updated_at',
   'updated_by',
+  'document_url_2',
+  'document_url_3',
+  'document_url_4',
+  'document_url_5',
 ]
 const categories = new Set(['แบบคำร้อง', 'เอกสารวิชาการ', 'คู่มือ', 'เอกสารทั่วไป'])
 
-function googleDriveUrl(value) {
-  const text = String(value || '').trim()
-  if (!text) return ''
-  try {
-    const url = new URL(text)
-    if (url.protocol !== 'https:') return null
-    if (!['drive.google.com', 'docs.google.com'].includes(url.hostname)) return null
-    return url.toString()
-  } catch {
-    return null
-  }
-}
-
 function fields(body, existing = {}, isAdmin = false) {
+  const sourceUrls = Array.isArray(body.document_urls)
+    ? body.document_urls
+    : contentAttachmentUrls(existing)
   return {
     title: String(body.title ?? existing.title ?? '').trim(),
     category: String(body.category ?? existing.category ?? 'เอกสารทั่วไป').trim(),
     description: String(body.description ?? existing.description ?? '').trim(),
-    document_url: googleDriveUrl(body.document_url ?? existing.document_url ?? ''),
+    document_urls: cleanAttachmentUrls(sourceUrls),
     publish_date: String(body.publish_date ?? existing.publish_date ?? '').trim(),
     display_order: isAdmin
       ? String(body.display_order ?? existing.display_order ?? '').trim()
@@ -61,7 +58,7 @@ function fields(body, existing = {}, isAdmin = false) {
   }
 }
 
-function validate(item, response, hasUploadedFile = false) {
+function validate(item, response, uploadedFileCount = 0) {
   if (item.title.length < 3 || item.title.length > 180) {
     sendJson(response, 400, { error: 'ชื่อเอกสารต้องมีความยาว 3–180 ตัวอักษร' })
     return false
@@ -74,12 +71,16 @@ function validate(item, response, hasUploadedFile = false) {
     sendJson(response, 400, { error: 'รายละเอียดเอกสารต้องไม่เกิน 1,000 ตัวอักษร' })
     return false
   }
-  if (item.document_url === null) {
-    sendJson(response, 400, { error: 'กรุณาใช้ลิงก์เอกสารจาก Google Drive หรือ Google Docs เท่านั้น' })
+  if (item.document_urls.some((url) => url === null)) {
+    sendJson(response, 400, { error: 'ลิงก์ไฟล์แนบต้องเป็นลิงก์ https ที่ถูกต้อง' })
     return false
   }
-  if (!item.document_url && !hasUploadedFile) {
-    sendJson(response, 400, { error: 'กรุณาแนบไฟล์ PDF หรือใช้ลิงก์เอกสารจาก Google Drive/Google Docs' })
+  if (item.document_urls.length + uploadedFileCount > 5) {
+    sendJson(response, 400, { error: 'แนบไฟล์หรือลิงก์ได้รวมไม่เกิน 5 รายการ' })
+    return false
+  }
+  if (!item.document_urls.length && !uploadedFileCount) {
+    sendJson(response, 400, { error: 'กรุณาแนบไฟล์หรือกรอกลิงก์เอกสารอย่างน้อย 1 รายการ' })
     return false
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(item.publish_date)) {
@@ -116,25 +117,26 @@ export default async function handler(request, response) {
     const documents = parseCsv(current.content)
 
     if (request.method === 'GET') {
+      const namedDocuments = await withUserDisplayNames(
+        sortByDateAndDisplayOrder(documents, 'publish_date'),
+        session.userNames,
+      )
       return sendJson(response, 200, {
-        documents: await withUserDisplayNames(
-          sortByDateAndDisplayOrder(documents, 'publish_date'),
-          session.userNames,
-        ),
+        documents: namedDocuments.map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
       })
     }
 
     const body = await readJsonBody(request, 4_500_000)
     if (request.method === 'POST') {
       const itemFields = fields(body, {}, session.role === 'admin')
-      if (!validate(itemFields, response, Boolean(body.document_file?.data))) return undefined
+      if (!validate(itemFields, response, body.document_file?.data ? 1 : 0)) return undefined
       const now = new Date().toISOString()
       const id = randomUUID()
       const uploadedUrl = await uploadDocument(body.document_file, id, itemFields.title)
-      const item = {
+      const { document_urls: documentUrls, ...savedFields } = itemFields
+      const item = withAttachmentColumns({
         id,
-        ...itemFields,
-        document_url: uploadedUrl || itemFields.document_url,
+        ...savedFields,
         display_order: itemFields.display_order || String(
           nextDisplayOrderForDate(documents, 'publish_date', itemFields.publish_date),
         ),
@@ -142,7 +144,7 @@ export default async function handler(request, response) {
         created_at: now,
         updated_at: now,
         updated_by: '',
-      }
+      }, [uploadedUrl, ...documentUrls].filter(Boolean))
       documents.push(item)
       await writeRepoFile(
         'data/school-documents.csv',
@@ -173,15 +175,15 @@ export default async function handler(request, response) {
       }
 
       const itemFields = fields(body, documents[index], true)
-      if (!validate(itemFields, response, Boolean(body.document_file?.data))) return undefined
+      if (!validate(itemFields, response, body.document_file?.data ? 1 : 0)) return undefined
       const uploadedUrl = await uploadDocument(body.document_file, documents[index].id, itemFields.title)
-      documents[index] = {
+      const { document_urls: documentUrls, ...savedFields } = itemFields
+      documents[index] = withAttachmentColumns({
         ...documents[index],
-        ...itemFields,
-        document_url: uploadedUrl || itemFields.document_url,
+        ...savedFields,
         updated_at: new Date().toISOString(),
         updated_by: session.sub,
-      }
+      }, [uploadedUrl, ...documentUrls].filter(Boolean))
       await writeRepoFile(
         'data/school-documents.csv',
         stringifyCsv(documents, headers),

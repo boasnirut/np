@@ -245,6 +245,7 @@ const awardTypeLabels = {
   school: 'ผลงาน/รางวัลโรงเรียน',
   personnel: 'ผลงาน/รางวัลผู้บริหาร/ครู/บุคลากร',
   student: 'ผลงาน/รางวัลนักเรียน',
+  teacher_work: 'Best Practice/นวัตกรรม/วิจัยชั้นเรียน',
 }
 
 const permissionOptions = [
@@ -268,19 +269,13 @@ const modules = {
     icon: Megaphone,
     image: true,
     imageUploadCategory: 'news-image',
-    documentUpload: {
-      label: 'แนบไฟล์ PDF ข่าวสาร',
-      hint: 'เลือก PDF ไม่เกิน 100 MB ระบบจะฝากไว้ที่ Google Drive และเติมเป็นลิงก์ PDF',
-      category: 'news-document',
-    },
+    attachmentUploadCategory: 'news-attachment',
     defaults: {
       title: '',
       category: 'ประชาสัมพันธ์',
       publish_date: '',
       summary: '',
       content: '',
-      document_url: '',
-      photo_url: '',
       display_order: '',
       status: 'published',
     },
@@ -291,8 +286,6 @@ const modules = {
       { name: 'status', label: 'สถานะ', type: 'status' },
       { name: 'summary', label: 'ข้อความสรุป', type: 'textarea', wide: true, rows: 2, placeholder: 'ข้อความสั้นสำหรับสรุปเนื้อหา' },
       { name: 'content', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 7, required: true, placeholder: 'กรอกรายละเอียดข่าวสารหรือประกาศ' },
-      { name: 'document_url', label: 'ลิงก์ PDF บน Google Drive', type: 'url', wide: true, placeholder: 'https://drive.google.com/...' },
-      { name: 'photo_url', label: 'ลิงก์ Google Photos', type: 'url', wide: true, placeholder: 'https://photos.app.goo.gl/...' },
       { name: 'display_order', label: 'ลำดับภายในวันที่เดียวกัน (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบนับต่อภายในวันที่นี้' },
     ],
     meta: (item) => `${item.category} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
@@ -306,6 +299,7 @@ const modules = {
     label: 'กิจกรรม',
     eyebrow: 'SCHOOL ACTIVITIES',
     icon: CalendarDays,
+    attachmentUploadCategory: 'event-attachment',
     defaults: { title: '', event_date: '', start_time: '', location: '', details: '', status: 'published' },
     fields: [
       { name: 'title', label: 'ชื่อกิจกรรม', wide: true, required: true, placeholder: 'กรอกชื่อกิจกรรม' },
@@ -328,11 +322,7 @@ const modules = {
     icon: Trophy,
     image: true,
     imageUploadCategory: 'award-image',
-    documentUpload: {
-      label: 'แนบไฟล์ PDF ผลงาน/รางวัล',
-      hint: 'เลือก PDF ไม่เกิน 100 MB ระบบจะฝากไว้ที่ Google Drive และเติมเป็นลิงก์ PDF',
-      category: 'award-document',
-    },
+    attachmentUploadCategory: 'award-attachment',
     defaults: {
       title: '',
       award_type: 'school',
@@ -340,8 +330,6 @@ const modules = {
       level: '',
       recipient: '',
       description: '',
-      document_url: '',
-      photo_url: '',
       display_order: '',
       status: 'published',
     },
@@ -355,11 +343,9 @@ const modules = {
         options: Object.entries(awardTypeLabels).map(([value, label]) => ({ value, label })),
       },
       { name: 'award_date', label: 'วันที่ได้รับ', type: 'date', required: true },
-      { name: 'level', label: 'ระดับรางวัล', placeholder: 'เช่น ระดับจังหวัด' },
-      { name: 'recipient', label: 'ผู้ได้รับรางวัล', wide: true, placeholder: 'นักเรียน ครู หรือโรงเรียน' },
+      { name: 'level', label: 'ระดับรางวัล/ประเภทผลงาน', placeholder: 'เช่น ระดับจังหวัด, Best Practice หรือวิจัยชั้นเรียน' },
+      { name: 'recipient', label: 'ผู้ได้รับรางวัล/เจ้าของผลงาน', wide: true, placeholder: 'นักเรียน ครู บุคลากร หรือโรงเรียน' },
       { name: 'description', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 5, placeholder: 'รายละเอียดผลงานและความภาคภูมิใจ' },
-      { name: 'document_url', label: 'ลิงก์ PDF บน Google Drive', type: 'url', wide: true, placeholder: 'https://drive.google.com/...' },
-      { name: 'photo_url', label: 'ลิงก์ Google Photos', type: 'url', wide: true, placeholder: 'https://photos.app.goo.gl/...' },
       { name: 'display_order', label: 'ลำดับภายในวันที่เดียวกัน (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบนับต่อภายในวันที่นี้' },
       { name: 'status', label: 'สถานะ', type: 'status' },
     ],
@@ -376,6 +362,7 @@ const modules = {
     icon: GalleryHorizontalEnd,
     image: true,
     imageUploadCategory: 'newsletter-image',
+    attachmentUploadCategory: 'newsletter-attachment',
     imageRequired: true,
     imageHint: 'ภาพแนวตั้ง อัตราส่วนประมาณ 1:1.4 · JPG, PNG หรือ WebP ไม่เกิน 100 MB',
     imageClass: 'image-uploader--portrait',
@@ -396,16 +383,11 @@ const modules = {
     label: 'เอกสารและแบบคำร้อง',
     eyebrow: 'SCHOOL DOCUMENTS',
     icon: Download,
-    documentUpload: {
-      label: 'อัปโหลดไฟล์เอกสาร PDF',
-      hint: 'เลือก PDF ไม่เกิน 100 MB ระบบจะฝากไว้ที่ Google Drive หรือจะวางลิงก์เองก็ได้',
-      category: 'school-document',
-    },
+    attachmentUploadCategory: 'school-attachment',
     defaults: {
       title: '',
       category: 'แบบคำร้อง',
       description: '',
-      document_url: '',
       publish_date: '',
       display_order: '',
       status: 'published',
@@ -415,7 +397,6 @@ const modules = {
       { name: 'category', label: 'ประเภทเอกสาร', type: 'select', options: ['แบบคำร้อง', 'เอกสารวิชาการ', 'คู่มือ', 'เอกสารทั่วไป'] },
       { name: 'publish_date', label: 'วันที่เผยแพร่', type: 'date', required: true },
       { name: 'description', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 3, placeholder: 'คำอธิบายสั้น ๆ หรือเงื่อนไขการใช้เอกสาร' },
-      { name: 'document_url', label: 'ลิงก์ Google Drive หรือ Google Docs', type: 'url', wide: true, placeholder: 'https://drive.google.com/...' },
       { name: 'display_order', label: 'ลำดับภายในวันที่เดียวกัน (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบนับต่อภายในวันที่นี้' },
       { name: 'status', label: 'สถานะ', type: 'status' },
     ],
@@ -466,13 +447,26 @@ function RecordAudit({ item, date }) {
   )
 }
 
+function recordAttachmentUrls(item) {
+  return [...new Set([
+    ...(Array.isArray(item.document_urls) ? item.document_urls : []),
+    item.document_url,
+    item.document_url_2,
+    item.document_url_3,
+    item.document_url_4,
+    item.document_url_5,
+    item.photo_url,
+  ].map((url) => String(url || '').trim()).filter(Boolean))].slice(0, 5)
+}
+
 function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
   const config = modules[type]
   const Icon = config.icon
   const [form, setForm] = useState(config.defaults)
   const [editingId, setEditingId] = useState(null)
   const [image, setImage] = useState(null)
-  const [documentFile, setDocumentFile] = useState(null)
+  const [attachmentFiles, setAttachmentFiles] = useState([])
+  const [attachmentUrls, setAttachmentUrls] = useState([''])
   const [preview, setPreview] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -482,7 +476,8 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setForm(config.defaults)
     setEditingId(null)
     setImage(null)
-    setDocumentFile(null)
+    setAttachmentFiles([])
+    setAttachmentUrls([''])
     setPreview('')
     setUploadProgress(0)
     setMessage(null)
@@ -503,7 +498,8 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setForm(config.defaults)
     setEditingId(null)
     setImage(null)
-    setDocumentFile(null)
+    setAttachmentFiles([])
+    setAttachmentUrls([''])
     setPreview('')
     setUploadProgress(0)
   }
@@ -512,15 +508,74 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setForm(Object.fromEntries(Object.keys(config.defaults).map((key) => [key, item[key] || ''])))
     setEditingId(item.id)
     setImage(null)
-    setDocumentFile(null)
+    setAttachmentFiles([])
+    const itemUrls = recordAttachmentUrls(item)
+    setAttachmentUrls(itemUrls.length ? itemUrls : [''])
     setPreview(displayImageUrl(item.image_url))
     setMessage(null)
     setUploadProgress(0)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const updateAttachmentUrl = (index, value) => {
+    setAttachmentUrls((current) => current.map((url, urlIndex) => (
+      urlIndex === index ? value : url
+    )))
+    setMessage(null)
+  }
+
+  const addAttachmentUrl = () => {
+    setAttachmentUrls((current) => (
+      current.length + attachmentFiles.length >= 5 ? current : [...current, '']
+    ))
+    setMessage(null)
+  }
+
+  const removeAttachmentUrl = (index) => {
+    setAttachmentUrls((current) => {
+      const next = current.filter((_, urlIndex) => urlIndex !== index)
+      return next.length ? next : ['']
+    })
+    setMessage(null)
+  }
+
+  const selectAttachmentFiles = (event) => {
+    const selectedFiles = Array.from(event.target.files || [])
+    event.target.value = ''
+    if (!selectedFiles.length) return
+    const linkCount = attachmentUrls.filter((url) => url.trim()).length
+    const availableSlots = Math.max(0, 5 - linkCount - attachmentFiles.length)
+    if (selectedFiles.length > availableSlots) {
+      setMessage({ type: 'error', text: `เลือกเพิ่มได้อีกไม่เกิน ${availableSlots} ไฟล์ โดยนับรวมลิงก์และไฟล์สูงสุด 5 รายการ` })
+      return
+    }
+    const oversizedFile = selectedFiles.find((selectedFile) => (
+      selectedFile.size <= 0 || selectedFile.size > maxUploadBytes
+    ))
+    if (oversizedFile) {
+      setMessage({ type: 'error', text: `ไฟล์ “${oversizedFile.name}” ต้องมีขนาดไม่เกิน 100 MB` })
+      return
+    }
+    setAttachmentFiles((current) => [...current, ...selectedFiles])
+    setMessage(null)
+  }
+
+  const removeAttachmentFile = (index) => {
+    setAttachmentFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))
+    setMessage(null)
+  }
+
   const submit = async (event) => {
     event.preventDefault()
+    const cleanUrls = attachmentUrls.filter((url) => url.trim())
+    if (cleanUrls.length + attachmentFiles.length > 5) {
+      setMessage({ type: 'error', text: 'แนบไฟล์หรือลิงก์ได้รวมไม่เกิน 5 รายการ' })
+      return
+    }
+    if (type === 'documents' && cleanUrls.length + attachmentFiles.length === 0) {
+      setMessage({ type: 'error', text: 'กรุณาแนบไฟล์หรือกรอกลิงก์เอกสารอย่างน้อย 1 รายการ' })
+      return
+    }
     setSubmitting(true)
     setUploadProgress(0)
     setMessage(null)
@@ -528,16 +583,25 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
       const uploadedImage = image
         ? await uploadFileToDrive(image, config.imageUploadCategory, setUploadProgress)
         : null
-      const uploadedDocument = documentFile
-        ? await uploadFileToDrive(documentFile, config.documentUpload.category, setUploadProgress)
-        : null
+      const uploadedAttachments = []
+      for (let index = 0; index < attachmentFiles.length; index += 1) {
+        const uploadedFile = await uploadFileToDrive(
+          attachmentFiles[index],
+          config.attachmentUploadCategory,
+          (progress) => setUploadProgress(Math.round(((index + (progress / 100)) / attachmentFiles.length) * 100)),
+        )
+        uploadedAttachments.push(uploadedFile)
+      }
       const result = await apiRequest(config.endpoint, {
         method: editingId ? 'PUT' : 'POST',
         body: JSON.stringify({
           ...form,
           id: editingId,
           image_url: uploadedImage?.imageUrl,
-          document_url: uploadedDocument?.viewUrl || form.document_url,
+          document_urls: [
+            ...uploadedAttachments.map((uploadedFile) => uploadedFile?.viewUrl),
+            ...cleanUrls,
+          ].filter(Boolean),
         }),
       })
       const item = result[config.responseKey]
@@ -615,7 +679,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
                   value={form[field.name]}
                   onChange={update}
                   placeholder={field.placeholder}
-                  required={field.required && !(field.name === 'document_url' && documentFile)}
+                  required={field.required}
                 />
               )}
             </label>
@@ -634,22 +698,61 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
             />
           </label>
         )}
-        {config.documentUpload && (
-          <label className={`quality-file-uploader ${documentFile ? 'is-selected' : ''}`}>
+        <div className="news-field quality-link-fields record-attachment-links">
+          <div className="quality-link-fields__heading">
+            <span>ลิงก์ไฟล์แนบ</span>
+            <button
+              type="button"
+              onClick={addAttachmentUrl}
+              disabled={attachmentUrls.length + attachmentFiles.length >= 5}
+            >
+              <Plus size={16} /> เพิ่มลิงก์
+            </button>
+          </div>
+          {attachmentUrls.map((url, index) => (
+            <div className="quality-link-fields__row" key={index}>
+              <input
+                type="url"
+                value={url}
+                onChange={(event) => updateAttachmentUrl(index, event.target.value)}
+                placeholder={`ลิงก์ไฟล์แนบที่ ${index + 1}`}
+                aria-label={`ลิงก์ไฟล์แนบที่ ${index + 1}`}
+              />
+              {attachmentUrls.length > 1 && (
+                <button type="button" onClick={() => removeAttachmentUrl(index)} aria-label={`ลบลิงก์ไฟล์แนบที่ ${index + 1}`}>
+                  <X size={17} />
+                </button>
+              )}
+            </div>
+          ))}
+          <small>รองรับลิงก์ https ทุกประเภท โดยนับรวมกับไฟล์ที่อัปโหลดไม่เกิน 5 รายการ</small>
+        </div>
+
+        <label className={`quality-file-uploader ${attachmentFiles.length ? 'is-selected' : ''}`}>
             <span><FileText size={27} /></span>
             <div>
-              <strong>{documentFile ? documentFile.name : config.documentUpload.label}</strong>
-              <small>{config.documentUpload.hint}</small>
+              <strong>{attachmentFiles.length ? `เลือกแล้ว ${attachmentFiles.length} ไฟล์` : 'อัปโหลดไฟล์แนบ'}</strong>
+              <small>เลือกได้สูงสุด 5 ไฟล์ รองรับไฟล์ทุกประเภท ไฟล์ละไม่เกิน 100 MB และนับรวมกับลิงก์ด้านบน</small>
             </div>
             <input
               type="file"
-              accept="application/pdf"
-              onChange={(event) => {
-                setDocumentFile(event.target.files?.[0] || null)
-                setMessage(null)
-              }}
+              multiple
+              onChange={selectAttachmentFiles}
             />
-          </label>
+        </label>
+        {attachmentFiles.length > 0 && (
+          <div className="quality-upload-files" aria-label="ไฟล์แนบที่เลือก">
+            {attachmentFiles.map((selectedFile, index) => (
+              <div className="quality-upload-files__item" key={`${selectedFile.name}-${selectedFile.size}-${selectedFile.lastModified}-${index}`}>
+                <FileText size={17} />
+                <span title={selectedFile.name}>{selectedFile.name}</span>
+                <small>{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</small>
+                <button type="button" onClick={() => removeAttachmentFile(index)} aria-label={`ลบไฟล์ ${selectedFile.name}`}>
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
         )}
         {message && (
           <p className={`admin-message admin-message--${message.type}`}>
@@ -680,8 +783,8 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
                 <div className="admin-record-list__copy">
                   <span>{config.meta(item)}</span>
                   <h3>{config.title(item)}</h3>
-                  {(item.document_url || item.photo_url) && (
-                    <small className="admin-record-list__links"><Link2 size={12} /> มีลิงก์แนบ</small>
+                  {recordAttachmentUrls(item).length > 0 && (
+                    <small className="admin-record-list__links"><Link2 size={12} /> {recordAttachmentUrls(item).length} รายการแนบ</small>
                   )}
                   <RecordAudit item={item} date={config.date(item)} />
                 </div>

@@ -2485,6 +2485,18 @@ body.welcome-open {
   margin-top: 22px;
 }
 
+.achievement-group--teacher-work {
+  margin-top: 38px;
+  border-color: #d8e8df;
+  background:
+    linear-gradient(135deg, rgba(238, 249, 243, 0.96), rgba(255, 252, 239, 0.9));
+}
+
+.achievement-group--teacher-work > header > span {
+  color: #287457;
+  background: #dff3e8;
+}
+
 .achievement-group__empty {
   display: flex;
   min-height: 100px;
@@ -4703,6 +4715,13 @@ body.welcome-open {
   font-size: 0.62rem;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.documents-table__downloads {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .qa-layout {

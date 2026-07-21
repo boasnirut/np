@@ -12,10 +12,15 @@ const imageTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const categories = {
   'news-image': { permission: 'news', image: true, types: imageTypes },
   'news-document': { permission: 'news', types: new Set(['application/pdf']) },
+  'news-attachment': { permission: 'news', anyType: true },
+  'event-attachment': { permission: 'events', anyType: true },
   'award-image': { permission: 'awards', image: true, types: imageTypes },
   'award-document': { permission: 'awards', types: new Set(['application/pdf']) },
+  'award-attachment': { permission: 'awards', anyType: true },
   'newsletter-image': { permission: 'newsletters', image: true, types: imageTypes },
+  'newsletter-attachment': { permission: 'newsletters', anyType: true },
   'school-document': { permission: 'documents', types: new Set(['application/pdf']) },
+  'school-attachment': { permission: 'documents', anyType: true },
   'quality-evidence': { permission: 'quality', anyType: true },
 }
 

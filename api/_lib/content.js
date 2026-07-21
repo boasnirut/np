@@ -59,3 +59,27 @@ export function evidenceDocumentUrls(item) {
     item.document_url_5,
   ].map((url) => String(url || '').trim()).filter(Boolean)
 }
+
+export function contentAttachmentUrls(item) {
+  return [...new Set([
+    ...evidenceDocumentUrls(item),
+    item.photo_url,
+  ].map((url) => String(url || '').trim()).filter(Boolean))].slice(0, 5)
+}
+
+export function cleanAttachmentUrls(values) {
+  if (!Array.isArray(values)) return []
+  return [...new Set(values.map((url) => cleanExternalUrl(url)).filter((url) => url !== ''))].slice(0, 6)
+}
+
+export function withAttachmentColumns(item, urls) {
+  return {
+    ...item,
+    document_url: urls[0] || '',
+    document_url_2: urls[1] || '',
+    document_url_3: urls[2] || '',
+    document_url_4: urls[3] || '',
+    document_url_5: urls[4] || '',
+    photo_url: '',
+  }
+}

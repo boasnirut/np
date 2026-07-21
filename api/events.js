@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
+import {
+  cleanAttachmentUrls,
+  contentAttachmentUrls,
+  withAttachmentColumns,
+} from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
 import { readRepoFile, writeRepoFile } from './_lib/repo.js'
@@ -16,15 +21,24 @@ const headers = [
   'created_at',
   'updated_at',
   'updated_by',
+  'document_url',
+  'document_url_2',
+  'document_url_3',
+  'document_url_4',
+  'document_url_5',
 ]
 
 function fields(body, existing = {}) {
+  const sourceUrls = Array.isArray(body.document_urls)
+    ? body.document_urls
+    : contentAttachmentUrls(existing)
   return {
     title: String(body.title ?? existing.title ?? '').trim(),
     event_date: String(body.event_date ?? existing.event_date ?? '').trim(),
     start_time: String(body.start_time ?? existing.start_time ?? '').trim(),
     location: String(body.location ?? existing.location ?? '').trim(),
     details: String(body.details ?? existing.details ?? '').trim(),
+    document_urls: cleanAttachmentUrls(sourceUrls),
     status: (body.status ?? existing.status) === 'draft' ? 'draft' : 'published',
   }
 }
@@ -32,6 +46,14 @@ function fields(body, existing = {}) {
 function validate(item, response) {
   if (item.title.length < 3 || item.title.length > 180 || !/^\d{4}-\d{2}-\d{2}$/.test(item.event_date)) {
     sendJson(response, 400, { error: 'กรุณากรอกชื่อและวันที่กิจกรรมให้ถูกต้อง' })
+    return false
+  }
+  if (item.document_urls.some((url) => url === null)) {
+    sendJson(response, 400, { error: 'ลิงก์ไฟล์แนบต้องเป็นลิงก์ https ที่ถูกต้อง' })
+    return false
+  }
+  if (item.document_urls.length > 5) {
+    sendJson(response, 400, { error: 'แนบไฟล์หรือลิงก์ได้รวมไม่เกิน 5 รายการ' })
     return false
   }
   return true
@@ -45,11 +67,12 @@ export default async function handler(request, response) {
     const events = parseCsv(current.content)
 
     if (request.method === 'GET') {
+      const namedEvents = await withUserDisplayNames(
+        events.sort((left, right) => right.event_date.localeCompare(left.event_date)),
+        session.userNames,
+      )
       return sendJson(response, 200, {
-        events: await withUserDisplayNames(
-          events.sort((left, right) => right.event_date.localeCompare(left.event_date)),
-          session.userNames,
-        ),
+        events: namedEvents.map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
       })
     }
 
@@ -58,14 +81,15 @@ export default async function handler(request, response) {
       const itemFields = fields(body)
       if (!validate(itemFields, response)) return undefined
       const now = new Date().toISOString()
-      const item = {
+      const { document_urls: documentUrls, ...savedFields } = itemFields
+      const item = withAttachmentColumns({
         id: randomUUID(),
-        ...itemFields,
+        ...savedFields,
         author: session.sub,
         created_at: now,
         updated_at: now,
         updated_by: '',
-      }
+      }, documentUrls)
       events.push(item)
       await writeRepoFile(
         'data/events.csv',
@@ -95,12 +119,13 @@ export default async function handler(request, response) {
       }
       const itemFields = fields(body, events[index])
       if (!validate(itemFields, response)) return undefined
-      events[index] = {
+      const { document_urls: documentUrls, ...savedFields } = itemFields
+      events[index] = withAttachmentColumns({
         ...events[index],
-        ...itemFields,
+        ...savedFields,
         updated_at: new Date().toISOString(),
         updated_by: session.sub,
-      }
+      }, documentUrls)
       await writeRepoFile(
         'data/events.csv',
         stringifyCsv(events, headers),
