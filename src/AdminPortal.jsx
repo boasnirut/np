@@ -713,7 +713,7 @@ const qualityDefaults = {
 function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
   const [form, setForm] = useState(qualityDefaults)
   const [editingId, setEditingId] = useState(null)
-  const [file, setFile] = useState(null)
+  const [files, setFiles] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [message, setMessage] = useState(null)
@@ -737,7 +737,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
   const reset = () => {
     setForm({ ...qualityDefaults, document_urls: [''] })
     setEditingId(null)
-    setFile(null)
+    setFiles([])
     setUploadProgress(0)
   }
 
@@ -760,7 +760,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
       document_urls: documentUrls.length ? documentUrls : [''],
     })
     setEditingId(item.id)
-    setFile(null)
+    setFiles([])
     setUploadProgress(0)
     setMessage(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -778,7 +778,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
 
   const addDocumentUrl = () => {
     setForm((current) => (
-      current.document_urls.length >= 5
+      current.document_urls.length + files.length >= 5
         ? current
         : { ...current, document_urls: [...current.document_urls, ''] }
     ))
@@ -793,22 +793,60 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
     setMessage(null)
   }
 
+  const selectFiles = (event) => {
+    const selectedFiles = Array.from(event.target.files || [])
+    event.target.value = ''
+    if (!selectedFiles.length) return
+
+    const linkCount = form.document_urls.filter((url) => url.trim()).length
+    const availableSlots = Math.max(0, 5 - linkCount - files.length)
+    if (selectedFiles.length > availableSlots) {
+      setMessage({
+        type: 'error',
+        text: `เลือกเพิ่มได้อีกไม่เกิน ${availableSlots} ไฟล์ โดยหลักฐานรวมทั้งลิงก์และไฟล์ต้องไม่เกิน 5 รายการ`,
+      })
+      return
+    }
+
+    const oversizedFile = selectedFiles.find((selectedFile) => (
+      selectedFile.size <= 0 || selectedFile.size > maxUploadBytes
+    ))
+    if (oversizedFile) {
+      setMessage({ type: 'error', text: `ไฟล์ “${oversizedFile.name}” ต้องมีขนาดไม่เกิน 100 MB` })
+      return
+    }
+
+    setFiles((current) => [...current, ...selectedFiles])
+    setMessage(null)
+  }
+
+  const removeFile = (index) => {
+    setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))
+    setMessage(null)
+  }
+
   const submit = async (event) => {
     event.preventDefault()
     const linkCount = form.document_urls.filter((url) => url.trim()).length
-    if (linkCount + (file ? 1 : 0) > 5) {
-      setMessage({ type: 'error', text: 'เพิ่มหลักฐานได้ไม่เกิน 5 รายการ โดยนับรวมไฟล์ที่อัปโหลด' })
+    if (linkCount + files.length > 5) {
+      setMessage({ type: 'error', text: 'เพิ่มหลักฐานได้ไม่เกิน 5 รายการ โดยนับรวมลิงก์และไฟล์ที่อัปโหลด' })
       return
     }
     setSubmitting(true)
     setUploadProgress(0)
     setMessage(null)
     try {
-      const uploadedFile = file
-        ? await uploadFileToDrive(file, 'quality-evidence', setUploadProgress)
-        : null
+      const uploadedFiles = []
+      for (let index = 0; index < files.length; index += 1) {
+        const uploadedFile = await uploadFileToDrive(
+          files[index],
+          'quality-evidence',
+          (progress) => setUploadProgress(Math.round(((index + (progress / 100)) / files.length) * 100)),
+        )
+        uploadedFiles.push(uploadedFile)
+      }
       const documentUrls = [
-        uploadedFile?.viewUrl,
+        ...uploadedFiles.map((uploadedFile) => uploadedFile?.viewUrl),
         ...form.document_urls,
       ].filter((url) => String(url || '').trim())
       const result = await apiRequest('/api/quality-evidence', {
@@ -909,7 +947,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
               <button
                 type="button"
                 onClick={addDocumentUrl}
-                disabled={form.document_urls.length >= 5}
+                disabled={form.document_urls.length + files.length >= 5}
               >
                 <Plus size={16} /> เพิ่มลิงก์
               </button>
@@ -957,17 +995,37 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
           </label>
         </div>
 
-        <label className={`quality-file-uploader ${file ? 'is-selected' : ''}`}>
+        <label className={`quality-file-uploader ${files.length ? 'is-selected' : ''}`}>
           <span><FileText size={27} /></span>
           <div>
-            <strong>{file ? file.name : 'อัปโหลดไฟล์หลักฐาน'}</strong>
-            <small>รองรับไฟล์ทุกประเภท ขนาดไม่เกิน 100 MB ระบบจะฝากไว้ที่ Google Drive หรือใช้ลิงก์ด้านบน</small>
+            <strong>{files.length ? `เลือกแล้ว ${files.length} ไฟล์` : 'อัปโหลดไฟล์หลักฐาน'}</strong>
+            <small>เลือกได้สูงสุด 5 ไฟล์ รองรับไฟล์ทุกประเภท ไฟล์ละไม่เกิน 100 MB และนับรวมกับลิงก์ด้านบน</small>
           </div>
           <input
             type="file"
-            onChange={(event) => setFile(event.target.files?.[0] || null)}
+            multiple
+            onChange={selectFiles}
           />
         </label>
+
+        {files.length > 0 && (
+          <div className="quality-upload-files" aria-label="ไฟล์หลักฐานที่เลือก">
+            {files.map((selectedFile, index) => (
+              <div className="quality-upload-files__item" key={`${selectedFile.name}-${selectedFile.size}-${selectedFile.lastModified}-${index}`}>
+                <FileText size={17} />
+                <span title={selectedFile.name}>{selectedFile.name}</span>
+                <small>{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</small>
+                <button
+                  type="button"
+                  onClick={() => removeFile(index)}
+                  aria-label={`ลบไฟล์ ${selectedFile.name}`}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="quality-selected-indicator">
           <span>ตัวชี้วัดที่ {form.indicator_code}</span>
@@ -1002,7 +1060,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
                   <span>{qualityLevelMap[item.education_level]?.shortLabel} · ตัวชี้วัดที่ {item.indicator_code}</span>
                   <h3>{item.title}</h3>
                   <small className="admin-record-list__links">
-                    <Link2 size={12} /> {(item.document_urls?.length || 1)} ลิงก์หลักฐาน
+                    <Link2 size={12} /> {(item.document_urls?.length || 1)} รายการหลักฐาน
                   </small>
                   <small>{item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}</small>
                   <RecordAudit item={item} date={item.created_at} />
