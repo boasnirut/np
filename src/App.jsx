@@ -49,6 +49,7 @@ import {
   trustPoints,
   values,
 } from './content'
+import { displayImageUrl } from './driveUrls'
 import { qualityLevels } from './qualityStandards'
 
 const categories = ['ทั้งหมด', 'กิจกรรม', 'ประชาสัมพันธ์', 'ประกาศ']
@@ -706,7 +707,7 @@ function News({
                 <div className="news-card__visual">
                   {!item.image_url && <div className="news-card__pattern" aria-hidden="true" />}
                   {item.image_url ? (
-                    <img src={item.image_url} alt="" />
+                    <img src={displayImageUrl(item.image_url)} alt="" />
                   ) : (
                     <Icon size={item.featured ? 64 : 48} strokeWidth={1.35} aria-hidden="true" />
                   )}
@@ -774,7 +775,7 @@ function News({
               {activeNews.date}
             </div>
             <h2 id="news-dialog-title">{activeNews.title}</h2>
-            {activeNews.image_url && <img className="modal__image" src={activeNews.image_url} alt="" />}
+            {activeNews.image_url && <img className="modal__image" src={displayImageUrl(activeNews.image_url)} alt="" />}
             <p className="modal__content">{activeNews.content || activeNews.excerpt}</p>
             {(activeNews.document_url || activeNews.photo_url) && (
               <div className="content-links">
@@ -828,8 +829,8 @@ function Newsletters({ newsletters = [], paginate = true }) {
             <div className="newsletters__grid">
               {displayedItems.map((item) => (
                 <article className="newsletter-card" key={item.id}>
-                  <a href={item.image_url} target="_blank" rel="noreferrer" aria-label={`เปิดจดหมายข่าว ${item.issue_number}`}>
-                    <img src={item.image_url} alt={`จดหมายข่าวประชาสัมพันธ์ ${item.issue_number}`} />
+                  <a href={displayImageUrl(item.image_url)} target="_blank" rel="noreferrer" aria-label={`เปิดจดหมายข่าว ${item.issue_number}`}>
+                    <img src={displayImageUrl(item.image_url)} alt={`จดหมายข่าวประชาสัมพันธ์ ${item.issue_number}`} />
                     <span><ExternalLink size={17} /> เปิดดูฉบับเต็ม</span>
                   </a>
                   <div>
@@ -981,7 +982,7 @@ function AchievementCard({ award, onOpen }) {
         onClick={() => onOpen(award)}
         aria-label={`เปิดภาพและรายละเอียด ${award.title}`}
       >
-        {award.image_url ? <img src={award.image_url} alt="" /> : <Trophy size={48} />}
+        {award.image_url ? <img src={displayImageUrl(award.image_url)} alt="" /> : <Trophy size={48} />}
         <span>{award.level || 'ผลงานโรงเรียน'}</span>
         <span className="achievement-card__zoom"><Images size={17} /> ดูภาพเต็ม</span>
       </button>
@@ -1058,7 +1059,7 @@ function Achievements({ awards = [], grouped = false }) {
         </button>
         {activeAward.image_url ? (
           <div className="achievement-modal__image">
-            <img src={activeAward.image_url} alt={activeAward.title} />
+            <img src={displayImageUrl(activeAward.image_url)} alt={activeAward.title} />
           </div>
         ) : (
           <div className="achievement-modal__placeholder"><Trophy size={58} /></div>

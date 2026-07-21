@@ -177,7 +177,7 @@ function safeName(name, fallbackExtension = '') {
 }
 
 function driveImageUrl(fileId) {
-  return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`
+  return `https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w0`
 }
 
 function driveViewUrl(fileId) {

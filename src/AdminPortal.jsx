@@ -34,6 +34,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import './admin.css'
+import { displayImageUrl } from './driveUrls'
 import { qualityIndicator, qualityLevelMap, qualityLevels } from './qualityStandards'
 
 async function apiRequest(path, options = {}) {
@@ -512,7 +513,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setEditingId(item.id)
     setImage(null)
     setDocumentFile(null)
-    setPreview(item.image_url || '')
+    setPreview(displayImageUrl(item.image_url))
     setMessage(null)
     setUploadProgress(0)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -674,7 +675,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
             {items.map((item) => (
               <article key={item.id}>
                 <div className="admin-news-list__image">
-                  {item.image_url ? <img src={item.image_url} alt="" /> : <Icon size={24} />}
+                  {item.image_url ? <img src={displayImageUrl(item.image_url)} alt="" /> : <Icon size={24} />}
                 </div>
                 <div className="admin-record-list__copy">
                   <span>{config.meta(item)}</span>
