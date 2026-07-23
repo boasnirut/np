@@ -225,9 +225,15 @@ function uploadFileBytes(uploadUrl, file, onProgress) {
         resolve(body)
         return
       }
-      reject(new Error(body.error?.message || 'อัปโหลดไฟล์ไป Google Drive ไม่สำเร็จ'))
+      const error = new Error(body.error?.message || 'อัปโหลดไฟล์ไป Google Drive ไม่สำเร็จ')
+      error.uploadMayHaveCompleted = request.status === 0 || request.status === 308
+      reject(error)
     }
-    request.onerror = () => reject(new Error('การเชื่อมต่อระหว่างอัปโหลดไฟล์ขัดข้อง กรุณาลองใหม่'))
+    request.onerror = () => {
+      const error = new Error('เบราว์เซอร์ไม่ได้รับผลตอบกลับจาก Google Drive')
+      error.uploadMayHaveCompleted = true
+      reject(error)
+    }
     request.send(file)
   })
 }
@@ -247,8 +253,27 @@ async function uploadFileToDrive(file, category, onProgress) {
       size: file.size,
     }),
   })
-  const uploaded = await uploadFileBytes(started.uploadUrl, file, onProgress)
-  if (!uploaded.id) throw new Error('Google Drive ไม่ได้ส่งรหัสไฟล์กลับมา กรุณาลองใหม่')
+  const recoverUpload = () => apiRequest('/api/services?resource=uploads', {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'recover',
+      category,
+      uploadUrl: started.uploadUrl,
+      size: file.size,
+    }),
+  })
+  let uploaded
+  try {
+    uploaded = await uploadFileBytes(started.uploadUrl, file, onProgress)
+  } catch (error) {
+    if (!error.uploadMayHaveCompleted) throw error
+    const recovered = await recoverUpload()
+    return recovered.file
+  }
+  if (!uploaded.id) {
+    const recovered = await recoverUpload()
+    return recovered.file
+  }
   const completed = await apiRequest('/api/services?resource=uploads', {
     method: 'POST',
     body: JSON.stringify({ action: 'complete', category, fileId: uploaded.id }),

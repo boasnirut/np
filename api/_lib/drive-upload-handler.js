@@ -5,6 +5,7 @@ import {
   GoogleDriveConfigError,
   GoogleDriveUploadError,
   googleDriveErrorSummary,
+  recoverResumableDriveUpload,
 } from './drive.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './http.js'
 
@@ -81,6 +82,19 @@ export default async function driveUploadHandler(request, response) {
         return sendJson(response, 400, { error: 'รหัสไฟล์ Google Drive ไม่ถูกต้อง' })
       }
       const file = await completeResumableDriveUpload(fileId, {
+        image: category.image,
+        expectedCategory: categoryId,
+        expectedUploader: session.sub,
+      })
+      return sendJson(response, 200, { file })
+    }
+
+    if (body.action === 'recover') {
+      const size = Number(body.size)
+      if (!Number.isSafeInteger(size) || size <= 0 || size > maxUploadBytes) {
+        return sendJson(response, 400, { error: 'ขนาดไฟล์สำหรับตรวจสอบไม่ถูกต้อง' })
+      }
+      const file = await recoverResumableDriveUpload(body.uploadUrl, size, {
         image: category.image,
         expectedCategory: categoryId,
         expectedUploader: session.sub,

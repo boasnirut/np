@@ -223,6 +223,20 @@ function driveFileResult(file, image = false) {
   }
 }
 
+function resumableSessionUrl(value) {
+  try {
+    const url = new URL(String(value || '').trim())
+    const valid = url.protocol === 'https:'
+      && url.hostname === 'www.googleapis.com'
+      && url.pathname === '/upload/drive/v3/files'
+      && url.searchParams.get('uploadType') === 'resumable'
+      && Boolean(url.searchParams.get('upload_id'))
+    return valid ? url.toString() : ''
+  } catch {
+    return ''
+  }
+}
+
 async function makePublic(token, fileId) {
   const permissionResponse = await fetch(`${permissionsUrl}/${encodeURIComponent(fileId)}/permissions?supportsAllDrives=true`, {
     method: 'POST',
@@ -236,6 +250,23 @@ async function makePublic(token, fileId) {
     const details = await permissionResponse.text().catch(() => '')
     throw new GoogleDriveUploadError('ตั้งค่าสิทธิ์อ่านไฟล์บน Google Drive ไม่สำเร็จ', details)
   }
+}
+
+async function finalizeDriveFile(token, file, {
+  image = false,
+  expectedCategory = '',
+  expectedUploader = '',
+} = {}) {
+  if (
+    file.appProperties?.bannampornUploadCategory !== expectedCategory
+    || file.appProperties?.bannampornUploader !== expectedUploader
+  ) {
+    const error = new Error('ไม่มีสิทธิ์ยืนยันไฟล์อัปโหลดนี้')
+    error.code = 'DRIVE_UPLOAD_FORBIDDEN'
+    throw error
+  }
+  await makePublic(token, file.id)
+  return driveFileResult(file, image)
 }
 
 export async function createResumableDriveUpload({
@@ -296,16 +327,43 @@ export async function completeResumableDriveUpload(fileId, {
   if (!response.ok || !file.id) {
     throw new GoogleDriveUploadError('ตรวจสอบไฟล์ที่อัปโหลดไป Google Drive ไม่สำเร็จ', JSON.stringify(file))
   }
-  if (
-    file.appProperties?.bannampornUploadCategory !== expectedCategory
-    || file.appProperties?.bannampornUploader !== expectedUploader
-  ) {
-    const error = new Error('ไม่มีสิทธิ์ยืนยันไฟล์อัปโหลดนี้')
-    error.code = 'DRIVE_UPLOAD_FORBIDDEN'
-    throw error
+  return finalizeDriveFile(token, file, { image, expectedCategory, expectedUploader })
+}
+
+export async function recoverResumableDriveUpload(uploadUrl, size, {
+  image = false,
+  expectedCategory = '',
+  expectedUploader = '',
+} = {}) {
+  const sessionUrl = resumableSessionUrl(uploadUrl)
+  const expectedSize = Number(size)
+  if (!sessionUrl || !Number.isSafeInteger(expectedSize) || expectedSize <= 0) {
+    throw new GoogleDriveUploadError('ข้อมูลสำหรับตรวจสอบไฟล์อัปโหลดไม่ถูกต้อง')
   }
-  await makePublic(token, file.id)
-  return driveFileResult(file, image)
+
+  const token = await accessToken()
+  const response = await fetch(sessionUrl, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Length': '0',
+      'Content-Range': `bytes */${expectedSize}`,
+    },
+  })
+  const file = await response.json().catch(() => ({}))
+  if ((response.status === 200 || response.status === 201) && file.id) {
+    return finalizeDriveFile(token, file, { image, expectedCategory, expectedUploader })
+  }
+  if (response.status === 308) {
+    throw new GoogleDriveUploadError(
+      'ไฟล์ใน Google Drive ยังอัปโหลดไม่สมบูรณ์ กรุณาลองอัปโหลดอีกครั้ง',
+      response.headers.get('range') || '',
+    )
+  }
+  throw new GoogleDriveUploadError(
+    'ไม่สามารถยืนยันผลการอัปโหลดไฟล์ใน Google Drive ได้',
+    JSON.stringify(file),
+  )
 }
 
 export async function uploadToDrive({
