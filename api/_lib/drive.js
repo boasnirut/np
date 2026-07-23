@@ -170,7 +170,15 @@ async function oauthFolderId(token) {
 async function uploadFolderId(token) {
   const configuredFolderId = String(process.env.GOOGLE_DRIVE_FOLDER_ID || '').trim()
   if (configuredFolderId) return configuredFolderId
-  if (oauthConfigured()) return oauthFolderId(token)
+  if (oauthConfigured()) {
+    try {
+      return await oauthFolderId(token)
+    } catch (error) {
+      if (!(error instanceof GoogleDriveUploadError)) throw error
+      console.warn('Google Drive upload folder lookup failed; using My Drive root', error.details || error)
+      return ''
+    }
+  }
   throw new GoogleDriveConfigError()
 }
 
@@ -230,12 +238,12 @@ export async function createResumableDriveUpload({
   const parentId = await uploadFolderId(token)
   const metadata = {
     name: `${category}-${safeName(name)}`,
-    parents: [parentId],
     appProperties: {
       bannampornUploadCategory: String(category || ''),
       bannampornUploader: String(uploader || ''),
     },
   }
+  if (parentId) metadata.parents = [parentId]
   const response = await fetch(resumableUploadUrl, {
     method: 'POST',
     headers: {
@@ -298,8 +306,8 @@ export async function uploadToDrive({
   const fileName = safeName(name)
   const metadata = {
     name: `${category}-${fileName}`,
-    parents: [parentId],
   }
+  if (parentId) metadata.parents = [parentId]
   const delimiter = `--${boundary}\r\n`
   const closeDelimiter = `\r\n--${boundary}--`
   const multipartBody = Buffer.concat([
