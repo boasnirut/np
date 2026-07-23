@@ -199,6 +199,7 @@ function inferMimeTypeFromUrl(value) {
     '.gif': 'image/gif',
     '.jpeg': 'image/jpeg',
     '.jpg': 'image/jpeg',
+    '.pdf': 'application/pdf',
     '.png': 'image/png',
     '.svg': 'image/svg+xml',
     '.webp': 'image/webp',
@@ -206,11 +207,15 @@ function inferMimeTypeFromUrl(value) {
   return Object.entries(extensionTypes).find(([extension]) => path.endsWith(extension))?.[1] || ''
 }
 
+function uploadMimeType(file) {
+  return file?.type || inferMimeTypeFromUrl(file?.name) || 'application/octet-stream'
+}
+
 function uploadFileBytes(uploadUrl, file, onProgress) {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest()
     request.open('PUT', uploadUrl)
-    request.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
+    request.setRequestHeader('Content-Type', uploadMimeType(file))
     request.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100))
     }
@@ -249,7 +254,7 @@ async function uploadFileToDrive(file, category, onProgress) {
       action: 'start',
       category,
       name: file.name,
-      mimeType: file.type || 'application/octet-stream',
+      mimeType: uploadMimeType(file),
       size: file.size,
     }),
   })

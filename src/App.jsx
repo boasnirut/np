@@ -52,7 +52,7 @@ import {
   trustPoints,
   values,
 } from './content'
-import { displayImageUrl } from './driveUrls'
+import { displayImageUrl, displayPdfUrl } from './driveUrls'
 import { qualityLevels } from './qualityStandards'
 
 const categories = ['ทั้งหมด', 'กิจกรรม', 'ประชาสัมพันธ์', 'ประกาศ']
@@ -1766,6 +1766,12 @@ function isEvidenceImage(url, mimeType = '') {
   }
 }
 
+function isEvidencePdf(url, mimeType = '') {
+  const type = String(mimeType || '').toLowerCase()
+  if (type) return type === 'application/pdf'
+  return /\.pdf(?:$|[?#])/i.test(String(url || ''))
+}
+
 function fittedEvidenceImageSize(stage, image) {
   if (!stage || !image?.naturalWidth || !image?.naturalHeight) return null
   const stageWidth = stage.clientWidth
@@ -1929,11 +1935,47 @@ function QualityImageViewer({ viewer, zoom, setZoom, onMove, onClose }) {
   )
 }
 
+function QualityPdfViewer({ viewer, onClose }) {
+  if (!viewer) return null
+  return (
+    <div className="quality-image-viewer quality-pdf-viewer" role="presentation" onMouseDown={onClose}>
+      <section
+        className="quality-image-viewer__dialog quality-pdf-viewer__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`เอกสาร PDF ${viewer.title}`}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <header>
+          <div>
+            <strong>{viewer.title}</strong>
+            <span>เอกสารหลักฐาน PDF · ใช้เครื่องมือในตัวอ่านเพื่อซูมและเปลี่ยนหน้า</span>
+          </div>
+          <div className="quality-image-viewer__tools">
+            <a href={viewer.url} target="_blank" rel="noreferrer">
+              <ExternalLink size={18} /> เปิดต้นฉบับ
+            </a>
+            <button className="is-close" type="button" onClick={onClose} aria-label="ปิดเอกสาร PDF"><X size={21} /></button>
+          </div>
+        </header>
+        <div className="quality-pdf-viewer__stage">
+          <iframe
+            src={displayPdfUrl(viewer.url)}
+            title={`ตัวอ่านเอกสาร ${viewer.title}`}
+            allow="fullscreen"
+          />
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function QualityAssurancePage({ evidence = [] }) {
   const [activeLevel, setActiveLevel] = useState('early')
   const [openStandards, setOpenStandards] = useState(['1', '2', '3'])
   const [imageViewer, setImageViewer] = useState(null)
   const [imageZoom, setImageZoom] = useState(1)
+  const [pdfViewer, setPdfViewer] = useState(null)
   const level = qualityLevels.find((item) => item.id === activeLevel) || qualityLevels[0]
 
   const toggleStandard = (number) => {
@@ -1959,10 +2001,13 @@ function QualityAssurancePage({ evidence = [] }) {
   }
 
   useEffect(() => {
-    if (!imageViewer) return undefined
+    if (!imageViewer && !pdfViewer) return undefined
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') setImageViewer(null)
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      if (event.key === 'Escape') {
+        setImageViewer(null)
+        setPdfViewer(null)
+      }
+      if (imageViewer && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
         const difference = event.key === 'ArrowLeft' ? -1 : 1
         setImageZoom(1)
         setImageViewer((current) => {
@@ -1971,8 +2016,8 @@ function QualityAssurancePage({ evidence = [] }) {
           return { ...current, index }
         })
       }
-      if (event.key === '+' || event.key === '=') setImageZoom((current) => Math.min(4, current + 0.25))
-      if (event.key === '-') setImageZoom((current) => Math.max(1, current - 0.25))
+      if (imageViewer && (event.key === '+' || event.key === '=')) setImageZoom((current) => Math.min(4, current + 0.25))
+      if (imageViewer && event.key === '-') setImageZoom((current) => Math.max(1, current - 0.25))
     }
     document.addEventListener('keydown', handleKeyDown)
     document.body.style.overflow = 'hidden'
@@ -1980,7 +2025,7 @@ function QualityAssurancePage({ evidence = [] }) {
       document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = ''
     }
-  }, [imageViewer])
+  }, [imageViewer, pdfViewer])
 
   return (
     <>
@@ -2094,6 +2139,13 @@ function QualityAssurancePage({ evidence = [] }) {
                                   const imageUrls = documentUrls.filter((url, index) => (
                                     isEvidenceImage(url, documentTypes[index])
                                   ))
+                                  const pdfDocuments = documentUrls
+                                    .map((url, index) => ({
+                                      url,
+                                      documentIndex: index,
+                                      mimeType: documentTypes[index],
+                                    }))
+                                    .filter((document) => isEvidencePdf(document.url, document.mimeType))
                                   return (
                                     <article className="quality-evidence-entry" key={item.id}>
                                       <span><FileText size={18} /></span>
@@ -2120,6 +2172,32 @@ function QualityAssurancePage({ evidence = [] }) {
                                                 />
                                                 <span><ZoomIn size={16} /> ดูภาพเต็ม</span>
                                               </button>
+                                            ))}
+                                          </div>
+                                        )}
+                                        {pdfDocuments.length > 0 && (
+                                          <div className="quality-evidence-entry__pdf-grid">
+                                            {pdfDocuments.map((document) => (
+                                              <article key={`${document.url}-${document.documentIndex}`}>
+                                                <iframe
+                                                  src={displayPdfUrl(document.url)}
+                                                  title={`${item.title} ตัวอย่าง PDF หลักฐานที่ ${document.documentIndex + 1}`}
+                                                  loading="lazy"
+                                                  tabIndex="-1"
+                                                  aria-hidden="true"
+                                                />
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setPdfViewer({
+                                                    url: document.url,
+                                                    title: `${item.title} · หลักฐานที่ ${document.documentIndex + 1}`,
+                                                  })}
+                                                  aria-label={`เปิดอ่าน PDF หลักฐานที่ ${document.documentIndex + 1}`}
+                                                >
+                                                  <span><FileText size={17} /> PDF หลักฐานที่ {document.documentIndex + 1}</span>
+                                                  <strong><BookOpenText size={16} /> เปิดอ่านในหน้าเว็บ</strong>
+                                                </button>
+                                              </article>
                                             ))}
                                           </div>
                                         )}
@@ -2171,6 +2249,10 @@ function QualityAssurancePage({ evidence = [] }) {
         setZoom={setImageZoom}
         onMove={moveImageViewer}
         onClose={() => setImageViewer(null)}
+      />
+      <QualityPdfViewer
+        viewer={pdfViewer}
+        onClose={() => setPdfViewer(null)}
       />
     </>
   )

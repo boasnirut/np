@@ -30,7 +30,9 @@ function normalizedFile(body) {
   const name = String(body.name || '').trim()
   const size = Number(body.size)
   let mimeType = String(body.mimeType || '').trim().toLowerCase()
-  if (!mimeType && name.toLowerCase().endsWith('.pdf')) mimeType = 'application/pdf'
+  if ((!mimeType || mimeType === 'application/octet-stream') && name.toLowerCase().endsWith('.pdf')) {
+    mimeType = 'application/pdf'
+  }
   return { name, size, mimeType: mimeType || 'application/octet-stream' }
 }
 

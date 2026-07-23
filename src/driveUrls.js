@@ -1,6 +1,6 @@
-export function displayImageUrl(value) {
+function driveFileId(value) {
   const source = String(value || '').trim()
-  if (!source) return ''
+  if (!source) return { source: '', fileId: '' }
 
   try {
     const url = new URL(source)
@@ -10,10 +10,22 @@ export function displayImageUrl(value) {
     } else if (url.hostname === 'drive.usercontent.google.com') {
       fileId = url.searchParams.get('id') || ''
     }
-    return fileId
-      ? `https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w0`
-      : source
+    return { source, fileId }
   } catch {
-    return source
+    return { source, fileId: '' }
   }
+}
+
+export function displayImageUrl(value) {
+  const { source, fileId } = driveFileId(value)
+  return fileId
+    ? `https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w0`
+    : source
+}
+
+export function displayPdfUrl(value) {
+  const { source, fileId } = driveFileId(value)
+  return fileId
+    ? `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/preview`
+    : source
 }
