@@ -154,7 +154,41 @@ export default async function handler(request, response) {
       })
     }
 
-    return methodNotAllowed(response, ['GET', 'PATCH'])
+    if (request.method === 'DELETE') {
+      const body = await readJsonBody(request, 10_000)
+      const index = users.findIndex((user) => user.id === String(body.id || ''))
+      if (index < 0) return sendJson(response, 404, { error: 'ไม่พบสมาชิกที่ต้องการลบ' })
+
+      const member = users[index]
+      if (member.username === admin.sub) {
+        return sendJson(response, 400, { error: 'ไม่สามารถลบบัญชีผู้ดูแลระบบที่กำลังใช้งานได้' })
+      }
+
+      if (member.role === 'admin' && member.active === 'true') {
+        const activeAdmins = users.filter(
+          (user) => user.role === 'admin' && user.active === 'true',
+        )
+        if (activeAdmins.length <= 1) {
+          return sendJson(response, 400, {
+            error: 'ไม่สามารถลบผู้ดูแลระบบคนสุดท้ายได้',
+          })
+        }
+      }
+
+      users.splice(index, 1)
+      await writeRepoFile(
+        'data/users.csv',
+        stringifyCsv(users, headers),
+        `ลบสมาชิก: ${member.username}`,
+        current.sha,
+      )
+      return sendJson(response, 200, {
+        success: true,
+        deletedMember: { id: member.id, username: member.username },
+      })
+    }
+
+    return methodNotAllowed(response, ['GET', 'PATCH', 'DELETE'])
   } catch (error) {
     console.error('Members API error', error)
     return sendJson(response, 500, { error: 'ไม่สามารถจัดการสมาชิกได้ในขณะนี้' })

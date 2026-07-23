@@ -1481,6 +1481,7 @@ function MembersManager({ members, setMembers, currentUsername }) {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
   const [message, setMessage] = useState(null)
 
   const openEditor = (member) => {
@@ -1510,6 +1511,23 @@ function MembersManager({ members, setMembers, currentUsername }) {
     setShowPassword(false)
     setMessage(null)
   }
+
+  useEffect(() => {
+    if (!editingMember) return undefined
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape' && !submitting) {
+        setEditingMember(null)
+        setShowPassword(false)
+        setMessage(null)
+      }
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape)
+      document.body.style.overflow = ''
+    }
+  }, [editingMember, submitting])
 
   const updateForm = (event) => {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
@@ -1569,6 +1587,26 @@ function MembersManager({ members, setMembers, currentUsername }) {
     }
   }
 
+  const removeMember = async (member) => {
+    if (member.username === currentUsername) return
+    if (!window.confirm(`ยืนยันการลบสมาชิก “${member.displayName}” (@${member.username}) ออกจากระบบหรือไม่\n\nสมาชิกจะไม่สามารถเข้าสู่ระบบได้อีก และการดำเนินการนี้ไม่สามารถย้อนกลับได้`)) return
+    setDeletingId(member.id)
+    setMessage(null)
+    try {
+      await apiRequest('/api/members', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: member.id }),
+      })
+      setMembers((current) => current.filter((item) => item.id !== member.id))
+      if (editingMember?.id === member.id) closeEditor()
+      setMessage({ type: 'success', text: `ลบสมาชิก “${member.displayName}” ออกจากระบบเรียบร้อยแล้ว` })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   const statusLabel = { true: 'อนุมัติแล้ว', pending: 'รออนุมัติ', suspended: 'ระงับใช้งาน' }
   const editingSelf = editingMember?.username === currentUsername
 
@@ -1579,13 +1617,25 @@ function MembersManager({ members, setMembers, currentUsername }) {
         <Users size={28} />
       </div>
       {editingMember && (
-        <form className="admin-member-editor" onSubmit={saveMember}>
+        <div
+          className="admin-member-modal"
+          role="presentation"
+          onMouseDown={() => { if (!submitting) closeEditor() }}
+        >
+        <form
+          className="admin-member-editor"
+          onSubmit={saveMember}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="member-editor-title"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
           <div className="admin-member-editor__heading">
             <div>
               <span><User size={18} /></span>
-              <div><strong>แก้ไขข้อมูลผู้ใช้งาน</strong><small>รหัสสมาชิก: {editingMember.id}</small></div>
+              <div><strong id="member-editor-title">แก้ไขข้อมูลผู้ใช้งาน</strong><small>รหัสสมาชิก: {editingMember.id}</small></div>
             </div>
-            <button type="button" onClick={closeEditor} aria-label="ปิดแบบฟอร์มแก้ไขสมาชิก">
+            <button type="button" onClick={closeEditor} disabled={submitting} aria-label="ปิดแบบฟอร์มแก้ไขสมาชิก">
               <X size={19} />
             </button>
           </div>
@@ -1684,13 +1734,20 @@ function MembersManager({ members, setMembers, currentUsername }) {
             </p>
           )}
           <div className="admin-member-editor__footer">
-            <button type="button" onClick={closeEditor}>ยกเลิก</button>
+            <button type="button" onClick={closeEditor} disabled={submitting}>ยกเลิก</button>
             <button type="submit" className="is-primary" disabled={submitting}>
               {submitting ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />}
               {submitting ? 'กำลังบันทึก...' : 'บันทึกข้อมูลสมาชิก'}
             </button>
           </div>
         </form>
+        </div>
+      )}
+      {message && !editingMember && (
+        <p className={`admin-message admin-message--${message.type}`}>
+          {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          {message.text}
+        </p>
       )}
       <div className="admin-member-list">
         {members.map((member) => (
@@ -1720,6 +1777,17 @@ function MembersManager({ members, setMembers, currentUsername }) {
               {member.username !== currentUsername && member.status === 'true' && (
                 <button type="button" className="is-suspend" onClick={() => updateStatus(member, 'suspended')}>
                   <XCircle size={16} />ระงับ
+                </button>
+              )}
+              {member.username !== currentUsername && (
+                <button
+                  type="button"
+                  className="is-delete"
+                  onClick={() => removeMember(member)}
+                  disabled={deletingId === member.id}
+                >
+                  {deletingId === member.id ? <LoaderCircle className="spin" size={16} /> : <Trash2 size={16} />}
+                  {deletingId === member.id ? 'กำลังลบ...' : 'ลบสมาชิก'}
                 </button>
               )}
             </div>
