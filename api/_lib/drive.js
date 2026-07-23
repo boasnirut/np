@@ -23,6 +23,17 @@ export class GoogleDriveUploadError extends Error {
   }
 }
 
+export function googleDriveErrorSummary(details) {
+  const source = String(details || '').trim()
+  if (!source) return ''
+  try {
+    const body = JSON.parse(source)
+    return String(body.error?.message || body.error_description || body.message || '').trim()
+  } catch {
+    return source.length <= 220 ? source : ''
+  }
+}
+
 export function dataUrlBytes(data) {
   return Buffer.from(String(data || '').replace(/^data:[^;]+;base64,/, ''), 'base64')
 }
@@ -236,24 +247,33 @@ export async function createResumableDriveUpload({
 }) {
   const token = await accessToken()
   const parentId = await uploadFolderId(token)
-  const metadata = {
-    name: `${category}-${safeName(name)}`,
-    appProperties: {
-      bannampornUploadCategory: String(category || ''),
-      bannampornUploader: String(uploader || ''),
-    },
+  const startUpload = async (folderId = '') => {
+    const metadata = {
+      name: `${category}-${safeName(name)}`,
+      appProperties: {
+        bannampornUploadCategory: String(category || ''),
+        bannampornUploader: String(uploader || ''),
+      },
+    }
+    if (folderId) metadata.parents = [folderId]
+    return fetch(resumableUploadUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+        'X-Upload-Content-Type': mimeType || 'application/octet-stream',
+        'X-Upload-Content-Length': String(size),
+      },
+      body: JSON.stringify(metadata),
+    })
   }
-  if (parentId) metadata.parents = [parentId]
-  const response = await fetch(resumableUploadUrl, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json; charset=UTF-8',
-      'X-Upload-Content-Type': mimeType || 'application/octet-stream',
-      'X-Upload-Content-Length': String(size),
-    },
-    body: JSON.stringify(metadata),
-  })
+
+  let response = await startUpload(parentId)
+  if (!response.ok && parentId && oauthConfigured()) {
+    const folderError = await response.text().catch(() => '')
+    console.warn('Google Drive upload folder rejected; retrying in My Drive root', folderError)
+    response = await startUpload()
+  }
   const sessionUrl = response.headers.get('location')
   if (!response.ok || !sessionUrl) {
     const details = await response.text().catch(() => '')
@@ -304,30 +324,36 @@ export async function uploadToDrive({
   const parentId = await uploadFolderId(token)
   const boundary = `codex_drive_${Date.now()}_${Math.random().toString(16).slice(2)}`
   const fileName = safeName(name)
-  const metadata = {
-    name: `${category}-${fileName}`,
+  const sendUpload = async (folderId = '') => {
+    const metadata = { name: `${category}-${fileName}` }
+    if (folderId) metadata.parents = [folderId]
+    const delimiter = `--${boundary}\r\n`
+    const closeDelimiter = `\r\n--${boundary}--`
+    const multipartBody = Buffer.concat([
+      Buffer.from(
+        `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`,
+      ),
+      Buffer.from(`${delimiter}Content-Type: ${mimeType || 'application/octet-stream'}\r\n\r\n`),
+      bytes,
+      Buffer.from(closeDelimiter),
+    ])
+    return fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': `multipart/related; boundary=${boundary}`,
+        'Content-Length': String(multipartBody.length),
+      },
+      body: multipartBody,
+    })
   }
-  if (parentId) metadata.parents = [parentId]
-  const delimiter = `--${boundary}\r\n`
-  const closeDelimiter = `\r\n--${boundary}--`
-  const multipartBody = Buffer.concat([
-    Buffer.from(
-      `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`,
-    ),
-    Buffer.from(`${delimiter}Content-Type: ${mimeType || 'application/octet-stream'}\r\n\r\n`),
-    bytes,
-    Buffer.from(closeDelimiter),
-  ])
 
-  const uploadResponse = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': `multipart/related; boundary=${boundary}`,
-      'Content-Length': String(multipartBody.length),
-    },
-    body: multipartBody,
-  })
+  let uploadResponse = await sendUpload(parentId)
+  if (!uploadResponse.ok && parentId && oauthConfigured()) {
+    const folderError = await uploadResponse.text().catch(() => '')
+    console.warn('Google Drive upload folder rejected; retrying in My Drive root', folderError)
+    uploadResponse = await sendUpload()
+  }
 
   const file = await uploadResponse.json().catch(() => ({}))
   if (!uploadResponse.ok || !file.id) {

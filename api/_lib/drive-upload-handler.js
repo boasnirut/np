@@ -4,6 +4,7 @@ import {
   createResumableDriveUpload,
   GoogleDriveConfigError,
   GoogleDriveUploadError,
+  googleDriveErrorSummary,
 } from './drive.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './http.js'
 
@@ -97,7 +98,10 @@ export default async function driveUploadHandler(request, response) {
     }
     if (error instanceof GoogleDriveUploadError) {
       console.error('Google Drive resumable upload error', error.details || error)
-      return sendJson(response, 502, { error: error.message })
+      const summary = googleDriveErrorSummary(error.details)
+      return sendJson(response, 502, {
+        error: summary ? `${error.message}: ${summary}` : error.message,
+      })
     }
     console.error('Drive upload API error', error)
     return sendJson(response, 500, { error: 'ไม่สามารถดำเนินการอัปโหลดไฟล์ได้ในขณะนี้' })
