@@ -1,5 +1,5 @@
 id,username,password_hash,salt,role,display_name,created_at,active,permissions
-admin-001,boasnirut,ENV,ENV,admin,Admin นายนิรุทธิ์ เสวะนา,2026-07-01T00:00:00.000Z,true,*
+admin-001,boasnirut,ENV,ENV,admin,Admin นิรุทธิ์ เสวะนา,2026-07-01T00:00:00.000Z,true,*
 aeb78865-1383-4e83-b72a-b19f42953191,ittipukongpod,ba03e0b63e6897246035df1a2f032ab20022d508eb6b6a12847ebfc0a9d8b15da023b48c0c1121b39399f7c9d808ac0fb4a6a3d9aae91d4e9e0a700be3071505,55028d87ad1b245794bceae84d4901b6,admin,อิทธิภู กองพอด,2026-07-01T14:46:24.063Z,true,*
 d0addcf6-9d12-4310-b512-ae1815429a28,supapornmoey,15a771b41c7ab1b0e552a420b1ece8466d7d3e3d99fc52e594524564f344b33fadd8fa77fb89433002b9e0cd1c3db8edcbd44340a86fdb15298a80c71252dae9,718a510c988e5df0b7229fd71e19748e,member,สุภาพร พิมพุธ,2026-07-21T08:56:49.995Z,true,quality;awards
 6d6770d2-4d65-4ac1-bfe6-b969449a966f,suwanna,d1eb12bb9c8213bf9e8b0eadb26ef19dc20a0735b984ffdea55773a4056dfdd1b0eb2fdd667f4b096e1de41a6d193f5199e2ddf31b29196ddc4d762fdbc6a48d,455a4c8857b5bd6f0ea36b7697543ae8,member,สุวรรณา  พุทธมาตย์,2026-07-21T08:57:04.075Z,true,quality;awards
