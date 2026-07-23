@@ -191,6 +191,21 @@ function AuthLayout({ mode }) {
 
 const maxUploadBytes = 100 * 1024 * 1024
 
+function inferMimeTypeFromUrl(value) {
+  const path = String(value || '').split(/[?#]/)[0].toLowerCase()
+  const extensionTypes = {
+    '.avif': 'image/avif',
+    '.bmp': 'image/bmp',
+    '.gif': 'image/gif',
+    '.jpeg': 'image/jpeg',
+    '.jpg': 'image/jpeg',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp',
+  }
+  return Object.entries(extensionTypes).find(([extension]) => path.endsWith(extension))?.[1] || ''
+}
+
 function uploadFileBytes(uploadUrl, file, onProgress) {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest()
@@ -809,6 +824,7 @@ const qualityDefaults = {
   title: '',
   description: '',
   document_urls: [''],
+  document_types: [''],
   display_order: '',
   status: 'published',
 }
@@ -838,7 +854,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
   }
 
   const reset = () => {
-    setForm({ ...qualityDefaults, document_urls: [''] })
+    setForm({ ...qualityDefaults, document_urls: [''], document_types: [''] })
     setEditingId(null)
     setFiles([])
     setUploadProgress(0)
@@ -854,13 +870,25 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
           item.document_url_4,
           item.document_url_5,
         ].filter(Boolean)
+    const documentTypes = item.document_types?.length
+      ? item.document_types
+      : [
+          item.document_type,
+          item.document_type_2,
+          item.document_type_3,
+          item.document_type_4,
+          item.document_type_5,
+        ]
     setForm({
       ...Object.fromEntries(
         Object.keys(qualityDefaults)
-          .filter((key) => key !== 'document_urls')
+          .filter((key) => !['document_urls', 'document_types'].includes(key))
           .map((key) => [key, item[key] || '']),
       ),
       document_urls: documentUrls.length ? documentUrls : [''],
+      document_types: documentUrls.length
+        ? documentUrls.map((url, index) => documentTypes[index] || inferMimeTypeFromUrl(url))
+        : [''],
     })
     setEditingId(item.id)
     setFiles([])
@@ -875,6 +903,9 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
       document_urls: current.document_urls.map((url, urlIndex) => (
         urlIndex === index ? value : url
       )),
+      document_types: current.document_types.map((type, typeIndex) => (
+        typeIndex === index ? inferMimeTypeFromUrl(value) : type
+      )),
     }))
     setMessage(null)
   }
@@ -883,7 +914,11 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
     setForm((current) => (
       current.document_urls.length + files.length >= 5
         ? current
-        : { ...current, document_urls: [...current.document_urls, ''] }
+        : {
+            ...current,
+            document_urls: [...current.document_urls, ''],
+            document_types: [...current.document_types, ''],
+          }
     ))
     setMessage(null)
   }
@@ -891,7 +926,12 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
   const removeDocumentUrl = (index) => {
     setForm((current) => {
       const documentUrls = current.document_urls.filter((_, urlIndex) => urlIndex !== index)
-      return { ...current, document_urls: documentUrls.length ? documentUrls : [''] }
+      const documentTypes = current.document_types.filter((_, typeIndex) => typeIndex !== index)
+      return {
+        ...current,
+        document_urls: documentUrls.length ? documentUrls : [''],
+        document_types: documentUrls.length ? documentTypes : [''],
+      }
     })
     setMessage(null)
   }
@@ -948,13 +988,28 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
         )
         uploadedFiles.push(uploadedFile)
       }
+      const linkedEvidence = form.document_urls
+        .map((url, index) => ({
+          url: String(url || '').trim(),
+          type: form.document_types[index] || inferMimeTypeFromUrl(url),
+        }))
+        .filter((item) => item.url)
       const documentUrls = [
         ...uploadedFiles.map((uploadedFile) => uploadedFile?.viewUrl),
-        ...form.document_urls,
-      ].filter((url) => String(url || '').trim())
+        ...linkedEvidence.map((item) => item.url),
+      ].filter(Boolean)
+      const documentTypes = [
+        ...uploadedFiles.map((uploadedFile) => uploadedFile?.mimeType || ''),
+        ...linkedEvidence.map((item) => item.type),
+      ]
       const result = await apiRequest('/api/quality-evidence', {
         method: editingId ? 'PUT' : 'POST',
-        body: JSON.stringify({ ...form, id: editingId, document_urls: documentUrls }),
+        body: JSON.stringify({
+          ...form,
+          id: editingId,
+          document_urls: documentUrls,
+          document_types: documentTypes,
+        }),
       })
       setItems((current) =>
         sortRecords(editingId

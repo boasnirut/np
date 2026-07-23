@@ -60,6 +60,16 @@ export function evidenceDocumentUrls(item) {
   ].map((url) => String(url || '').trim()).filter(Boolean)
 }
 
+export function evidenceDocumentTypes(item) {
+  return [
+    item.document_type,
+    item.document_type_2,
+    item.document_type_3,
+    item.document_type_4,
+    item.document_type_5,
+  ].map((type) => String(type || '').trim().toLowerCase())
+}
+
 export function contentAttachmentUrls(item) {
   return [...new Set([
     ...evidenceDocumentUrls(item),

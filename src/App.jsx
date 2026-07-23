@@ -31,6 +31,7 @@ import {
   Phone,
   Plus,
   Quote,
+  RotateCcw,
   School,
   Send,
   ShieldCheck,
@@ -38,6 +39,8 @@ import {
   Trophy,
   Users,
   X,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react'
 import {
   activityItems,
@@ -1750,9 +1753,76 @@ function OperationPage({ type }) {
   )
 }
 
+function isEvidenceImage(url, mimeType = '') {
+  const type = String(mimeType || '').toLowerCase()
+  if (type) return type.startsWith('image/')
+  const path = String(url || '').split(/[?#]/)[0].toLowerCase()
+  if (/\.(avif|bmp|gif|jpe?g|png|svg|webp)$/.test(path)) return true
+  try {
+    const hostname = new URL(url).hostname
+    return ['drive.google.com', 'drive.usercontent.google.com', 'lh3.googleusercontent.com'].includes(hostname)
+  } catch {
+    return false
+  }
+}
+
+function QualityImageViewer({ viewer, zoom, setZoom, onMove, onClose }) {
+  if (!viewer) return null
+  const currentUrl = viewer.images[viewer.index]
+  return (
+    <div className="quality-image-viewer" role="presentation" onMouseDown={onClose}>
+      <section
+        className="quality-image-viewer__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`ภาพหลักฐาน ${viewer.title}`}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <header>
+          <div>
+            <strong>{viewer.title}</strong>
+            <span>ภาพที่ {viewer.index + 1} จาก {viewer.images.length} · ซูม {Math.round(zoom * 100)}%</span>
+          </div>
+          <div className="quality-image-viewer__tools">
+            <button type="button" onClick={() => setZoom((current) => Math.max(1, current - 0.25))} disabled={zoom <= 1} aria-label="ย่อภาพ"><ZoomOut size={19} /></button>
+            <button type="button" onClick={() => setZoom(1)} disabled={zoom === 1} aria-label="คืนขนาดภาพ"><RotateCcw size={18} /></button>
+            <button type="button" onClick={() => setZoom((current) => Math.min(4, current + 0.25))} disabled={zoom >= 4} aria-label="ขยายภาพ"><ZoomIn size={19} /></button>
+            <button className="is-close" type="button" onClick={onClose} aria-label="ปิดภาพขนาดเต็ม"><X size={21} /></button>
+          </div>
+        </header>
+        <div className={`quality-image-viewer__stage ${zoom > 1 ? 'is-zoomed' : ''}`}>
+          {viewer.images.length > 1 && (
+            <button className="quality-image-viewer__nav is-previous" type="button" onClick={() => onMove(-1)} aria-label="ภาพก่อนหน้า"><ChevronLeft size={27} /></button>
+          )}
+          <div
+            className="quality-image-viewer__canvas"
+            style={zoom > 1 ? { width: `${zoom * 100}%`, height: `${zoom * 100}%` } : undefined}
+          >
+            <img src={displayImageUrl(currentUrl)} alt={`${viewer.title} ภาพที่ ${viewer.index + 1}`} style={{ transform: `scale(${zoom})` }} />
+          </div>
+          {viewer.images.length > 1 && (
+            <button className="quality-image-viewer__nav is-next" type="button" onClick={() => onMove(1)} aria-label="ภาพถัดไป"><ChevronRight size={27} /></button>
+          )}
+        </div>
+        {viewer.images.length > 1 && (
+          <footer>
+            {viewer.images.map((url, index) => (
+              <button className={index === viewer.index ? 'is-active' : ''} type="button" onClick={() => onMove(index - viewer.index)} aria-label={`เปิดภาพที่ ${index + 1}`} key={`${url}-${index}`}>
+                <img src={displayImageUrl(url)} alt="" />
+              </button>
+            ))}
+          </footer>
+        )}
+      </section>
+    </div>
+  )
+}
+
 function QualityAssurancePage({ evidence = [] }) {
   const [activeLevel, setActiveLevel] = useState('early')
   const [openStandards, setOpenStandards] = useState(['1', '2', '3'])
+  const [imageViewer, setImageViewer] = useState(null)
+  const [imageZoom, setImageZoom] = useState(1)
   const level = qualityLevels.find((item) => item.id === activeLevel) || qualityLevels[0]
 
   const toggleStandard = (number) => {
@@ -1762,6 +1832,44 @@ function QualityAssurancePage({ evidence = [] }) {
         : [...current, number],
     )
   }
+
+  const openImageViewer = (images, index, title) => {
+    setImageZoom(1)
+    setImageViewer({ images, index, title })
+  }
+
+  const moveImageViewer = (difference) => {
+    setImageZoom(1)
+    setImageViewer((current) => {
+      if (!current) return current
+      const index = (current.index + difference + current.images.length) % current.images.length
+      return { ...current, index }
+    })
+  }
+
+  useEffect(() => {
+    if (!imageViewer) return undefined
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setImageViewer(null)
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        const difference = event.key === 'ArrowLeft' ? -1 : 1
+        setImageZoom(1)
+        setImageViewer((current) => {
+          if (!current) return current
+          const index = (current.index + difference + current.images.length) % current.images.length
+          return { ...current, index }
+        })
+      }
+      if (event.key === '+' || event.key === '=') setImageZoom((current) => Math.min(4, current + 0.25))
+      if (event.key === '-') setImageZoom((current) => Math.max(1, current - 0.25))
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [imageViewer])
 
   return (
     <>
@@ -1863,12 +1971,47 @@ function QualityAssurancePage({ evidence = [] }) {
                                   const documentUrls = item.document_urls?.length
                                     ? item.document_urls
                                     : [item.document_url].filter(Boolean)
+                                  const documentTypes = item.document_types?.length
+                                    ? item.document_types
+                                    : [
+                                        item.document_type,
+                                        item.document_type_2,
+                                        item.document_type_3,
+                                        item.document_type_4,
+                                        item.document_type_5,
+                                      ]
+                                  const imageUrls = documentUrls.filter((url, index) => (
+                                    isEvidenceImage(url, documentTypes[index])
+                                  ))
                                   return (
                                     <article className="quality-evidence-entry" key={item.id}>
                                       <span><FileText size={18} /></span>
                                       <div>
                                         <strong>{item.title}</strong>
                                         {item.description && <small>{item.description}</small>}
+                                        {imageUrls.length > 0 && (
+                                          <div className="quality-evidence-entry__gallery">
+                                            {imageUrls.map((url, index) => (
+                                              <button
+                                                type="button"
+                                                onClick={() => openImageViewer(imageUrls, index, item.title)}
+                                                aria-label={`เปิดภาพหลักฐาน ${index + 1} ขนาดเต็ม`}
+                                                key={`${url}-${index}`}
+                                              >
+                                                <img
+                                                  src={displayImageUrl(url)}
+                                                  alt={`${item.title} ภาพที่ ${index + 1}`}
+                                                  loading="lazy"
+                                                  onError={(event) => {
+                                                    const previewButton = event.currentTarget.closest('button')
+                                                    if (previewButton) previewButton.hidden = true
+                                                  }}
+                                                />
+                                                <span><ZoomIn size={16} /> ดูภาพเต็ม</span>
+                                              </button>
+                                            ))}
+                                          </div>
+                                        )}
                                         <div className="quality-evidence-entry__links">
                                           {documentUrls.map((url, index) => (
                                             <a href={url} target="_blank" rel="noreferrer" key={`${url}-${index}`}>
@@ -1901,7 +2044,7 @@ function QualityAssurancePage({ evidence = [] }) {
             <span><ShieldCheck size={25} /></span>
             <div>
               <strong>จัดการลิงก์หลักฐานผ่านระบบบริหารจัดการ</strong>
-              <p>ผู้ที่ได้รับสิทธิ์สามารถเพิ่มเอกสาร PDF หรือลิงก์หลักฐานให้ตรงกับระดับการศึกษาและตัวชี้วัดได้</p>
+              <p>ผู้ที่ได้รับสิทธิ์สามารถเพิ่มไฟล์ รูปภาพ หรือลิงก์หลักฐานให้ตรงกับระดับการศึกษาและตัวชี้วัดได้</p>
             </div>
             <a className="button button--navy" href="/login">เข้าสู่ระบบ <ArrowRight size={17} /></a>
           </div>
@@ -1911,6 +2054,13 @@ function QualityAssurancePage({ evidence = [] }) {
           </p>
         </div>
       </section>
+      <QualityImageViewer
+        viewer={imageViewer}
+        zoom={imageZoom}
+        setZoom={setImageZoom}
+        onMove={moveImageViewer}
+        onClose={() => setImageViewer(null)}
+      />
     </>
   )
 }

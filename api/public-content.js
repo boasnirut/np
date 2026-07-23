@@ -1,6 +1,7 @@
 import { parseCsv } from './_lib/csv.js'
 import {
   contentAttachmentUrls,
+  evidenceDocumentTypes,
   evidenceDocumentUrls,
   sortByDateAndDisplayOrder,
   sortByDisplayOrder,
@@ -44,6 +45,7 @@ export default async function handler(request, response) {
       qualityEvidence: sortByDisplayOrder(published(parseCsv(qualityFile.content))).map((item) => ({
         ...item,
         document_urls: evidenceDocumentUrls(item),
+        document_types: evidenceDocumentTypes(item),
       })),
       documents: sortByDateAndDisplayOrder(
         published(parseCsv(documentsFile.content)),
