@@ -1972,18 +1972,25 @@ function QualityPdfViewer({ viewer, onClose }) {
 
 function QualityAssurancePage({ evidence = [] }) {
   const [activeLevel, setActiveLevel] = useState('early')
-  const [openStandards, setOpenStandards] = useState(['1', '2', '3'])
+  const [openStandards, setOpenStandards] = useState(['1'])
+  const [openIndicator, setOpenIndicator] = useState('')
+  const [openEvidence, setOpenEvidence] = useState('')
   const [imageViewer, setImageViewer] = useState(null)
   const [imageZoom, setImageZoom] = useState(1)
   const [pdfViewer, setPdfViewer] = useState(null)
   const level = qualityLevels.find((item) => item.id === activeLevel) || qualityLevels[0]
 
   const toggleStandard = (number) => {
-    setOpenStandards((current) =>
-      current.includes(number)
-        ? current.filter((item) => item !== number)
-        : [...current, number],
-    )
+    setOpenStandards((current) => (current.includes(number) ? [] : [number]))
+    setOpenIndicator('')
+    setOpenEvidence('')
+  }
+
+  const selectLevel = (levelId) => {
+    setActiveLevel(levelId)
+    setOpenStandards(['1'])
+    setOpenIndicator('')
+    setOpenEvidence('')
   }
 
   const openImageViewer = (images, index, title) => {
@@ -2056,7 +2063,7 @@ function QualityAssurancePage({ evidence = [] }) {
                 className={`quality-level-card ${activeLevel === item.id ? 'is-active' : ''}`}
                 type="button"
                 aria-pressed={activeLevel === item.id}
-                onClick={() => setActiveLevel(item.id)}
+                onClick={() => selectLevel(item.id)}
                 key={item.id}
               >
                 <span className="quality-level-card__number">0{index + 1}</span>
@@ -2078,7 +2085,7 @@ function QualityAssurancePage({ evidence = [] }) {
             <div>
               <span>{level.shortLabel}</span>
               <h2>เอกสารประกอบ{level.label}</h2>
-              <p>{level.summary} · เลือกแต่ละมาตรฐานเพื่อดูตัวชี้วัดและหลักฐานที่เผยแพร่</p>
+              <p>{level.summary} · เปิดมาตรฐาน แล้วเลือกตัวชี้วัดและรายการหลักฐานที่ต้องการอ่าน</p>
             </div>
             <a href={level.manualUrl} target="_blank" rel="noreferrer">
               <BookOpenText size={18} /> เปิดคู่มือ สมศ. <ExternalLink size={15} />
@@ -2115,108 +2122,149 @@ function QualityAssurancePage({ evidence = [] }) {
                           (item) => item.education_level === level.id
                             && item.indicator_code === indicator.code,
                         )
+                        const indicatorKey = `${level.id}-${indicator.code}`
+                        const isIndicatorOpen = openIndicator === indicatorKey
                         return (
-                          <article className="quality-indicator" key={`${level.id}-${indicator.code}`}>
-                            <header>
-                              <span>ตัวชี้วัดที่ {indicator.code}</span>
-                              <strong>{indicator.title}</strong>
-                            </header>
-                            {indicatorEvidence.length ? (
-                              <div className="quality-evidence-list">
-                                {indicatorEvidence.map((item) => {
-                                  const documentUrls = item.document_urls?.length
-                                    ? item.document_urls
-                                    : [item.document_url].filter(Boolean)
-                                  const documentTypes = item.document_types?.length
-                                    ? item.document_types
-                                    : [
-                                        item.document_type,
-                                        item.document_type_2,
-                                        item.document_type_3,
-                                        item.document_type_4,
-                                        item.document_type_5,
-                                      ]
-                                  const imageUrls = documentUrls.filter((url, index) => (
-                                    isEvidenceImage(url, documentTypes[index])
-                                  ))
-                                  const pdfDocuments = documentUrls
-                                    .map((url, index) => ({
-                                      url,
-                                      documentIndex: index,
-                                      mimeType: documentTypes[index],
-                                    }))
-                                    .filter((document) => isEvidencePdf(document.url, document.mimeType))
-                                  return (
-                                    <article className="quality-evidence-entry" key={item.id}>
-                                      <span><FileText size={18} /></span>
-                                      <div>
-                                        <strong>{item.title}</strong>
-                                        {item.description && <small>{item.description}</small>}
-                                        {imageUrls.length > 0 && (
-                                          <div className="quality-evidence-entry__gallery">
-                                            {imageUrls.map((url, index) => (
-                                              <button
-                                                type="button"
-                                                onClick={() => openImageViewer(imageUrls, index, item.title)}
-                                                aria-label={`เปิดภาพหลักฐาน ${index + 1} ขนาดเต็ม`}
-                                                key={`${url}-${index}`}
-                                              >
-                                                <img
-                                                  src={displayImageUrl(url)}
-                                                  alt={`${item.title} ภาพที่ ${index + 1}`}
-                                                  loading="lazy"
-                                                  onError={(event) => {
-                                                    const previewButton = event.currentTarget.closest('button')
-                                                    if (previewButton) previewButton.hidden = true
-                                                  }}
-                                                />
-                                                <span><ZoomIn size={16} /> ดูภาพเต็ม</span>
-                                              </button>
-                                            ))}
+                          <article className={`quality-indicator ${isIndicatorOpen ? 'is-open' : ''}`} key={indicatorKey}>
+                            <button
+                              className="quality-indicator__heading"
+                              type="button"
+                              aria-expanded={isIndicatorOpen}
+                              disabled={!indicatorEvidence.length}
+                              onClick={() => {
+                                setOpenIndicator(isIndicatorOpen ? '' : indicatorKey)
+                                setOpenEvidence('')
+                              }}
+                            >
+                              <span className="quality-indicator__code">{indicator.code}</span>
+                              <span className="quality-indicator__summary">
+                                <strong>{indicator.title}</strong>
+                                <small>
+                                  {indicatorEvidence.length
+                                    ? `มีหลักฐานเผยแพร่ ${indicatorEvidence.length} รายการ`
+                                    : 'ยังไม่มีเอกสารหลักฐานที่เผยแพร่'}
+                                </small>
+                              </span>
+                              <span className={`quality-indicator__count ${indicatorEvidence.length ? 'has-evidence' : ''}`}>
+                                <FileText size={15} /> {indicatorEvidence.length}
+                              </span>
+                              {indicatorEvidence.length > 0 && <ChevronDown size={20} />}
+                            </button>
+                            {isIndicatorOpen && (
+                              <div className="quality-indicator__content">
+                                <div className="quality-evidence-list">
+                                  {indicatorEvidence.map((item) => {
+                                    const documentUrls = item.document_urls?.length
+                                      ? item.document_urls
+                                      : [item.document_url].filter(Boolean)
+                                    const documentTypes = item.document_types?.length
+                                      ? item.document_types
+                                      : [
+                                          item.document_type,
+                                          item.document_type_2,
+                                          item.document_type_3,
+                                          item.document_type_4,
+                                          item.document_type_5,
+                                        ]
+                                    const imageUrls = documentUrls.filter((url, index) => (
+                                      isEvidenceImage(url, documentTypes[index])
+                                    ))
+                                    const pdfDocuments = documentUrls
+                                      .map((url, index) => ({
+                                        url,
+                                        documentIndex: index,
+                                        mimeType: documentTypes[index],
+                                      }))
+                                      .filter((document) => isEvidencePdf(document.url, document.mimeType))
+                                    const otherDocumentCount = Math.max(
+                                      0,
+                                      documentUrls.length - imageUrls.length - pdfDocuments.length,
+                                    )
+                                    const isEvidenceOpen = openEvidence === item.id
+                                    return (
+                                      <article className={`quality-evidence-entry ${isEvidenceOpen ? 'is-open' : ''}`} key={item.id}>
+                                        <button
+                                          className="quality-evidence-entry__heading"
+                                          type="button"
+                                          aria-expanded={isEvidenceOpen}
+                                          onClick={() => setOpenEvidence(isEvidenceOpen ? '' : item.id)}
+                                        >
+                                          <span className="quality-evidence-entry__icon"><FileText size={18} /></span>
+                                          <span className="quality-evidence-entry__summary">
+                                            <strong>{item.title}</strong>
+                                            {item.description && <small>{item.description}</small>}
+                                          </span>
+                                          <span className="quality-evidence-entry__types">
+                                            {imageUrls.length > 0 && <small><Images size={14} /> รูป {imageUrls.length}</small>}
+                                            {pdfDocuments.length > 0 && <small><FileText size={14} /> PDF {pdfDocuments.length}</small>}
+                                            {otherDocumentCount > 0 && <small><Link2 size={14} /> ไฟล์ {otherDocumentCount}</small>}
+                                          </span>
+                                          <ChevronDown size={19} />
+                                        </button>
+                                        {isEvidenceOpen && (
+                                          <div className="quality-evidence-entry__content">
+                                            {imageUrls.length > 0 && (
+                                              <div className="quality-evidence-entry__gallery">
+                                                {imageUrls.map((url, index) => (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => openImageViewer(imageUrls, index, item.title)}
+                                                    aria-label={`เปิดภาพหลักฐาน ${index + 1} ขนาดเต็ม`}
+                                                    key={`${url}-${index}`}
+                                                  >
+                                                    <img
+                                                      src={displayImageUrl(url)}
+                                                      alt={`${item.title} ภาพที่ ${index + 1}`}
+                                                      loading="lazy"
+                                                      onError={(event) => {
+                                                        const previewButton = event.currentTarget.closest('button')
+                                                        if (previewButton) previewButton.hidden = true
+                                                      }}
+                                                    />
+                                                    <span><ZoomIn size={16} /> ดูภาพเต็ม</span>
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            )}
+                                            {pdfDocuments.length > 0 && (
+                                              <div className="quality-evidence-entry__pdf-grid">
+                                                {pdfDocuments.map((document) => (
+                                                  <article key={`${document.url}-${document.documentIndex}`}>
+                                                    <iframe
+                                                      src={displayPdfUrl(document.url)}
+                                                      title={`${item.title} ตัวอย่าง PDF หลักฐานที่ ${document.documentIndex + 1}`}
+                                                      loading="lazy"
+                                                      tabIndex="-1"
+                                                      aria-hidden="true"
+                                                    />
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setPdfViewer({
+                                                        url: document.url,
+                                                        title: `${item.title} · หลักฐานที่ ${document.documentIndex + 1}`,
+                                                      })}
+                                                      aria-label={`เปิดอ่าน PDF หลักฐานที่ ${document.documentIndex + 1}`}
+                                                    >
+                                                      <span><FileText size={17} /> PDF หลักฐานที่ {document.documentIndex + 1}</span>
+                                                      <strong><BookOpenText size={16} /> เปิดอ่านในหน้าเว็บ</strong>
+                                                    </button>
+                                                  </article>
+                                                ))}
+                                              </div>
+                                            )}
+                                            <div className="quality-evidence-entry__links">
+                                              {documentUrls.map((url, index) => (
+                                                <a href={url} target="_blank" rel="noreferrer" key={`${url}-${index}`}>
+                                                  หลักฐานที่ {index + 1} <ExternalLink size={14} />
+                                                </a>
+                                              ))}
+                                            </div>
                                           </div>
                                         )}
-                                        {pdfDocuments.length > 0 && (
-                                          <div className="quality-evidence-entry__pdf-grid">
-                                            {pdfDocuments.map((document) => (
-                                              <article key={`${document.url}-${document.documentIndex}`}>
-                                                <iframe
-                                                  src={displayPdfUrl(document.url)}
-                                                  title={`${item.title} ตัวอย่าง PDF หลักฐานที่ ${document.documentIndex + 1}`}
-                                                  loading="lazy"
-                                                  tabIndex="-1"
-                                                  aria-hidden="true"
-                                                />
-                                                <button
-                                                  type="button"
-                                                  onClick={() => setPdfViewer({
-                                                    url: document.url,
-                                                    title: `${item.title} · หลักฐานที่ ${document.documentIndex + 1}`,
-                                                  })}
-                                                  aria-label={`เปิดอ่าน PDF หลักฐานที่ ${document.documentIndex + 1}`}
-                                                >
-                                                  <span><FileText size={17} /> PDF หลักฐานที่ {document.documentIndex + 1}</span>
-                                                  <strong><BookOpenText size={16} /> เปิดอ่านในหน้าเว็บ</strong>
-                                                </button>
-                                              </article>
-                                            ))}
-                                          </div>
-                                        )}
-                                        <div className="quality-evidence-entry__links">
-                                          {documentUrls.map((url, index) => (
-                                            <a href={url} target="_blank" rel="noreferrer" key={`${url}-${index}`}>
-                                              หลักฐานที่ {index + 1} <ExternalLink size={14} />
-                                            </a>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    </article>
-                                  )
-                                })}
-                              </div>
-                            ) : (
-                              <div className="quality-evidence-empty">
-                                <FileText size={18} />
-                                <span>ยังไม่มีเอกสารหลักฐานที่เผยแพร่</span>
+                                      </article>
+                                    )
+                                  })}
+                                </div>
                               </div>
                             )}
                           </article>
