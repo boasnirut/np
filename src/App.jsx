@@ -1766,9 +1766,103 @@ function isEvidenceImage(url, mimeType = '') {
   }
 }
 
+function fittedEvidenceImageSize(stage, image) {
+  if (!stage || !image?.naturalWidth || !image?.naturalHeight) return null
+  const stageWidth = stage.clientWidth
+  const stageHeight = stage.clientHeight
+  const availableWidth = Math.max(120, stageWidth - 32)
+  const availableHeight = Math.max(120, stageHeight - 32)
+  const fitScale = Math.min(
+    availableWidth / image.naturalWidth,
+    availableHeight / image.naturalHeight,
+    1,
+  )
+  return {
+    width: Math.round(image.naturalWidth * fitScale),
+    height: Math.round(image.naturalHeight * fitScale),
+    stageWidth,
+    stageHeight,
+  }
+}
+
 function QualityImageViewer({ viewer, zoom, setZoom, onMove, onClose }) {
+  const stageRef = useRef(null)
+  const imageRef = useRef(null)
+  const dragRef = useRef(null)
+  const [fitSize, setFitSize] = useState(null)
+  const currentUrl = viewer ? viewer.images[viewer.index] : ''
+
+  useEffect(() => {
+    setFitSize(null)
+    if (!currentUrl) return undefined
+    const updateFit = () => {
+      const nextSize = fittedEvidenceImageSize(stageRef.current, imageRef.current)
+      if (nextSize) setFitSize(nextSize)
+    }
+    const frame = window.requestAnimationFrame(updateFit)
+    window.addEventListener('resize', updateFit)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', updateFit)
+    }
+  }, [currentUrl])
+
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage || !fitSize) return undefined
+    const frame = window.requestAnimationFrame(() => {
+      stage.scrollLeft = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2)
+      stage.scrollTop = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [currentUrl, fitSize, zoom])
+
   if (!viewer) return null
-  const currentUrl = viewer.images[viewer.index]
+  const imageWidth = fitSize ? Math.round(fitSize.width * zoom) : null
+  const imageHeight = fitSize ? Math.round(fitSize.height * zoom) : null
+  const canvasStyle = fitSize
+    ? {
+        width: `${Math.max(fitSize.stageWidth, imageWidth + 32)}px`,
+        height: `${Math.max(fitSize.stageHeight, imageHeight + 32)}px`,
+      }
+    : undefined
+  const imageStyle = fitSize
+    ? {
+        width: `${imageWidth}px`,
+        height: `${imageHeight}px`,
+        maxWidth: 'none',
+        maxHeight: 'none',
+      }
+    : undefined
+  const startPan = (event) => {
+    if (zoom <= 1 || event.pointerType !== 'mouse' || event.target.closest('button')) return
+    const stage = stageRef.current
+    if (!stage) return
+    dragRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      left: stage.scrollLeft,
+      top: stage.scrollTop,
+    }
+    stage.setPointerCapture(event.pointerId)
+    stage.classList.add('is-panning')
+    event.preventDefault()
+  }
+  const movePan = (event) => {
+    const drag = dragRef.current
+    const stage = stageRef.current
+    if (!drag || !stage || drag.pointerId !== event.pointerId) return
+    stage.scrollLeft = drag.left - (event.clientX - drag.x)
+    stage.scrollTop = drag.top - (event.clientY - drag.y)
+  }
+  const stopPan = (event) => {
+    const stage = stageRef.current
+    if (!dragRef.current || !stage) return
+    if (stage.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId)
+    dragRef.current = null
+    stage.classList.remove('is-panning')
+  }
   return (
     <div className="quality-image-viewer" role="presentation" onMouseDown={onClose}>
       <section
@@ -1790,15 +1884,32 @@ function QualityImageViewer({ viewer, zoom, setZoom, onMove, onClose }) {
             <button className="is-close" type="button" onClick={onClose} aria-label="ปิดภาพขนาดเต็ม"><X size={21} /></button>
           </div>
         </header>
-        <div className={`quality-image-viewer__stage ${zoom > 1 ? 'is-zoomed' : ''}`}>
+        <div
+          ref={stageRef}
+          className={`quality-image-viewer__stage ${zoom > 1 ? 'is-zoomed' : ''}`}
+          onPointerDown={startPan}
+          onPointerMove={movePan}
+          onPointerUp={stopPan}
+          onPointerCancel={stopPan}
+        >
           {viewer.images.length > 1 && (
             <button className="quality-image-viewer__nav is-previous" type="button" onClick={() => onMove(-1)} aria-label="ภาพก่อนหน้า"><ChevronLeft size={27} /></button>
           )}
           <div
             className="quality-image-viewer__canvas"
-            style={zoom > 1 ? { width: `${zoom * 100}%`, height: `${zoom * 100}%` } : undefined}
+            style={canvasStyle}
           >
-            <img src={displayImageUrl(currentUrl)} alt={`${viewer.title} ภาพที่ ${viewer.index + 1}`} style={{ transform: `scale(${zoom})` }} />
+            <img
+              ref={imageRef}
+              src={displayImageUrl(currentUrl)}
+              alt={`${viewer.title} ภาพที่ ${viewer.index + 1}`}
+              style={imageStyle}
+              draggable="false"
+              onLoad={(event) => {
+                const nextSize = fittedEvidenceImageSize(stageRef.current, event.currentTarget)
+                if (nextSize) setFitSize(nextSize)
+              }}
+            />
           </div>
           {viewer.images.length > 1 && (
             <button className="quality-image-viewer__nav is-next" type="button" onClick={() => onMove(1)} aria-label="ภาพถัดไป"><ChevronRight size={27} /></button>

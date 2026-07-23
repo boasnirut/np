@@ -5649,6 +5649,8 @@ body.welcome-open {
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+  touch-action: pan-x pan-y;
   background:
     radial-gradient(circle at 50% 45%, rgba(43, 78, 117, 0.45), transparent 50%),
     #03101f;
@@ -5658,21 +5660,27 @@ body.welcome-open {
   cursor: grab;
 }
 
+.quality-image-viewer__stage.is-panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
 .quality-image-viewer__canvas {
-  display: grid;
+  display: flex;
+  box-sizing: border-box;
   min-width: 100%;
   min-height: 100%;
-  padding: 40px 70px;
-  place-items: center;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
 }
 
 .quality-image-viewer__canvas > img {
   display: block;
-  max-width: 100%;
+  max-width: calc(100vw - 100px);
   max-height: calc(100vh - 190px);
   object-fit: contain;
-  transform-origin: center;
-  transition: transform 0.18s ease;
+  transition: width 0.18s ease, height 0.18s ease;
   user-select: none;
 }
 
