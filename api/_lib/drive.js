@@ -167,6 +167,13 @@ async function oauthFolderId(token) {
   return cachedOAuthFolderId
 }
 
+async function uploadFolderId(token) {
+  const configuredFolderId = String(process.env.GOOGLE_DRIVE_FOLDER_ID || '').trim()
+  if (configuredFolderId) return configuredFolderId
+  if (oauthConfigured()) return oauthFolderId(token)
+  throw new GoogleDriveConfigError()
+}
+
 function safeName(name, fallbackExtension = '') {
   const clean = String(name || '')
     .normalize('NFC')
@@ -220,9 +227,7 @@ export async function createResumableDriveUpload({
   uploader,
 }) {
   const token = await accessToken()
-  const parentId = oauthConfigured()
-    ? await oauthFolderId(token)
-    : process.env.GOOGLE_DRIVE_FOLDER_ID
+  const parentId = await uploadFolderId(token)
   const metadata = {
     name: `${category}-${safeName(name)}`,
     parents: [parentId],
@@ -288,9 +293,7 @@ export async function uploadToDrive({
   }
 
   const token = await accessToken()
-  const parentId = oauthConfigured()
-    ? await oauthFolderId(token)
-    : process.env.GOOGLE_DRIVE_FOLDER_ID
+  const parentId = await uploadFolderId(token)
   const boundary = `codex_drive_${Date.now()}_${Math.random().toString(16).slice(2)}`
   const fileName = safeName(name)
   const metadata = {
