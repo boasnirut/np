@@ -1,5 +1,5 @@
 id,placement,title,alt_text,image_url,display_order,status,author,created_at,updated_at,updated_by
-welcome-default-1,welcome,ภาพต้อนรับ 1,สถิตกลางใจปวงประชา สมเด็จพระเจ้าลูกเธอ เจ้าฟ้าพัชรกิติยาภา,/P10.jpg,2,published,system,2026-07-25T00:00:00.000Z,2026-07-25T12:47:46.710Z,boasnirut
+welcome-default-1,welcome,ภาพต้อนรับ 1,สถิตกลางใจปวงประชา สมเด็จพระเจ้าลูกเธอ เจ้าฟ้าพัชรกิติยาภา,/P10.jpg,2,draft,system,2026-07-25T00:00:00.000Z,2026-07-25T12:48:48.524Z,boasnirut
 welcome-default-2,welcome,ภาพต้อนรับ 2,สถิตในดวงใจตราบนิจนิรันดร์ สมเด็จพระนางเจ้าสิริกิติ์ พระบรมราชินีนาถ,/Q9.jpg,3,published,system,2026-07-25T00:00:00.000Z,2026-07-25T12:47:16.311Z,boasnirut
 billboard-default-1,billboard,Billboard 1,ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 1,/B1.jpg,1,published,system,2026-07-25T00:00:00.000Z,2026-07-25T00:00:00.000Z,
 billboard-default-2,billboard,Billboard 2,ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 2,/B2.jpg,2,published,system,2026-07-25T00:00:00.000Z,2026-07-25T00:00:00.000Z,
