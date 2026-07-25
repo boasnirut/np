@@ -1,6 +1,6 @@
 id,staff_type,name,position,image_url,website_url,display_order,status,author,created_at,updated_at,updated_by
 staff-01,director,นางศิวาลัย แก้วเขียว,ผู้อำนวยการโรงเรียนบ้านน้ำพร,/TC01.png,https://sites.google.com/view/e-portfolio-siwalai-kaewkheaw/Home,1,published,system,2026-07-25T00:00:00.000Z,2026-07-25T09:45:23.841Z,boasnirut
-staff-02,teacher,นางรัตนา อ่ำนาเพียง,ครู โรงเรียนบ้านน้ำพร,/TC02.png,,1,published,system,2026-07-25T00:00:00.000Z,2026-07-25T00:00:00.000Z,
+staff-02,teacher,นางรัตนา อ่ำนาเพียง,ครู โรงเรียนบ้านน้ำพร,/TC02.png,https://sites.google.com/view/krurattana-website,1,published,system,2026-07-25T00:00:00.000Z,2026-07-25T09:45:40.553Z,boasnirut
 staff-03,teacher,นางสาววันชื่น ทองอยู่,ครู โรงเรียนบ้านน้ำพร,/TC03.png,,2,published,system,2026-07-25T00:00:00.000Z,2026-07-25T00:00:00.000Z,
 staff-04,teacher,นางสาวพรพรรณ จันทะสี,ครู โรงเรียนบ้านน้ำพร,/TC04.png,,3,published,system,2026-07-25T00:00:00.000Z,2026-07-25T00:00:00.000Z,
 staff-05,teacher,นางสุจิตรา ฝั้นสีดา,ครู โรงเรียนบ้านน้ำพร,/TC06.png,,4,published,system,2026-07-25T00:00:00.000Z,2026-07-25T00:00:00.000Z,
