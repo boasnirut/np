@@ -24,6 +24,7 @@ const categories = {
   'school-document': { permission: 'documents', types: new Set(['application/pdf']) },
   'school-attachment': { permission: 'documents', anyType: true },
   'quality-evidence': { permission: 'quality', anyType: true },
+  'sar-pdf': { permission: 'sar', types: new Set(['application/pdf']) },
   'site-slide-image': { permission: 'slides', image: true, types: imageTypes },
   'staff-image': { permission: 'staff', image: true, types: imageTypes },
 }

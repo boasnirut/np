@@ -22,6 +22,7 @@ export default async function handler(request, response) {
       questionsFile,
       siteSlidesFile,
       staffFile,
+      sarFile,
     ] = await Promise.all([
       readRepoFile('data/news.csv'),
       readRepoFile('data/events.csv'),
@@ -32,6 +33,7 @@ export default async function handler(request, response) {
       readRepoFile('data/questions.csv'),
       readRepoFile('data/site-slides.csv'),
       readRepoFile('data/staff.csv'),
+      readRepoFile('data/sar.csv'),
     ])
     const published = (rows) => rows.filter((item) => item.status === 'published')
     const siteSlides = parseCsv(siteSlidesFile.content)
@@ -101,6 +103,7 @@ export default async function handler(request, response) {
         display_order: item.display_order,
       })),
       staffConfigured: true,
+      sarDocuments: sortByDisplayOrder(published(parseCsv(sarFile.content))),
     }
     response.statusCode = 200
     response.setHeader('Content-Type', 'application/json; charset=utf-8')

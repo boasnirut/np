@@ -300,6 +300,7 @@ const permissionOptions = [
   { id: 'awards', label: 'ผลงานและรางวัล', icon: Trophy },
   { id: 'newsletters', label: 'จดหมายข่าวประชาสัมพันธ์', icon: GalleryHorizontalEnd },
   { id: 'quality', label: 'งานประกันคุณภาพ (สมศ.)', icon: ShieldCheck },
+  { id: 'sar', label: 'SAR สถานศึกษา', icon: FileText },
   { id: 'documents', label: 'เอกสารและแบบคำร้อง', icon: Download },
   { id: 'qa', label: 'ถาม-ตอบ (Q&A)', icon: HelpCircle },
   { id: 'complaints', label: 'เรื่องร้องเรียน', icon: MessageSquareWarning },
@@ -324,12 +325,22 @@ const modules = {
       publish_date: '',
       summary: '',
       content: '',
+      video_url: '',
       display_order: '',
       status: 'published',
     },
     fields: [
       { name: 'title', label: 'หัวข้อข่าว', wide: true, required: true, placeholder: 'กรอกหัวข้อข่าวหรือประกาศ' },
-      { name: 'category', label: 'หมวดหมู่', type: 'select', options: ['กิจกรรม', 'ประชาสัมพันธ์', 'ประกาศ'] },
+      { name: 'category', label: 'หมวดหมู่', type: 'select', options: ['กิจกรรม', 'ประชาสัมพันธ์', 'ประกาศ', 'วิดีโอประชาสัมพันธ์'] },
+      {
+        name: 'video_url',
+        label: 'ลิงก์วิดีโอ YouTube หรือ Google Drive',
+        type: 'url',
+        wide: true,
+        required: true,
+        showWhen: (form) => form.category === 'วิดีโอประชาสัมพันธ์',
+        placeholder: 'https://www.youtube.com/watch?v=... หรือ https://drive.google.com/file/d/...',
+      },
       { name: 'publish_date', label: 'วันที่เผยแพร่', type: 'date', required: true },
       { name: 'status', label: 'สถานะ', type: 'status' },
       { name: 'summary', label: 'ข้อความสรุป', type: 'textarea', wide: true, rows: 2, placeholder: 'ข้อความสั้นสำหรับสรุปเนื้อหา' },
@@ -423,6 +434,39 @@ const modules = {
     meta: () => 'จดหมายข่าวประชาสัมพันธ์',
     date: (item) => item.publish_date || item.created_at,
     title: (item) => item.issue_number,
+  },
+  sar: {
+    endpoint: '/api/services?resource=sar',
+    responseKey: 'sarDocument',
+    listKey: 'sarDocuments',
+    label: 'รายงาน SAR',
+    eyebrow: 'SELF ASSESSMENT REPORT',
+    icon: FileText,
+    attachmentUploadCategory: 'sar-pdf',
+    attachmentAccept: 'application/pdf,.pdf',
+    attachmentRequired: true,
+    maxAttachments: 1,
+    attachmentLabel: 'ลิงก์ไฟล์รายงาน SAR (PDF)',
+    attachmentHint: 'รองรับลิงก์ไฟล์ PDF จาก Google Drive หรือลิงก์ PDF แบบ https',
+    uploadLabel: 'อัปโหลดไฟล์รายงาน SAR',
+    uploadHint: 'รองรับไฟล์ PDF 1 ไฟล์ ขนาดไม่เกิน 100 MB',
+    defaults: {
+      title: '',
+      academic_year: '',
+      description: '',
+      display_order: '',
+      status: 'published',
+    },
+    fields: [
+      { name: 'title', label: 'ชื่อรายงาน', wide: true, required: true, placeholder: 'เช่น รายงานการประเมินตนเองของสถานศึกษา ปีการศึกษา 2569' },
+      { name: 'academic_year', label: 'ปีการศึกษา', required: true, placeholder: 'เช่น 2569' },
+      { name: 'display_order', label: 'ลำดับการแสดง (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบเรียงต่ออัตโนมัติ' },
+      { name: 'description', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 4, placeholder: 'สรุปรายละเอียดของรายงาน SAR' },
+      { name: 'status', label: 'สถานะ', type: 'status' },
+    ],
+    meta: (item) => `ปีการศึกษา ${item.academic_year} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
+    date: (item) => item.updated_at || item.created_at,
+    title: (item) => item.title,
   },
   documents: {
     endpoint: '/api/services?resource=documents',
@@ -640,6 +684,8 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
   const [submitting, setSubmitting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [message, setMessage] = useState(null)
+  const maxAttachments = config.maxAttachments || 5
+  const isNewsVideo = type === 'news' && form.category === 'วิดีโอประชาสัมพันธ์'
 
   useEffect(() => {
     setForm(config.defaults)
@@ -653,7 +699,14 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
   }, [config])
 
   const update = (event) => {
-    setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+    const { name, value } = event.target
+    setForm((current) => ({ ...current, [name]: value }))
+    if (type === 'news' && name === 'category' && value === 'วิดีโอประชาสัมพันธ์') {
+      setImage(null)
+      setPreview('')
+      setAttachmentFiles([])
+      setAttachmentUrls([''])
+    }
     setMessage(null)
   }
 
@@ -680,7 +733,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setAttachmentFiles([])
     const itemUrls = recordAttachmentUrls(item)
     setAttachmentUrls(itemUrls.length ? itemUrls : [''])
-    setPreview(displayImageUrl(item.image_url))
+    setPreview(item.category === 'วิดีโอประชาสัมพันธ์' ? '' : displayImageUrl(item.image_url))
     setMessage(null)
     setUploadProgress(0)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -695,7 +748,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
 
   const addAttachmentUrl = () => {
     setAttachmentUrls((current) => (
-      current.length + attachmentFiles.length >= 5 ? current : [...current, '']
+      current.length + attachmentFiles.length >= maxAttachments ? current : [...current, '']
     ))
     setMessage(null)
   }
@@ -713,9 +766,9 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     event.target.value = ''
     if (!selectedFiles.length) return
     const linkCount = attachmentUrls.filter((url) => url.trim()).length
-    const availableSlots = Math.max(0, 5 - linkCount - attachmentFiles.length)
+    const availableSlots = Math.max(0, maxAttachments - linkCount - attachmentFiles.length)
     if (selectedFiles.length > availableSlots) {
-      setMessage({ type: 'error', text: `เลือกเพิ่มได้อีกไม่เกิน ${availableSlots} ไฟล์ โดยนับรวมลิงก์และไฟล์สูงสุด 5 รายการ` })
+      setMessage({ type: 'error', text: `เลือกเพิ่มได้อีกไม่เกิน ${availableSlots} ไฟล์ โดยนับรวมลิงก์และไฟล์สูงสุด ${maxAttachments} รายการ` })
       return
     }
     const oversizedFile = selectedFiles.find((selectedFile) => (
@@ -736,14 +789,14 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
 
   const submit = async (event) => {
     event.preventDefault()
-    const cleanUrls = config.attachments === false
+    const cleanUrls = config.attachments === false || isNewsVideo
       ? []
       : attachmentUrls.filter((url) => url.trim())
-    if (cleanUrls.length + attachmentFiles.length > 5) {
-      setMessage({ type: 'error', text: 'แนบไฟล์หรือลิงก์ได้รวมไม่เกิน 5 รายการ' })
+    if (cleanUrls.length + attachmentFiles.length > maxAttachments) {
+      setMessage({ type: 'error', text: `แนบไฟล์หรือลิงก์ได้รวมไม่เกิน ${maxAttachments} รายการ` })
       return
     }
-    if (type === 'documents' && cleanUrls.length + attachmentFiles.length === 0) {
+    if (config.attachmentRequired && cleanUrls.length + attachmentFiles.length === 0) {
       setMessage({ type: 'error', text: 'กรุณาแนบไฟล์หรือกรอกลิงก์เอกสารอย่างน้อย 1 รายการ' })
       return
     }
@@ -751,11 +804,15 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setUploadProgress(0)
     setMessage(null)
     try {
-      const uploadedImage = image
+      const uploadedImage = image && !isNewsVideo
         ? await uploadFileToDrive(image, config.imageUploadCategory, setUploadProgress)
         : null
       const uploadedAttachments = []
-      for (let index = 0; config.attachments !== false && index < attachmentFiles.length; index += 1) {
+      for (
+        let index = 0;
+        config.attachments !== false && !isNewsVideo && index < attachmentFiles.length;
+        index += 1
+      ) {
         const uploadedFile = await uploadFileToDrive(
           attachmentFiles[index],
           config.attachmentUploadCategory,
@@ -818,7 +875,9 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
           {editingId ? <button className="admin-icon-button" type="button" onClick={reset} aria-label="ยกเลิกแก้ไข"><X size={21} /></button> : <Icon size={28} />}
         </div>
         <div className="news-editor__grid">
-          {config.fields.filter((field) => !field.adminOnly || isAdmin).map((field) => (
+          {config.fields.filter((field) => (
+            (!field.adminOnly || isAdmin) && (!field.showWhen || field.showWhen(form))
+          )).map((field) => (
             <label className={`news-field ${field.wide ? 'news-field--wide' : ''}`} key={field.name}>
               <span>{field.label}</span>
               {field.type === 'textarea' ? (
@@ -856,7 +915,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
             </label>
           ))}
         </div>
-        {config.image && (
+        {config.image && !isNewsVideo && (
           <label className={`image-uploader ${config.imageClass || ''} ${preview ? 'image-uploader--selected' : ''}`}>
             {preview ? <img src={preview} alt="ตัวอย่างรูปภาพ" /> : (
               <><span><FileImage size={27} /></span><strong>เลือกรูปภาพ</strong><small>{config.imageHint || 'JPG, PNG หรือ WebP ขนาดไม่เกิน 100 MB'}</small></>
@@ -869,15 +928,15 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
             />
           </label>
         )}
-        {config.attachments !== false && (
+        {config.attachments !== false && !isNewsVideo && (
           <>
             <div className="news-field quality-link-fields record-attachment-links">
               <div className="quality-link-fields__heading">
-                <span>ลิงก์ไฟล์แนบ</span>
+                <span>{config.attachmentLabel || 'ลิงก์ไฟล์แนบ'}</span>
                 <button
                   type="button"
                   onClick={addAttachmentUrl}
-                  disabled={attachmentUrls.length + attachmentFiles.length >= 5}
+                  disabled={attachmentUrls.length + attachmentFiles.length >= maxAttachments}
                 >
                   <Plus size={16} /> เพิ่มลิงก์
                 </button>
@@ -898,18 +957,19 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
                   )}
                 </div>
               ))}
-              <small>รองรับลิงก์ https ทุกประเภท โดยนับรวมกับไฟล์ที่อัปโหลดไม่เกิน 5 รายการ</small>
+              <small>{config.attachmentHint || `รองรับลิงก์ https ทุกประเภท โดยนับรวมกับไฟล์ที่อัปโหลดไม่เกิน ${maxAttachments} รายการ`}</small>
             </div>
 
             <label className={`quality-file-uploader ${attachmentFiles.length ? 'is-selected' : ''}`}>
                 <span><FileText size={27} /></span>
                 <div>
-                  <strong>{attachmentFiles.length ? `เลือกแล้ว ${attachmentFiles.length} ไฟล์` : 'อัปโหลดไฟล์แนบ'}</strong>
-                  <small>เลือกได้สูงสุด 5 ไฟล์ รองรับไฟล์ทุกประเภท ไฟล์ละไม่เกิน 100 MB และนับรวมกับลิงก์ด้านบน</small>
+                  <strong>{attachmentFiles.length ? `เลือกแล้ว ${attachmentFiles.length} ไฟล์` : (config.uploadLabel || 'อัปโหลดไฟล์แนบ')}</strong>
+                  <small>{config.uploadHint || `เลือกได้สูงสุด ${maxAttachments} ไฟล์ รองรับไฟล์ทุกประเภท ไฟล์ละไม่เกิน 100 MB และนับรวมกับลิงก์ด้านบน`}</small>
                 </div>
                 <input
                   type="file"
-                  multiple
+                  accept={config.attachmentAccept}
+                  multiple={maxAttachments > 1}
                   onChange={selectAttachmentFiles}
                 />
             </label>
@@ -2021,6 +2081,7 @@ function Dashboard() {
   const [awards, setAwards] = useState([])
   const [newsletters, setNewsletters] = useState([])
   const [qualityEvidence, setQualityEvidence] = useState([])
+  const [sarDocuments, setSarDocuments] = useState([])
   const [documents, setDocuments] = useState([])
   const [questions, setQuestions] = useState([])
   const [complaints, setComplaints] = useState([])
@@ -2047,6 +2108,7 @@ function Dashboard() {
           canManage('awards') ? apiRequest('/api/awards') : Promise.resolve({ awards: [] }),
           canManage('newsletters') ? apiRequest('/api/newsletters') : Promise.resolve({ newsletters: [] }),
           canManage('quality') ? apiRequest('/api/quality-evidence') : Promise.resolve({ evidence: [] }),
+          canManage('sar') ? apiRequest('/api/services?resource=sar') : Promise.resolve({ sarDocuments: [] }),
           canManage('documents') ? apiRequest('/api/services?resource=documents') : Promise.resolve({ documents: [] }),
           canManage('qa') ? apiRequest('/api/services?resource=questions') : Promise.resolve({ questions: [] }),
           canManage('complaints') ? apiRequest('/api/services?resource=complaints') : Promise.resolve({ complaints: [] }),
@@ -2060,6 +2122,7 @@ function Dashboard() {
           awardData,
           newsletterData,
           qualityData,
+          sarData,
           documentData,
           questionData,
           complaintData,
@@ -2073,6 +2136,7 @@ function Dashboard() {
         setAwards(sortRecords(awardData.awards || []))
         setNewsletters(sortRecords(newsletterData.newsletters || []))
         setQualityEvidence(sortRecords(qualityData.evidence || []))
+        setSarDocuments(sortRecords(sarData.sarDocuments || []))
         setDocuments(sortRecords(documentData.documents || []))
         setQuestions(sortRecords(questionData.questions || []))
         setComplaints(sortRecords(complaintData.complaints || []))
@@ -2095,13 +2159,14 @@ function Dashboard() {
     awards: awards.length,
     newsletters: newsletters.length,
     quality: qualityEvidence.length,
+    sar: sarDocuments.length,
     documents: documents.length,
     questions: questions.filter((item) => !item.answer).length,
     complaints: complaints.filter((item) => item.status !== 'resolved').length,
     slides: siteSlides.filter((item) => item.status === 'published').length,
     staff: staff.filter((item) => item.status === 'published').length,
     pending: members.filter((member) => member.status === 'pending').length,
-  }), [news, events, awards, newsletters, qualityEvidence, documents, questions, complaints, siteSlides, staff, members])
+  }), [news, events, awards, newsletters, qualityEvidence, sarDocuments, documents, questions, complaints, siteSlides, staff, members])
 
   const logout = async () => {
     await apiRequest('/api/auth/logout', { method: 'POST', body: '{}' }).catch(() => undefined)
@@ -2120,6 +2185,7 @@ function Dashboard() {
     { id: 'awards', label: 'ผลงานและรางวัล', icon: Trophy },
     { id: 'newsletters', label: 'จดหมายข่าว', icon: GalleryHorizontalEnd },
     { id: 'quality', label: 'งานประกันคุณภาพ (สมศ.)', icon: ShieldCheck },
+    { id: 'sar', label: 'SAR สถานศึกษา', icon: FileText },
     { id: 'documents', label: 'เอกสารและแบบคำร้อง', icon: Download },
     { id: 'qa', label: `ถาม-ตอบ${stats.questions ? ` (${stats.questions})` : ''}`, icon: HelpCircle },
     { id: 'complaints', label: `เรื่องร้องเรียน${stats.complaints ? ` (${stats.complaints})` : ''}`, icon: MessageSquareWarning },
@@ -2186,6 +2252,7 @@ function Dashboard() {
           <article><span><Trophy size={22} /></span><div><small>ผลงานและรางวัล</small><strong>{stats.awards}</strong></div></article>
           <article><span><GalleryHorizontalEnd size={22} /></span><div><small>จดหมายข่าว</small><strong>{stats.newsletters}</strong></div></article>
           <article><span><ShieldCheck size={22} /></span><div><small>หลักฐาน สมศ.</small><strong>{stats.quality}</strong></div></article>
+          <article><span><FileText size={22} /></span><div><small>รายงาน SAR</small><strong>{stats.sar}</strong></div></article>
           <article><span><Download size={22} /></span><div><small>เอกสาร</small><strong>{stats.documents}</strong></div></article>
           <article><span><HelpCircle size={22} /></span><div><small>คำถามรอตอบ</small><strong>{stats.questions}</strong></div></article>
           <article><span><MessageSquareWarning size={22} /></span><div><small>เรื่องที่กำลังดำเนินการ</small><strong>{stats.complaints}</strong></div></article>
@@ -2221,6 +2288,8 @@ function Dashboard() {
             isAdmin={isAdmin}
             githubConfigured={session.githubConfigured}
           />
+        ) : activeModule === 'sar' ? (
+          <RecordManager type="sar" items={sarDocuments} setItems={setSarDocuments} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'documents' ? (
           <RecordManager type="documents" items={documents} setItems={setDocuments} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'qa' ? (

@@ -34,6 +34,7 @@ export const navItems = [
         external: true,
       },
       { label: 'ITA Online', href: '/operations/ita' },
+      { label: 'SAR สถานศึกษา', href: '/operations/sar' },
     ],
   },
   {
@@ -43,6 +44,7 @@ export const navItems = [
       { label: 'ประชาสัมพันธ์', href: '/news/public-relations' },
       { label: 'ประกาศ', href: '/news/announcements' },
       { label: 'จดหมายข่าว', href: '/news/newsletters' },
+      { label: 'วิดีโอประชาสัมพันธ์', href: '/news/videos' },
     ],
   },
   {

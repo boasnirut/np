@@ -29,6 +29,7 @@ import {
   MessageSquareWarning,
   Newspaper,
   Phone,
+  Play,
   Plus,
   Quote,
   RotateCcw,
@@ -66,6 +67,32 @@ const defaultBillboardSlides = [
   { src: '/B3.jpg', alt: 'ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 3' },
   { src: '/B4.jpg', alt: 'ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 4' },
 ]
+
+function videoEmbedUrl(value) {
+  const source = String(value || '').trim()
+  if (!source) return ''
+  try {
+    const url = new URL(source)
+    const host = url.hostname.toLowerCase().replace(/^www\./, '')
+    if (host === 'youtu.be') {
+      const videoId = url.pathname.split('/').filter(Boolean)[0]
+      return videoId ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}` : ''
+    }
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      const videoId = url.searchParams.get('v')
+        || url.pathname.match(/^\/(?:embed|shorts|live)\/([^/]+)/)?.[1]
+      return videoId ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}` : ''
+    }
+    if (host === 'drive.google.com') {
+      const fileId = url.searchParams.get('id')
+        || url.pathname.match(/\/file\/d\/([^/]+)/)?.[1]
+      return fileId ? `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/preview` : ''
+    }
+    return ''
+  } catch {
+    return ''
+  }
+}
 
 function contentAttachmentUrls(item) {
   return [...new Set([
@@ -680,12 +707,16 @@ function News({
         : newsItems,
     [liveNews],
   )
+  const regularNews = useMemo(
+    () => sourceNews.filter((item) => item.category !== 'วิดีโอประชาสัมพันธ์'),
+    [sourceNews],
+  )
   const filteredNews = useMemo(
     () =>
       activeCategory === 'ทั้งหมด'
-        ? sourceNews
-        : sourceNews.filter((item) => item.category === activeCategory),
-    [activeCategory, sourceNews],
+        ? regularNews
+        : regularNews.filter((item) => item.category === activeCategory),
+    [activeCategory, regularNews],
   )
   const pageSize = 6
   const totalPages = Math.max(1, Math.ceil(filteredNews.length / pageSize))
@@ -895,6 +926,77 @@ function Newsletters({ newsletters = [], paginate = true }) {
             <span><Newspaper size={38} /></span>
             <strong>พื้นที่รวบรวมจดหมายข่าวประชาสัมพันธ์</strong>
             <p>จดหมายข่าวที่เผยแพร่จากระบบบริหารจะแสดงในส่วนนี้</p>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function PublicVideos({ news = [], compact = false }) {
+  const videos = useMemo(
+    () => news
+      .filter((item) => item.category === 'วิดีโอประชาสัมพันธ์')
+      .map((item) => ({ ...item, embedUrl: videoEmbedUrl(item.video_url) }))
+      .filter((item) => item.embedUrl),
+    [news],
+  )
+  const displayedVideos = compact ? videos.slice(0, 3) : videos
+
+  return (
+    <section className="section public-videos" id="public-videos">
+      <div className="container">
+        <SectionHeading
+          eyebrow="วิดีโอประชาสัมพันธ์"
+          title="รับชมเรื่องราวของโรงเรียน"
+          description="กิจกรรม ข่าวสาร และบรรยากาศการเรียนรู้จากโรงเรียนบ้านน้ำพร รับชมได้โดยตรงบนเว็บไซต์"
+          align="center"
+        />
+        {displayedVideos.length ? (
+          <>
+            <div className="public-videos__grid">
+              {displayedVideos.map((item) => (
+                <article className="public-video-card" key={item.id}>
+                  <div className="public-video-card__player">
+                    <iframe
+                      src={item.embedUrl}
+                      title={item.title}
+                      loading="lazy"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
+                  </div>
+                  <div className="public-video-card__body">
+                    <span><Play size={15} fill="currentColor" /> วิดีโอประชาสัมพันธ์</span>
+                    <h3>{item.title}</h3>
+                    {item.summary && <p>{item.summary}</p>}
+                    {item.publish_date && (
+                      <small>
+                        เผยแพร่ {new Date(`${item.publish_date}T00:00:00`).toLocaleDateString('th-TH', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </small>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+            {compact && videos.length > displayedVideos.length && (
+              <div className="section-action">
+                <a className="button button--navy" href="/news/videos">
+                  ดูวิดีโอทั้งหมด <ArrowRight size={17} />
+                </a>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="content-empty">
+            <span><Play size={34} /></span>
+            <strong>พื้นที่วิดีโอประชาสัมพันธ์</strong>
+            <p>วิดีโอจาก YouTube หรือ Google Drive ที่เผยแพร่ผ่านระบบบริหารจะแสดงที่นี่</p>
           </div>
         )}
       </div>
@@ -2369,12 +2471,13 @@ function QualityAssurancePage({ evidence = [] }) {
 
 function HomeOperations() {
   const operationMenu = navItems.find((item) => item.label === 'การดำเนินงาน')
-  const icons = [GraduationCap, ShieldCheck, School, ClipboardCheck]
+  const icons = [GraduationCap, ShieldCheck, School, ClipboardCheck, FileText]
   const descriptions = [
     'ข้อมูลการสอบ RT, NT และ O-NET',
     'ข้อมูลการประเมินคุณภาพภายนอก',
     'การพัฒนาโรงเรียนขยายโอกาสคุณภาพ',
     'คุณธรรมและความโปร่งใสในการดำเนินงาน',
+    'รายงานการประเมินตนเองของสถานศึกษา',
   ]
 
   return (
@@ -2403,6 +2506,62 @@ function HomeOperations() {
             )
           })}
         </div>
+      </div>
+    </section>
+  )
+}
+
+function SarDocuments({ documents = [], compact = false }) {
+  const displayedDocuments = compact ? documents.slice(0, 3) : documents
+
+  return (
+    <section className="section sar-section" id="sar">
+      <div className="container">
+        <SectionHeading
+          eyebrow="SAR สถานศึกษา"
+          title="รายงานการประเมินตนเองของสถานศึกษา"
+          description="รวบรวมรายงานผลการดำเนินงานและการประกันคุณภาพภายในของโรงเรียนบ้านน้ำพรในแต่ละปีการศึกษา"
+          align="center"
+        />
+        {displayedDocuments.length ? (
+          <>
+            <div className="sar-grid">
+              {displayedDocuments.map((item) => (
+                <article className="sar-card" key={item.id}>
+                  <div className="sar-card__preview">
+                    <iframe
+                      src={displayPdfUrl(item.document_url)}
+                      title={`ตัวอย่าง ${item.title}`}
+                      loading="lazy"
+                    />
+                    <span><FileText size={19} /> PDF</span>
+                  </div>
+                  <div className="sar-card__body">
+                    <small>ปีการศึกษา {item.academic_year}</small>
+                    <h3>{item.title}</h3>
+                    {item.description && <p>{item.description}</p>}
+                    <a href={item.document_url} target="_blank" rel="noreferrer">
+                      เปิดอ่านรายงาน <ExternalLink size={16} />
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+            {compact && documents.length > displayedDocuments.length && (
+              <div className="section-action">
+                <a className="button button--navy" href="/operations/sar">
+                  ดูรายงาน SAR ทั้งหมด <ArrowRight size={17} />
+                </a>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="content-empty">
+            <span><FileText size={34} /></span>
+            <strong>พื้นที่รายงาน SAR สถานศึกษา</strong>
+            <p>รายงาน PDF ที่เผยแพร่จากระบบบริหารจะแสดงในส่วนนี้โดยอัตโนมัติ</p>
+          </div>
+        )}
       </div>
     </section>
   )
@@ -2857,6 +3016,19 @@ function PublicSubPage({ path, publicContent }) {
     return <QualityAssurancePage evidence={publicContent.qualityEvidence} />
   }
   if (path === '/operations/ita') return <OperationPage type="ita" />
+  if (path === '/operations/sar') {
+    return (
+      <>
+        <PageHero
+          eyebrow="การดำเนินงาน"
+          title="SAR สถานศึกษา"
+          description="รายงานการประเมินตนเองของโรงเรียนบ้านน้ำพร"
+          icon={FileText}
+        />
+        <SarDocuments documents={publicContent.sarDocuments} />
+      </>
+    )
+  }
   if (path === '/about/basic-info') {
     return <><PageHero eyebrow="เกี่ยวกับโรงเรียน" title="ข้อมูลพื้นฐาน" description="ข้อมูลสำคัญและภาพรวมของโรงเรียนบ้านน้ำพร" icon={Building2} /><BasicInfoPage /></>
   }
@@ -2880,6 +3052,9 @@ function PublicSubPage({ path, publicContent }) {
   }
   if (path === '/news/newsletters') {
     return <><PageHero eyebrow="ข่าวสาร" title="จดหมายข่าว" description="จดหมายข่าวประชาสัมพันธ์และสรุปกิจกรรมของโรงเรียน" icon={Images} /><Newsletters newsletters={publicContent.newsletters} paginate={false} /></>
+  }
+  if (path === '/news/videos') {
+    return <><PageHero eyebrow="ข่าวสาร" title="วิดีโอประชาสัมพันธ์" description="รับชมกิจกรรมและเรื่องราวของโรงเรียนได้โดยตรงบนเว็บไซต์" icon={Play} /><PublicVideos news={publicContent.news} /></>
   }
   if (path === '/services/results') return <ServiceInfoPage type="results" />
   if (path === '/services/downloads') return <DocumentsPage documents={publicContent.documents} />
@@ -3229,6 +3404,7 @@ function App() {
     siteSlidePlacements: [],
     staff: [],
     staffConfigured: false,
+    sarDocuments: [],
   })
 
   useEffect(() => {
@@ -3258,6 +3434,7 @@ function App() {
             siteSlidePlacements: data.siteSlidePlacements || [],
             staff: data.staff || [],
             staffConfigured: data.staffConfigured === true,
+            sarDocuments: data.sarDocuments || [],
           })
         }
       })
@@ -3327,8 +3504,10 @@ function App() {
           <About />
           <Achievements awards={publicContent.awards} />
           <HomeOperations />
+          <SarDocuments documents={publicContent.sarDocuments} compact />
           <News liveNews={publicContent.news} />
           <Newsletters newsletters={publicContent.newsletters} />
+          <PublicVideos news={publicContent.news} compact />
           <Activities liveEvents={publicContent.events} />
           <Services />
           <DirectorMessage />

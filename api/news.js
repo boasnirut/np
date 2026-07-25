@@ -42,6 +42,7 @@ const headers = [
   'document_url_3',
   'document_url_4',
   'document_url_5',
+  'video_url',
 ]
 const allowedImageTypes = {
   'image/jpeg': 'jpg',
@@ -49,19 +50,54 @@ const allowedImageTypes = {
   'image/webp': 'webp',
 }
 const allowedDocumentTypes = new Set(['application/pdf'])
+const allowedCategories = new Set(['กิจกรรม', 'ประชาสัมพันธ์', 'ประกาศ', 'วิดีโอประชาสัมพันธ์'])
+
+function cleanVideoUrl(value) {
+  const cleaned = cleanExternalUrl(value)
+  if (!cleaned) return cleaned
+  try {
+    const url = new URL(cleaned)
+    const host = url.hostname.toLowerCase().replace(/^www\./, '')
+    if (host === 'youtu.be') {
+      return url.pathname.split('/').filter(Boolean)[0] ? url.toString() : null
+    }
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      const hasVideo = Boolean(
+        url.searchParams.get('v')
+        || url.pathname.match(/^\/(?:embed|shorts|live)\/[^/]+/),
+      )
+      return hasVideo ? url.toString() : null
+    }
+    if (host === 'drive.google.com') {
+      const hasFile = Boolean(
+        url.searchParams.get('id')
+        || url.pathname.match(/\/file\/d\/[^/]+/),
+      )
+      return hasFile ? url.toString() : null
+    }
+    return null
+  } catch {
+    return null
+  }
+}
 
 function newsFields(body, existing = {}, isAdmin = false) {
+  const category = String(body.category ?? existing.category ?? 'ประชาสัมพันธ์').trim()
+  const isVideo = category === 'วิดีโอประชาสัมพันธ์'
   const sourceUrls = Array.isArray(body.document_urls)
     ? body.document_urls
     : contentAttachmentUrls(existing)
   return {
     title: String(body.title ?? existing.title ?? '').trim(),
-    category: String(body.category ?? existing.category ?? 'ประชาสัมพันธ์').trim(),
+    category,
     publish_date: String(body.publish_date ?? existing.publish_date ?? '').trim(),
     summary: String(body.summary ?? existing.summary ?? '').trim(),
     content: String(body.content ?? existing.content ?? '').trim(),
-    image_url: cleanExternalUrl(body.image_url ?? existing.image_url ?? ''),
-    document_urls: cleanAttachmentUrls(sourceUrls),
+    image_url: isVideo ? '' : cleanExternalUrl(body.image_url ?? existing.image_url ?? ''),
+    document_urls: isVideo ? [] : cleanAttachmentUrls(sourceUrls),
+    video_url: isVideo
+      ? cleanVideoUrl(body.video_url ?? existing.video_url ?? '')
+      : '',
     display_order: isAdmin
       ? String(body.display_order ?? existing.display_order ?? '').trim()
       : String(existing.display_order ?? '').trim(),
@@ -74,6 +110,16 @@ function validate(fields, response, extraFiles = 0) {
     sendJson(response, 400, { error: 'หัวข้อต้องมีความยาว 3–180 ตัวอักษร' })
     return false
   }
+  if (!allowedCategories.has(fields.category)) {
+    sendJson(response, 400, { error: 'หมวดหมู่ข่าวสารไม่ถูกต้อง' })
+    return false
+  }
+  if (fields.category === 'วิดีโอประชาสัมพันธ์' && !fields.video_url) {
+    sendJson(response, 400, {
+      error: 'กรุณากรอกลิงก์วิดีโอจาก YouTube หรือ Google Drive ที่ถูกต้อง',
+    })
+    return false
+  }
   if (!fields.content || fields.content.length > 20_000) {
     sendJson(response, 400, { error: 'กรุณากรอกรายละเอียดข่าวไม่เกิน 20,000 ตัวอักษร' })
     return false
@@ -82,7 +128,11 @@ function validate(fields, response, extraFiles = 0) {
     sendJson(response, 400, { error: 'กรุณาระบุวันที่เผยแพร่ข่าวสาร' })
     return false
   }
-  if (fields.image_url === null || fields.document_urls.some((url) => url === null)) {
+  if (
+    fields.image_url === null
+    || fields.video_url === null
+    || fields.document_urls.some((url) => url === null)
+  ) {
     sendJson(response, 400, { error: 'ลิงก์รูปภาพและไฟล์แนบต้องเป็นลิงก์ https ที่ถูกต้อง' })
     return false
   }

@@ -23,6 +23,7 @@ const allowedPermissions = new Set([
   'awards',
   'newsletters',
   'quality',
+  'sar',
   'documents',
   'qa',
   'complaints',
