@@ -20,6 +20,7 @@ export default async function handler(request, response) {
       qualityFile,
       documentsFile,
       questionsFile,
+      siteSlidesFile,
     ] = await Promise.all([
       readRepoFile('data/news.csv'),
       readRepoFile('data/events.csv'),
@@ -28,8 +29,17 @@ export default async function handler(request, response) {
       readRepoFile('data/quality-evidence.csv'),
       readRepoFile('data/school-documents.csv'),
       readRepoFile('data/questions.csv'),
+      readRepoFile('data/site-slides.csv'),
     ])
     const published = (rows) => rows.filter((item) => item.status === 'published')
+    const siteSlides = parseCsv(siteSlidesFile.content)
+    const sortSiteSlides = (rows) => [...rows].sort((left, right) => {
+      const placementDifference = String(left.placement).localeCompare(String(right.placement))
+      if (placementDifference) return placementDifference
+      const orderDifference = Number(left.display_order || 0) - Number(right.display_order || 0)
+      if (orderDifference) return orderDifference
+      return String(left.created_at || '').localeCompare(String(right.created_at || ''))
+    })
     const body = {
       news: sortByDateAndDisplayOrder(published(parseCsv(newsFile.content)), 'publish_date')
         .map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
@@ -61,6 +71,15 @@ export default async function handler(request, response) {
           answer: item.answer,
           answered_at: item.answered_at,
         })),
+      siteSlides: sortSiteSlides(published(siteSlides)).map((item) => ({
+        id: item.id,
+        placement: item.placement,
+        title: item.title,
+        alt_text: item.alt_text,
+        image_url: item.image_url,
+        display_order: item.display_order,
+      })),
+      siteSlidePlacements: ['welcome', 'billboard'],
     }
     response.statusCode = 200
     response.setHeader('Content-Type', 'application/json; charset=utf-8')

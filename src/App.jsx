@@ -56,11 +56,11 @@ import { displayImageUrl, displayPdfUrl } from './driveUrls'
 import { qualityLevels } from './qualityStandards'
 
 const categories = ['ทั้งหมด', 'กิจกรรม', 'ประชาสัมพันธ์', 'ประกาศ']
-const welcomeSlides = [
+const defaultWelcomeSlides = [
   { src: '/P10.jpg', alt: 'สถิตกลางใจปวงประชา สมเด็จพระเจ้าลูกเธอ เจ้าฟ้าพัชรกิติยาภา' },
   { src: '/Q9.jpg', alt: 'สถิตในดวงใจตราบนิจนิรันดร์ สมเด็จพระนางเจ้าสิริกิติ์ พระบรมราชินีนาถ' },
 ]
-const billboardSlides = [
+const defaultBillboardSlides = [
   { src: '/B1.jpg', alt: 'ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 1' },
   { src: '/B2.jpg', alt: 'ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 2' },
   { src: '/B3.jpg', alt: 'ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 3' },
@@ -142,7 +142,7 @@ function AutoFitText({ as: Component = 'span', children, className = '', minSize
   )
 }
 
-function WelcomeSlider() {
+function WelcomeSlider({ slides = defaultWelcomeSlides }) {
   const [isOpen, setIsOpen] = useState(() => {
     try {
       return localStorage.getItem('ban-nam-phon-welcome-hidden-date') !== getLocalDateKey()
@@ -154,17 +154,21 @@ function WelcomeSlider() {
   const [hideToday, setHideToday] = useState(false)
 
   useEffect(() => {
-    if (!isOpen) return undefined
+    if (!isOpen || slides.length < 2) return undefined
     const timer = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % welcomeSlides.length)
+      setActiveSlide((current) => (current + 1) % slides.length)
     }, 5000)
     return () => window.clearInterval(timer)
-  }, [isOpen, activeSlide])
+  }, [isOpen, slides.length])
 
   useEffect(() => {
-    document.body.classList.toggle('welcome-open', isOpen)
+    if (activeSlide >= slides.length) setActiveSlide(0)
+  }, [activeSlide, slides.length])
+
+  useEffect(() => {
+    document.body.classList.toggle('welcome-open', isOpen && slides.length > 0)
     return () => document.body.classList.remove('welcome-open')
-  }, [isOpen])
+  }, [isOpen, slides.length])
 
   const enterWebsite = () => {
     if (hideToday) {
@@ -177,16 +181,16 @@ function WelcomeSlider() {
     setIsOpen(false)
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !slides.length) return null
 
   return (
     <div className="welcome-overlay" role="dialog" aria-modal="true" aria-label="ข่าวประชาสัมพันธ์">
       <div className="welcome-overlay__backdrop" aria-hidden="true" />
       <section className="welcome-slider">
         <div className="welcome-slider__stage">
-          {welcomeSlides.map((slide, index) => (
+          {slides.map((slide, index) => (
             <img
-              key={slide.src}
+              key={slide.id || slide.src}
               className={`welcome-slider__image ${activeSlide === index ? 'is-active' : ''}`}
               src={slide.src}
               alt={slide.alt}
@@ -197,9 +201,9 @@ function WelcomeSlider() {
 
         <div className="welcome-slider__controls">
           <div className="welcome-slider__dots" role="group" aria-label="เลือกภาพประชาสัมพันธ์">
-            {welcomeSlides.map((slide, index) => (
+            {slides.map((slide, index) => (
               <button
-                key={slide.src}
+                key={slide.id || slide.src}
                 className={activeSlide === index ? 'is-active' : ''}
                 type="button"
                 aria-label={`แสดงภาพที่ ${index + 1}`}
@@ -551,39 +555,46 @@ function About() {
   )
 }
 
-function Billboard() {
+function Billboard({ slides = defaultBillboardSlides }) {
   const [activeSlide, setActiveSlide] = useState(0)
 
   useEffect(() => {
+    if (slides.length < 2) return undefined
     const timer = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % billboardSlides.length)
+      setActiveSlide((current) => (current + 1) % slides.length)
     }, 5000)
     return () => window.clearInterval(timer)
-  }, [])
+  }, [slides.length])
+
+  useEffect(() => {
+    if (activeSlide >= slides.length) setActiveSlide(0)
+  }, [activeSlide, slides.length])
+
+  if (!slides.length) return null
 
   return (
     <section className="billboard" aria-label="ป้ายประชาสัมพันธ์โรงเรียน">
       <div className="container">
         <div className="billboard__frame">
-          {billboardSlides.map((slide, index) => (
+          {slides.map((slide, index) => (
             <img
               className={`billboard__image ${activeSlide === index ? 'is-active' : ''}`}
               src={slide.src}
               alt={slide.alt}
               aria-hidden={activeSlide !== index}
-              key={slide.src}
+              key={slide.id || slide.src}
             />
           ))}
         </div>
         <div className="billboard__dots" role="group" aria-label="เลือกภาพป้ายประชาสัมพันธ์">
-          {billboardSlides.map((slide, index) => (
+          {slides.map((slide, index) => (
             <button
               className={activeSlide === index ? 'is-active' : ''}
               type="button"
               aria-label={`แสดงป้ายประชาสัมพันธ์ภาพที่ ${index + 1}`}
               aria-pressed={activeSlide === index}
               onClick={() => setActiveSlide(index)}
-              key={slide.src}
+              key={slide.id || slide.src}
             />
           ))}
         </div>
@@ -3164,6 +3175,8 @@ function App() {
     qualityEvidence: [],
     documents: [],
     questions: [],
+    siteSlides: [],
+    siteSlidePlacements: [],
   })
 
   useEffect(() => {
@@ -3189,6 +3202,8 @@ function App() {
             qualityEvidence: data.qualityEvidence || [],
             documents: data.documents || [],
             questions: data.questions || [],
+            siteSlides: data.siteSlides || [],
+            siteSlidePlacements: data.siteSlidePlacements || [],
           })
         }
       })
@@ -3230,14 +3245,31 @@ function App() {
     return () => observer.disconnect()
   }, [])
 
+  const pageSlides = useMemo(() => {
+    const getSlides = (placement, defaults) => {
+      if (!publicContent.siteSlidePlacements.includes(placement)) return defaults
+      return publicContent.siteSlides
+        .filter((item) => item.placement === placement)
+        .map((item) => ({
+          id: item.id,
+          src: displayImageUrl(item.image_url),
+          alt: item.alt_text || item.title || 'ภาพประชาสัมพันธ์โรงเรียนบ้านน้ำพร',
+        }))
+    }
+    return {
+      welcome: getSlides('welcome', defaultWelcomeSlides),
+      billboard: getSlides('billboard', defaultBillboardSlides),
+    }
+  }, [publicContent.siteSlidePlacements, publicContent.siteSlides])
+
   return (
     <>
-      {isHome && <WelcomeSlider />}
+      {isHome && <WelcomeSlider slides={pageSlides.welcome} />}
       <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
       {isHome ? (
         <>
           <Hero />
-          <Billboard />
+          <Billboard slides={pageSlides.billboard} />
           <About />
           <Achievements awards={publicContent.awards} />
           <HomeOperations />

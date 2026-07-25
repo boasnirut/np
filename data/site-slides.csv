@@ -1,0 +1,7 @@
+id,placement,title,alt_text,image_url,display_order,status,author,created_at,updated_at,updated_by
+welcome-default-1,welcome,ภาพต้อนรับ 1,สถิตกลางใจปวงประชา สมเด็จพระเจ้าลูกเธอ เจ้าฟ้าพัชรกิติยาภา,/P10.jpg,1,published,system,2026-07-25T00:00:00.000Z,2026-07-25T00:00:00.000Z,
+welcome-default-2,welcome,ภาพต้อนรับ 2,สถิตในดวงใจตราบนิจนิรันดร์ สมเด็จพระนางเจ้าสิริกิติ์ พระบรมราชินีนาถ,/Q9.jpg,2,published,system,2026-07-25T00:00:00.000Z,2026-07-25T00:00:00.000Z,
+billboard-default-1,billboard,Billboard 1,ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 1,/B1.jpg,1,published,system,2026-07-25T00:00:00.000Z,2026-07-25T00:00:00.000Z,
+billboard-default-2,billboard,Billboard 2,ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 2,/B2.jpg,2,published,system,2026-07-25T00:00:00.000Z,2026-07-25T00:00:00.000Z,
+billboard-default-3,billboard,Billboard 3,ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 3,/B3.jpg,3,published,system,2026-07-25T00:00:00.000Z,2026-07-25T00:00:00.000Z,
+billboard-default-4,billboard,Billboard 4,ป้ายประชาสัมพันธ์โรงเรียนบ้านน้ำพร ภาพที่ 4,/B4.jpg,4,published,system,2026-07-25T00:00:00.000Z,2026-07-25T00:00:00.000Z,

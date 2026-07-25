@@ -12,6 +12,7 @@ import {
   FileImage,
   GalleryHorizontalEnd,
   HelpCircle,
+  Images,
   LayoutDashboard,
   Link2,
   LoaderCircle,
@@ -302,6 +303,7 @@ const permissionOptions = [
   { id: 'documents', label: 'เอกสารและแบบคำร้อง', icon: Download },
   { id: 'qa', label: 'ถาม-ตอบ (Q&A)', icon: HelpCircle },
   { id: 'complaints', label: 'เรื่องร้องเรียน', icon: MessageSquareWarning },
+  { id: 'slides', label: 'ภาพหน้าเว็บไซต์', icon: Images },
 ]
 
 const modules = {
@@ -448,6 +450,60 @@ const modules = {
     meta: (item) => `${item.category} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
     date: (item) => item.publish_date || item.created_at,
     title: (item) => item.title,
+  },
+  slides: {
+    endpoint: '/api/site-slides',
+    responseKey: 'slide',
+    listKey: 'slides',
+    label: 'ภาพหน้าเว็บไซต์',
+    eyebrow: 'WELCOME & BILLBOARD',
+    icon: Images,
+    image: true,
+    imageRequired: true,
+    imageUploadCategory: 'site-slide-image',
+    imageClass: 'image-uploader--site-slide',
+    imageHint: 'หน้าต้อนรับใช้ภาพแนวตั้งหรือแนวนอนได้ · Billboard แนะนำอัตราส่วน 4:1 · JPG, PNG หรือ WebP ไม่เกิน 100 MB',
+    attachments: false,
+    defaults: {
+      placement: 'welcome',
+      title: '',
+      alt_text: '',
+      display_order: '',
+      status: 'published',
+    },
+    fields: [
+      {
+        name: 'placement',
+        label: 'ตำแหน่งที่แสดง',
+        type: 'select',
+        options: [
+          { value: 'welcome', label: 'ภาพหน้าต้อนรับ' },
+          { value: 'billboard', label: 'Billboard Banner' },
+        ],
+      },
+      { name: 'display_order', label: 'ลำดับการแสดง (เลขน้อยแสดงก่อน)', type: 'number', placeholder: 'เว้นว่างเพื่อให้ระบบเรียงต่อท้ายอัตโนมัติ' },
+      { name: 'title', label: 'ชื่อภาพสำหรับจัดการ', wide: true, required: true, placeholder: 'เช่น ภาพต้อนรับเปิดภาคเรียน' },
+      { name: 'alt_text', label: 'คำอธิบายภาพสำหรับผู้ใช้โปรแกรมอ่านหน้าจอ', wide: true, placeholder: 'ถ้าเว้นว่าง ระบบจะใช้ชื่อภาพแทน' },
+      {
+        name: 'status',
+        label: 'สถานะ',
+        type: 'select',
+        options: [
+          { value: 'published', label: 'แสดงบนเว็บไซต์' },
+          { value: 'draft', label: 'ปิดการแสดง' },
+        ],
+      },
+    ],
+    meta: (item) => `${item.placement === 'billboard' ? 'Billboard Banner' : 'ภาพหน้าต้อนรับ'} · ลำดับ ${item.display_order} · ${item.status === 'draft' ? 'ปิดการแสดง' : 'เผยแพร่'}`,
+    date: (item) => item.updated_at || item.created_at,
+    title: (item) => item.title,
+    sort: (items) => [...items].sort((left, right) => {
+      const placementDifference = String(left.placement).localeCompare(String(right.placement))
+      if (placementDifference) return placementDifference
+      const orderDifference = Number(left.display_order || 0) - Number(right.display_order || 0)
+      if (orderDifference) return orderDifference
+      return String(left.created_at || '').localeCompare(String(right.created_at || ''))
+    }),
   },
 }
 
@@ -612,7 +668,9 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
 
   const submit = async (event) => {
     event.preventDefault()
-    const cleanUrls = attachmentUrls.filter((url) => url.trim())
+    const cleanUrls = config.attachments === false
+      ? []
+      : attachmentUrls.filter((url) => url.trim())
     if (cleanUrls.length + attachmentFiles.length > 5) {
       setMessage({ type: 'error', text: 'แนบไฟล์หรือลิงก์ได้รวมไม่เกิน 5 รายการ' })
       return
@@ -629,7 +687,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
         ? await uploadFileToDrive(image, config.imageUploadCategory, setUploadProgress)
         : null
       const uploadedAttachments = []
-      for (let index = 0; index < attachmentFiles.length; index += 1) {
+      for (let index = 0; config.attachments !== false && index < attachmentFiles.length; index += 1) {
         const uploadedFile = await uploadFileToDrive(
           attachmentFiles[index],
           config.attachmentUploadCategory,
@@ -651,7 +709,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
       })
       const item = result[config.responseKey]
       setItems((current) =>
-        sortRecords(editingId
+        (config.sort || sortRecords)(editingId
           ? current.map((existing) => (existing.id === editingId ? item : existing))
           : [item, ...current]),
       )
@@ -743,61 +801,65 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
             />
           </label>
         )}
-        <div className="news-field quality-link-fields record-attachment-links">
-          <div className="quality-link-fields__heading">
-            <span>ลิงก์ไฟล์แนบ</span>
-            <button
-              type="button"
-              onClick={addAttachmentUrl}
-              disabled={attachmentUrls.length + attachmentFiles.length >= 5}
-            >
-              <Plus size={16} /> เพิ่มลิงก์
-            </button>
-          </div>
-          {attachmentUrls.map((url, index) => (
-            <div className="quality-link-fields__row" key={index}>
-              <input
-                type="url"
-                value={url}
-                onChange={(event) => updateAttachmentUrl(index, event.target.value)}
-                placeholder={`ลิงก์ไฟล์แนบที่ ${index + 1}`}
-                aria-label={`ลิงก์ไฟล์แนบที่ ${index + 1}`}
-              />
-              {attachmentUrls.length > 1 && (
-                <button type="button" onClick={() => removeAttachmentUrl(index)} aria-label={`ลบลิงก์ไฟล์แนบที่ ${index + 1}`}>
-                  <X size={17} />
-                </button>
-              )}
-            </div>
-          ))}
-          <small>รองรับลิงก์ https ทุกประเภท โดยนับรวมกับไฟล์ที่อัปโหลดไม่เกิน 5 รายการ</small>
-        </div>
-
-        <label className={`quality-file-uploader ${attachmentFiles.length ? 'is-selected' : ''}`}>
-            <span><FileText size={27} /></span>
-            <div>
-              <strong>{attachmentFiles.length ? `เลือกแล้ว ${attachmentFiles.length} ไฟล์` : 'อัปโหลดไฟล์แนบ'}</strong>
-              <small>เลือกได้สูงสุด 5 ไฟล์ รองรับไฟล์ทุกประเภท ไฟล์ละไม่เกิน 100 MB และนับรวมกับลิงก์ด้านบน</small>
-            </div>
-            <input
-              type="file"
-              multiple
-              onChange={selectAttachmentFiles}
-            />
-        </label>
-        {attachmentFiles.length > 0 && (
-          <div className="quality-upload-files" aria-label="ไฟล์แนบที่เลือก">
-            {attachmentFiles.map((selectedFile, index) => (
-              <div className="quality-upload-files__item" key={`${selectedFile.name}-${selectedFile.size}-${selectedFile.lastModified}-${index}`}>
-                <FileText size={17} />
-                <span title={selectedFile.name}>{selectedFile.name}</span>
-                <small>{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</small>
-                <button type="button" onClick={() => removeAttachmentFile(index)} aria-label={`ลบไฟล์ ${selectedFile.name}`}>
-                  <X size={16} />
+        {config.attachments !== false && (
+          <>
+            <div className="news-field quality-link-fields record-attachment-links">
+              <div className="quality-link-fields__heading">
+                <span>ลิงก์ไฟล์แนบ</span>
+                <button
+                  type="button"
+                  onClick={addAttachmentUrl}
+                  disabled={attachmentUrls.length + attachmentFiles.length >= 5}
+                >
+                  <Plus size={16} /> เพิ่มลิงก์
                 </button>
               </div>
-            ))}
-          </div>
+              {attachmentUrls.map((url, index) => (
+                <div className="quality-link-fields__row" key={index}>
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(event) => updateAttachmentUrl(index, event.target.value)}
+                    placeholder={`ลิงก์ไฟล์แนบที่ ${index + 1}`}
+                    aria-label={`ลิงก์ไฟล์แนบที่ ${index + 1}`}
+                  />
+                  {attachmentUrls.length > 1 && (
+                    <button type="button" onClick={() => removeAttachmentUrl(index)} aria-label={`ลบลิงก์ไฟล์แนบที่ ${index + 1}`}>
+                      <X size={17} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <small>รองรับลิงก์ https ทุกประเภท โดยนับรวมกับไฟล์ที่อัปโหลดไม่เกิน 5 รายการ</small>
+            </div>
+
+            <label className={`quality-file-uploader ${attachmentFiles.length ? 'is-selected' : ''}`}>
+                <span><FileText size={27} /></span>
+                <div>
+                  <strong>{attachmentFiles.length ? `เลือกแล้ว ${attachmentFiles.length} ไฟล์` : 'อัปโหลดไฟล์แนบ'}</strong>
+                  <small>เลือกได้สูงสุด 5 ไฟล์ รองรับไฟล์ทุกประเภท ไฟล์ละไม่เกิน 100 MB และนับรวมกับลิงก์ด้านบน</small>
+                </div>
+                <input
+                  type="file"
+                  multiple
+                  onChange={selectAttachmentFiles}
+                />
+            </label>
+            {attachmentFiles.length > 0 && (
+              <div className="quality-upload-files" aria-label="ไฟล์แนบที่เลือก">
+                {attachmentFiles.map((selectedFile, index) => (
+                  <div className="quality-upload-files__item" key={`${selectedFile.name}-${selectedFile.size}-${selectedFile.lastModified}-${index}`}>
+                    <FileText size={17} />
+                    <span title={selectedFile.name}>{selectedFile.name}</span>
+                    <small>{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</small>
+                    <button type="button" onClick={() => removeAttachmentFile(index)} aria-label={`ลบไฟล์ ${selectedFile.name}`}>
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
         {message && (
           <p className={`admin-message admin-message--${message.type}`}>
@@ -1894,6 +1956,7 @@ function Dashboard() {
   const [documents, setDocuments] = useState([])
   const [questions, setQuestions] = useState([])
   const [complaints, setComplaints] = useState([])
+  const [siteSlides, setSiteSlides] = useState([])
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -1918,6 +1981,7 @@ function Dashboard() {
           canManage('documents') ? apiRequest('/api/services?resource=documents') : Promise.resolve({ documents: [] }),
           canManage('qa') ? apiRequest('/api/services?resource=questions') : Promise.resolve({ questions: [] }),
           canManage('complaints') ? apiRequest('/api/services?resource=complaints') : Promise.resolve({ complaints: [] }),
+          canManage('slides') ? apiRequest('/api/site-slides') : Promise.resolve({ slides: [] }),
           sessionData.user.role === 'admin' ? apiRequest('/api/members') : Promise.resolve({ members: [] }),
         ]
         const [
@@ -1929,6 +1993,7 @@ function Dashboard() {
           documentData,
           questionData,
           complaintData,
+          siteSlideData,
           memberData,
         ] = await Promise.all(requests)
         if (!active) return
@@ -1940,6 +2005,7 @@ function Dashboard() {
         setDocuments(sortRecords(documentData.documents || []))
         setQuestions(sortRecords(questionData.questions || []))
         setComplaints(sortRecords(complaintData.complaints || []))
+        setSiteSlides(modules.slides.sort(siteSlideData.slides || []))
         setMembers(sortRecords(memberData.members || []))
       } catch (error) {
         if (error.status === 401 || error.status === 403) window.location.replace('/login')
@@ -1960,8 +2026,9 @@ function Dashboard() {
     documents: documents.length,
     questions: questions.filter((item) => !item.answer).length,
     complaints: complaints.filter((item) => item.status !== 'resolved').length,
+    slides: siteSlides.filter((item) => item.status === 'published').length,
     pending: members.filter((member) => member.status === 'pending').length,
-  }), [news, events, awards, newsletters, qualityEvidence, documents, questions, complaints, members])
+  }), [news, events, awards, newsletters, qualityEvidence, documents, questions, complaints, siteSlides, members])
 
   const logout = async () => {
     await apiRequest('/api/auth/logout', { method: 'POST', body: '{}' }).catch(() => undefined)
@@ -1983,6 +2050,7 @@ function Dashboard() {
     { id: 'documents', label: 'เอกสารและแบบคำร้อง', icon: Download },
     { id: 'qa', label: `ถาม-ตอบ${stats.questions ? ` (${stats.questions})` : ''}`, icon: HelpCircle },
     { id: 'complaints', label: `เรื่องร้องเรียน${stats.complaints ? ` (${stats.complaints})` : ''}`, icon: MessageSquareWarning },
+    { id: 'slides', label: 'ภาพหน้าเว็บไซต์', icon: Images },
   ].filter((item) => isAdmin || allowedPermissions.has(item.id))
   const navItems = [
     ...moduleNavItems,
@@ -2047,6 +2115,7 @@ function Dashboard() {
           <article><span><Download size={22} /></span><div><small>เอกสาร</small><strong>{stats.documents}</strong></div></article>
           <article><span><HelpCircle size={22} /></span><div><small>คำถามรอตอบ</small><strong>{stats.questions}</strong></div></article>
           <article><span><MessageSquareWarning size={22} /></span><div><small>เรื่องที่กำลังดำเนินการ</small><strong>{stats.complaints}</strong></div></article>
+          <article><span><Images size={22} /></span><div><small>ภาพหน้าเว็บไซต์ที่เผยแพร่</small><strong>{stats.slides}</strong></div></article>
           {isAdmin && <article><span><Users size={22} /></span><div><small>รออนุมัติ</small><strong>{stats.pending}</strong></div></article>}
         </section>
 
@@ -2083,6 +2152,8 @@ function Dashboard() {
           <QaManager items={questions} setItems={setQuestions} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'complaints' ? (
           <ComplaintsManager items={complaints} setItems={setComplaints} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+        ) : activeModule === 'slides' ? (
+          <RecordManager type="slides" items={siteSlides} setItems={setSiteSlides} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'none' ? (
           <div className="admin-empty admin-no-permission">
             <ShieldCheck size={36} />

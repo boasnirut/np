@@ -754,6 +754,20 @@
   aspect-ratio: 1 / 1.4;
 }
 
+.image-uploader--site-slide {
+  min-height: 210px;
+  background:
+    linear-gradient(135deg, rgba(16, 66, 119, 0.04), rgba(242, 168, 25, 0.08)),
+    #f8fbfd;
+}
+
+.image-uploader--site-slide.image-uploader--selected img {
+  height: min(320px, 42vw);
+  min-height: 210px;
+  object-fit: contain;
+  background: #edf3f8;
+}
+
 .admin-message--success {
   color: #286641;
   background: #ecf8f0;
