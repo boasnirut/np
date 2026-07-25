@@ -452,7 +452,7 @@ const modules = {
     title: (item) => item.title,
   },
   slides: {
-    endpoint: '/api/site-slides',
+    endpoint: '/api/services?resource=slides',
     responseKey: 'slide',
     listKey: 'slides',
     label: 'ภาพหน้าเว็บไซต์',
@@ -1981,7 +1981,7 @@ function Dashboard() {
           canManage('documents') ? apiRequest('/api/services?resource=documents') : Promise.resolve({ documents: [] }),
           canManage('qa') ? apiRequest('/api/services?resource=questions') : Promise.resolve({ questions: [] }),
           canManage('complaints') ? apiRequest('/api/services?resource=complaints') : Promise.resolve({ complaints: [] }),
-          canManage('slides') ? apiRequest('/api/site-slides') : Promise.resolve({ slides: [] }),
+          canManage('slides') ? apiRequest('/api/services?resource=slides') : Promise.resolve({ slides: [] }),
           sessionData.user.role === 'admin' ? apiRequest('/api/members') : Promise.resolve({ members: [] }),
         ]
         const [

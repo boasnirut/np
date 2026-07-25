@@ -2,12 +2,14 @@ import complaintsHandler from './_lib/complaints-handler.js'
 import driveUploadHandler from './_lib/drive-upload-handler.js'
 import questionsHandler from './_lib/questions-handler.js'
 import schoolDocumentsHandler from './_lib/school-documents-handler.js'
+import siteSlidesHandler from './_lib/site-slides-handler.js'
 import { sendJson } from './_lib/http.js'
 
 const handlers = {
   complaints: complaintsHandler,
   documents: schoolDocumentsHandler,
   questions: questionsHandler,
+  slides: siteSlidesHandler,
   uploads: driveUploadHandler,
 }
 

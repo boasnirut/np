@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
-import { parseCsv, stringifyCsv } from './_lib/csv.js'
-import { methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js'
+import { requireActiveUser, withUserDisplayNames } from './access.js'
+import { parseCsv, stringifyCsv } from './csv.js'
+import { methodNotAllowed, readJsonBody, sendJson } from './http.js'
 import {
   readRepoFile,
   RepositoryConfigError,
   writeRepoFile,
-} from './_lib/repo.js'
+} from './repo.js'
 
 const filePath = 'data/site-slides.csv'
 const headers = [
