@@ -1474,38 +1474,53 @@ function BasicInfoPage() {
   )
 }
 
-function StaffPage() {
-  const director = {
-    image: '/TC01.png',
+const defaultStaffMembers = [
+  {
+    id: 'staff-01',
+    staff_type: 'director',
+    image_url: '/TC01.png',
     name: 'นางศิวาลัย แก้วเขียว',
     position: 'ผู้อำนวยการโรงเรียนบ้านน้ำพร',
-  }
-  const teachers = [
-    { image: '/TC02.png', name: 'นางรัตนา อ่ำนาเพียง', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC03.png', name: 'นางสาววันชื่น ทองอยู่', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC04.png', name: 'นางสาวพรพรรณ จันทะสี', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC06.png', name: 'นางสุจิตรา ฝั้นสีดา', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC15.png', name: 'นางรัตนาภรณ์ ผิวจันทา', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC05.png', name: 'นางพิศมัย โกมาร', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC07.png', name: 'นางสาววิไลวรรณ ชาภูธร', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC08.png', name: 'นางสาวสุวรรณา พุทธมาตย์', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC09.png', name: 'นายนิรุทธิ์ เสวะนา', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC10.png', name: 'ว่าที่ร้อยตรีหญิงเอื้องคำ ชัยภา', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC11.png', name: 'นางสาวสุภาพร พิมพุธ', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC12.png', name: 'นายอิทธิภู กองพอด', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC13.png', name: 'นางสาวยลดา จันดาหาร', position: 'ครู โรงเรียนบ้านน้ำพร' },
-    { image: '/TC14.png', name: 'นางสาวรัตติกานต์ ราชศรีเมือง', position: 'ครู โรงเรียนบ้านน้ำพร' },
-  ]
-  const supportStaff = [
-    { image: '/TC16.png', name: 'นางสาวธิวาพร คำพรม', position: 'เจ้าหน้าที่ธุรการ' },
-    { image: '/TC17.png', name: 'นายประสิทธิ์ ไพฑูรย์', position: 'นักการภารโรง' },
-  ]
+    website_url: '',
+  },
+  { id: 'staff-02', staff_type: 'teacher', image_url: '/TC02.png', name: 'นางรัตนา อ่ำนาเพียง', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-03', staff_type: 'teacher', image_url: '/TC03.png', name: 'นางสาววันชื่น ทองอยู่', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-04', staff_type: 'teacher', image_url: '/TC04.png', name: 'นางสาวพรพรรณ จันทะสี', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-05', staff_type: 'teacher', image_url: '/TC06.png', name: 'นางสุจิตรา ฝั้นสีดา', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-06', staff_type: 'teacher', image_url: '/TC15.png', name: 'นางรัตนาภรณ์ ผิวจันทา', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-07', staff_type: 'teacher', image_url: '/TC05.png', name: 'นางพิศมัย โกมาร', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-08', staff_type: 'teacher', image_url: '/TC07.png', name: 'นางสาววิไลวรรณ ชาภูธร', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-09', staff_type: 'teacher', image_url: '/TC08.png', name: 'นางสาวสุวรรณา พุทธมาตย์', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-10', staff_type: 'teacher', image_url: '/TC09.png', name: 'นายนิรุทธิ์ เสวะนา', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-11', staff_type: 'teacher', image_url: '/TC10.png', name: 'ว่าที่ร้อยตรีหญิงเอื้องคำ ชัยภา', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-12', staff_type: 'teacher', image_url: '/TC11.png', name: 'นางสาวสุภาพร พิมพุธ', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-13', staff_type: 'teacher', image_url: '/TC12.png', name: 'นายอิทธิภู กองพอด', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-14', staff_type: 'teacher', image_url: '/TC13.png', name: 'นางสาวยลดา จันดาหาร', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-15', staff_type: 'teacher', image_url: '/TC14.png', name: 'นางสาวรัตติกานต์ ราชศรีเมือง', position: 'ครู โรงเรียนบ้านน้ำพร', website_url: '' },
+  { id: 'staff-16', staff_type: 'support', image_url: '/TC16.png', name: 'นางสาวธิวาพร คำพรม', position: 'เจ้าหน้าที่ธุรการ', website_url: '' },
+  { id: 'staff-17', staff_type: 'support', image_url: '/TC17.png', name: 'นายประสิทธิ์ ไพฑูรย์', position: 'นักการภารโรง', website_url: '' },
+]
 
-  const StaffCard = ({ member }) => (
-    <article className="staff-card">
+function StaffPage({ members = defaultStaffMembers }) {
+  const director = members.find((member) => member.staff_type === 'director')
+  const teachers = members.filter((member) => member.staff_type === 'teacher')
+  const supportStaff = members.filter((member) => member.staff_type === 'support')
+
+  const StaffCard = ({ member }) => {
+    const Card = member.website_url ? 'a' : 'article'
+    return (
+    <Card
+      className={`staff-card ${member.website_url ? 'staff-card--linked' : ''}`}
+      {...(member.website_url ? {
+        href: member.website_url,
+        target: '_blank',
+        rel: 'noreferrer',
+        'aria-label': `เปิดเว็บไซต์ของ ${member.name}`,
+      } : {})}
+    >
       <div className="staff-card__image">
         <img
-          src={member.image}
+          src={displayImageUrl(member.image_url)}
           alt={`${member.name} ${member.position}`}
           loading="lazy"
         />
@@ -1513,9 +1528,10 @@ function StaffPage() {
       <div className="staff-card__copy">
         <span>{member.position}</span>
         <h3>{member.name}</h3>
+        {member.website_url && <small>เปิดเว็บไซต์ <ExternalLink size={13} /></small>}
       </div>
-    </article>
-  )
+    </Card>
+  )}
 
   return (
     <section className="section inner-content">
@@ -1527,48 +1543,82 @@ function StaffPage() {
           align="center"
         />
 
-        <div className="staff-section-heading staff-section-heading--director">
-          <span><School size={19} /></span>
-          <div>
-            <small>School Director</small>
-            <h2>ผู้บริหารสถานศึกษา</h2>
-          </div>
-        </div>
-        <article className="staff-director">
-          <div className="staff-director__image">
-            <img src={director.image} alt={`${director.name} ${director.position}`} />
-          </div>
-          <div>
-            <small>ผู้อำนวยการโรงเรียน</small>
-            <h2>{director.name}</h2>
-            <strong>{director.position}</strong>
-            <p>บริหารสถานศึกษาโดยมุ่งเน้นคุณภาพผู้เรียน การทำงานร่วมกับครอบครัว และความเข้มแข็งของชุมชน</p>
-          </div>
-        </article>
+        {director && (
+          <>
+            <div className="staff-section-heading staff-section-heading--director">
+              <span><School size={19} /></span>
+              <div>
+                <small>School Director</small>
+                <h2>ผู้บริหารสถานศึกษา</h2>
+              </div>
+            </div>
+            {(() => {
+              const DirectorCard = director.website_url ? 'a' : 'article'
+              return (
+                <DirectorCard
+                  className={`staff-director ${director.website_url ? 'staff-director--linked' : ''}`}
+                  {...(director.website_url ? {
+                    href: director.website_url,
+                    target: '_blank',
+                    rel: 'noreferrer',
+                    'aria-label': `เปิดเว็บไซต์ของ ${director.name}`,
+                  } : {})}
+                >
+                  <div className="staff-director__image">
+                    <img src={displayImageUrl(director.image_url)} alt={`${director.name} ${director.position}`} />
+                  </div>
+                  <div>
+                    <small>ผู้อำนวยการโรงเรียน</small>
+                    <h2>{director.name}</h2>
+                    <strong>{director.position}</strong>
+                    <p>บริหารสถานศึกษาโดยมุ่งเน้นคุณภาพผู้เรียน การทำงานร่วมกับครอบครัว และความเข้มแข็งของชุมชน</p>
+                    {director.website_url && <span className="staff-website-link">เปิดเว็บไซต์ <ExternalLink size={14} /></span>}
+                  </div>
+                </DirectorCard>
+              )
+            })()}
+          </>
+        )}
 
-        <div className="staff-section-heading">
-          <span><GraduationCap size={19} /></span>
-          <div>
-            <small>Teachers</small>
-            <h2>คณะครูผู้สอน</h2>
-          </div>
-          <strong>{teachers.length} คน</strong>
-        </div>
-        <div className="staff-grid">
-          {teachers.map((member) => <StaffCard member={member} key={member.image} />)}
-        </div>
+        {teachers.length > 0 && (
+          <>
+            <div className="staff-section-heading">
+              <span><GraduationCap size={19} /></span>
+              <div>
+                <small>Teachers</small>
+                <h2>คณะครูผู้สอน</h2>
+              </div>
+              <strong>{teachers.length} คน</strong>
+            </div>
+            <div className="staff-grid">
+              {teachers.map((member) => <StaffCard member={member} key={member.id || member.image_url} />)}
+            </div>
+          </>
+        )}
 
-        <div className="staff-section-heading">
-          <span><Users size={19} /></span>
-          <div>
-            <small>Support Staff</small>
-            <h2>บุคลากรสนับสนุนการศึกษา</h2>
+        {supportStaff.length > 0 && (
+          <>
+            <div className="staff-section-heading">
+              <span><Users size={19} /></span>
+              <div>
+                <small>Support Staff</small>
+                <h2>บุคลากรสนับสนุนการศึกษา</h2>
+              </div>
+              <strong>{supportStaff.length} คน</strong>
+            </div>
+            <div className="staff-grid staff-grid--support">
+              {supportStaff.map((member) => <StaffCard member={member} key={member.id || member.image_url} />)}
+            </div>
+          </>
+        )}
+
+        {!members.length && (
+          <div className="content-empty">
+            <span><Users size={34} /></span>
+            <strong>ยังไม่มีข้อมูลบุคลากรที่เผยแพร่</strong>
+            <p>เมื่อโรงเรียนเผยแพร่ข้อมูลจากระบบบริหาร รายการจะปรากฏในหน้านี้</p>
           </div>
-          <strong>{supportStaff.length} คน</strong>
-        </div>
-        <div className="staff-grid staff-grid--support">
-          {supportStaff.map((member) => <StaffCard member={member} key={member.image} />)}
-        </div>
+        )}
       </div>
     </section>
   )
@@ -2811,7 +2861,7 @@ function PublicSubPage({ path, publicContent }) {
     return <><PageHero eyebrow="เกี่ยวกับโรงเรียน" title="ข้อมูลพื้นฐาน" description="ข้อมูลสำคัญและภาพรวมของโรงเรียนบ้านน้ำพร" icon={Building2} /><BasicInfoPage /></>
   }
   if (path === '/about/staff') {
-    return <><PageHero eyebrow="เกี่ยวกับโรงเรียน" title="ข้อมูลบุคลากร" description="ทำความรู้จักผู้บริหาร ครู และบุคลากรของโรงเรียน" icon={Users} /><StaffPage /></>
+    return <><PageHero eyebrow="เกี่ยวกับโรงเรียน" title="ข้อมูลบุคลากร" description="ทำความรู้จักผู้บริหาร ครู และบุคลากรของโรงเรียน" icon={Users} /><StaffPage members={publicContent.staffConfigured ? publicContent.staff : defaultStaffMembers} /></>
   }
   if (path === '/about/history') {
     return <><PageHero eyebrow="เกี่ยวกับโรงเรียน" title="ประวัติโรงเรียน" description="เรื่องราวของสถานศึกษาที่เติบโตเคียงข้างชุมชนบ้านน้ำพร" icon={History} /><HistoryPage /></>
@@ -3177,6 +3227,8 @@ function App() {
     questions: [],
     siteSlides: [],
     siteSlidePlacements: [],
+    staff: [],
+    staffConfigured: false,
   })
 
   useEffect(() => {
@@ -3204,6 +3256,8 @@ function App() {
             questions: data.questions || [],
             siteSlides: data.siteSlides || [],
             siteSlidePlacements: data.siteSlidePlacements || [],
+            staff: data.staff || [],
+            staffConfigured: data.staffConfigured === true,
           })
         }
       })

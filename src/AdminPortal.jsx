@@ -304,6 +304,7 @@ const permissionOptions = [
   { id: 'qa', label: 'ถาม-ตอบ (Q&A)', icon: HelpCircle },
   { id: 'complaints', label: 'เรื่องร้องเรียน', icon: MessageSquareWarning },
   { id: 'slides', label: 'ภาพหน้าเว็บไซต์', icon: Images },
+  { id: 'staff', label: 'ข้อมูลบุคลากร', icon: Users },
 ]
 
 const modules = {
@@ -504,6 +505,73 @@ const modules = {
       if (orderDifference) return orderDifference
       return String(left.created_at || '').localeCompare(String(right.created_at || ''))
     }),
+  },
+  staff: {
+    endpoint: '/api/services?resource=staff',
+    responseKey: 'staffMember',
+    listKey: 'staff',
+    label: 'ข้อมูลบุคลากร',
+    eyebrow: 'SCHOOL PERSONNEL',
+    icon: Users,
+    image: true,
+    imageRequired: true,
+    imageUploadCategory: 'staff-image',
+    imageClass: 'image-uploader--staff',
+    imageHint: 'ภาพบุคลากรอัตราส่วน 4:3 · JPG, PNG หรือ WebP ไม่เกิน 100 MB',
+    attachments: false,
+    defaults: {
+      staff_type: 'teacher',
+      name: '',
+      position: '',
+      website_url: '',
+      display_order: '',
+      status: 'published',
+    },
+    fields: [
+      {
+        name: 'staff_type',
+        label: 'กลุ่มบุคลากร',
+        type: 'select',
+        options: [
+          { value: 'director', label: 'ผู้บริหารสถานศึกษา' },
+          { value: 'teacher', label: 'ครูผู้สอน' },
+          { value: 'support', label: 'บุคลากรสนับสนุน' },
+        ],
+      },
+      { name: 'display_order', label: 'ลำดับภายในกลุ่ม (เลขน้อยแสดงก่อน)', type: 'number', placeholder: 'เว้นว่างเพื่อเรียงต่อท้ายอัตโนมัติ' },
+      { name: 'name', label: 'ชื่อ–นามสกุล', wide: true, required: true, placeholder: 'ชื่อและนามสกุลบุคลากร' },
+      { name: 'position', label: 'ตำแหน่ง', wide: true, required: true, placeholder: 'เช่น ครู โรงเรียนบ้านน้ำพร' },
+      { name: 'website_url', label: 'เว็บไซต์ของครู/บุคลากร', type: 'url', wide: true, placeholder: 'https://example.com (ไม่บังคับ)' },
+      {
+        name: 'status',
+        label: 'สถานะ',
+        type: 'select',
+        options: [
+          { value: 'published', label: 'แสดงบนเว็บไซต์' },
+          { value: 'draft', label: 'ปิดการแสดง' },
+        ],
+      },
+    ],
+    meta: (item) => {
+      const typeLabels = {
+        director: 'ผู้บริหารสถานศึกษา',
+        teacher: 'ครูผู้สอน',
+        support: 'บุคลากรสนับสนุน',
+      }
+      return `${typeLabels[item.staff_type] || 'บุคลากร'} · ลำดับ ${item.display_order} · ${item.status === 'draft' ? 'ปิดการแสดง' : 'เผยแพร่'}`
+    },
+    date: (item) => item.updated_at || item.created_at,
+    title: (item) => item.name,
+    sort: (items) => {
+      const typeOrder = { director: 0, teacher: 1, support: 2 }
+      return [...items].sort((left, right) => {
+        const typeDifference = (typeOrder[left.staff_type] ?? 99) - (typeOrder[right.staff_type] ?? 99)
+        if (typeDifference) return typeDifference
+        const orderDifference = Number(left.display_order || 0) - Number(right.display_order || 0)
+        if (orderDifference) return orderDifference
+        return String(left.created_at || '').localeCompare(String(right.created_at || ''))
+      })
+    },
   },
 }
 
@@ -1957,6 +2025,7 @@ function Dashboard() {
   const [questions, setQuestions] = useState([])
   const [complaints, setComplaints] = useState([])
   const [siteSlides, setSiteSlides] = useState([])
+  const [staff, setStaff] = useState([])
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -1982,6 +2051,7 @@ function Dashboard() {
           canManage('qa') ? apiRequest('/api/services?resource=questions') : Promise.resolve({ questions: [] }),
           canManage('complaints') ? apiRequest('/api/services?resource=complaints') : Promise.resolve({ complaints: [] }),
           canManage('slides') ? apiRequest('/api/services?resource=slides') : Promise.resolve({ slides: [] }),
+          canManage('staff') ? apiRequest('/api/services?resource=staff') : Promise.resolve({ staff: [] }),
           sessionData.user.role === 'admin' ? apiRequest('/api/members') : Promise.resolve({ members: [] }),
         ]
         const [
@@ -1994,6 +2064,7 @@ function Dashboard() {
           questionData,
           complaintData,
           siteSlideData,
+          staffData,
           memberData,
         ] = await Promise.all(requests)
         if (!active) return
@@ -2006,6 +2077,7 @@ function Dashboard() {
         setQuestions(sortRecords(questionData.questions || []))
         setComplaints(sortRecords(complaintData.complaints || []))
         setSiteSlides(modules.slides.sort(siteSlideData.slides || []))
+        setStaff(modules.staff.sort(staffData.staff || []))
         setMembers(sortRecords(memberData.members || []))
       } catch (error) {
         if (error.status === 401 || error.status === 403) window.location.replace('/login')
@@ -2027,8 +2099,9 @@ function Dashboard() {
     questions: questions.filter((item) => !item.answer).length,
     complaints: complaints.filter((item) => item.status !== 'resolved').length,
     slides: siteSlides.filter((item) => item.status === 'published').length,
+    staff: staff.filter((item) => item.status === 'published').length,
     pending: members.filter((member) => member.status === 'pending').length,
-  }), [news, events, awards, newsletters, qualityEvidence, documents, questions, complaints, siteSlides, members])
+  }), [news, events, awards, newsletters, qualityEvidence, documents, questions, complaints, siteSlides, staff, members])
 
   const logout = async () => {
     await apiRequest('/api/auth/logout', { method: 'POST', body: '{}' }).catch(() => undefined)
@@ -2051,6 +2124,7 @@ function Dashboard() {
     { id: 'qa', label: `ถาม-ตอบ${stats.questions ? ` (${stats.questions})` : ''}`, icon: HelpCircle },
     { id: 'complaints', label: `เรื่องร้องเรียน${stats.complaints ? ` (${stats.complaints})` : ''}`, icon: MessageSquareWarning },
     { id: 'slides', label: 'ภาพหน้าเว็บไซต์', icon: Images },
+    { id: 'staff', label: 'ข้อมูลบุคลากร', icon: Users },
   ].filter((item) => isAdmin || allowedPermissions.has(item.id))
   const navItems = [
     ...moduleNavItems,
@@ -2116,6 +2190,7 @@ function Dashboard() {
           <article><span><HelpCircle size={22} /></span><div><small>คำถามรอตอบ</small><strong>{stats.questions}</strong></div></article>
           <article><span><MessageSquareWarning size={22} /></span><div><small>เรื่องที่กำลังดำเนินการ</small><strong>{stats.complaints}</strong></div></article>
           <article><span><Images size={22} /></span><div><small>ภาพหน้าเว็บไซต์ที่เผยแพร่</small><strong>{stats.slides}</strong></div></article>
+          <article><span><Users size={22} /></span><div><small>บุคลากรที่เผยแพร่</small><strong>{stats.staff}</strong></div></article>
           {isAdmin && <article><span><Users size={22} /></span><div><small>รออนุมัติ</small><strong>{stats.pending}</strong></div></article>}
         </section>
 
@@ -2154,6 +2229,8 @@ function Dashboard() {
           <ComplaintsManager items={complaints} setItems={setComplaints} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'slides' ? (
           <RecordManager type="slides" items={siteSlides} setItems={setSiteSlides} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+        ) : activeModule === 'staff' ? (
+          <RecordManager type="staff" items={staff} setItems={setStaff} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'none' ? (
           <div className="admin-empty admin-no-permission">
             <ShieldCheck size={36} />

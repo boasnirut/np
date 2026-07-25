@@ -4096,6 +4096,28 @@ body.welcome-open {
   grid-template-columns: minmax(300px, 44%) minmax(0, 1fr);
 }
 
+.staff-director--linked,
+.staff-card--linked {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.staff-director--linked:focus-visible,
+.staff-card--linked:focus-visible {
+  outline: 3px solid rgb(242 168 25 / 0.7);
+  outline-offset: 4px;
+}
+
+.staff-director--linked {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.staff-director--linked:hover {
+  box-shadow: 0 28px 62px rgb(18 54 109 / 0.14);
+  transform: translateY(-3px);
+}
+
 .staff-director__image,
 .staff-card__image {
   overflow: hidden;
@@ -4142,6 +4164,17 @@ body.welcome-open {
   margin: 13px 0 0;
   color: var(--muted);
   line-height: 1.85;
+}
+
+.staff-website-link,
+.staff-card__copy small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--navy-700);
+  font-size: 0.65rem;
+  font-weight: 800;
 }
 
 .staff-grid {

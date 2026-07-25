@@ -25,6 +25,7 @@ const categories = {
   'school-attachment': { permission: 'documents', anyType: true },
   'quality-evidence': { permission: 'quality', anyType: true },
   'site-slide-image': { permission: 'slides', image: true, types: imageTypes },
+  'staff-image': { permission: 'staff', image: true, types: imageTypes },
 }
 
 function normalizedFile(body) {

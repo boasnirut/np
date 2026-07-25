@@ -27,6 +27,7 @@ const allowedPermissions = new Set([
   'qa',
   'complaints',
   'slides',
+  'staff',
 ])
 
 function memberPermissions(user) {
