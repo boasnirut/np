@@ -29,6 +29,16 @@ function driveFileId(value) {
   }
 }
 
+function isDriveFolderUrl(value) {
+  try {
+    const url = new URL(String(value || '').trim())
+    if (url.hostname.toLowerCase() !== 'drive.google.com') return false
+    return /\/folders\//i.test(url.pathname) || /\/folderview\/?$/i.test(url.pathname)
+  } catch {
+    return false
+  }
+}
+
 function dispositionFilename(value) {
   const disposition = String(value || '')
   const utf8Name = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
@@ -75,6 +85,8 @@ async function driveMimeType(fileId) {
 }
 
 export async function inferExternalMimeType(value, existingType = '') {
+  if (isDriveFolderUrl(value)) return 'application/vnd.google-apps.folder'
+
   const savedType = String(existingType || '').trim().toLowerCase()
   if (savedType) return savedType
 

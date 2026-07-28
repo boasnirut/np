@@ -194,6 +194,17 @@ function AuthLayout({ mode }) {
 const maxUploadBytes = 100 * 1024 * 1024
 
 function inferMimeTypeFromUrl(value) {
+  try {
+    const url = new URL(String(value || '').trim())
+    if (
+      url.hostname.toLowerCase() === 'drive.google.com'
+      && (/\/folders\//i.test(url.pathname) || /\/folderview\/?$/i.test(url.pathname))
+    ) {
+      return 'application/vnd.google-apps.folder'
+    }
+  } catch {
+    // Continue with extension-based detection.
+  }
   const path = String(value || '').split(/[?#]/)[0].toLowerCase()
   const extensionTypes = {
     '.avif': 'image/avif',
@@ -1682,6 +1693,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
                     <option value="">ตรวจชนิดไฟล์อัตโนมัติ</option>
                     <option value="application/pdf">เอกสาร PDF</option>
                     <option value="image/jpeg">รูปภาพ</option>
+                    <option value="application/vnd.google-apps.folder">โฟลเดอร์ Google Drive</option>
                     <option value="application/octet-stream">ไฟล์ประเภทอื่น</option>
                   </select>
                 </div>

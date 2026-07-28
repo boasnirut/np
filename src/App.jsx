@@ -15,6 +15,7 @@ import {
   Download,
   ExternalLink,
   FileText,
+  FolderOpen,
   GraduationCap,
   HelpCircle,
   History,
@@ -1916,7 +1917,19 @@ function OperationPage({ type }) {
   )
 }
 
+function isEvidenceFolder(url, mimeType = '') {
+  if (String(mimeType || '').toLowerCase() === 'application/vnd.google-apps.folder') return true
+  try {
+    const parsedUrl = new URL(String(url || ''))
+    return parsedUrl.hostname === 'drive.google.com'
+      && (/\/folders\//i.test(parsedUrl.pathname) || /\/folderview\/?$/i.test(parsedUrl.pathname))
+  } catch {
+    return false
+  }
+}
+
 function isEvidenceImage(url, mimeType = '') {
+  if (isEvidenceFolder(url, mimeType)) return false
   const type = String(mimeType || '').toLowerCase()
   if (type) return type.startsWith('image/')
   const path = String(url || '').split(/[?#]/)[0].toLowerCase()
@@ -2341,6 +2354,16 @@ function QualityAssurancePage({ evidence = [] }) {
                                     const evidenceName = (index) => (
                                       String(documentNames[index] || '').trim() || `หลักฐานที่ ${index + 1}`
                                     )
+                                    const folderDocuments = documentUrls
+                                      .map((url, index) => ({
+                                        url,
+                                        documentIndex: index,
+                                        mimeType: documentTypes[index],
+                                        name: evidenceName(index),
+                                      }))
+                                      .filter((document) => (
+                                        isEvidenceFolder(document.url, document.mimeType)
+                                      ))
                                     const imageDocuments = documentUrls
                                       .map((url, index) => ({
                                         url,
@@ -2361,8 +2384,21 @@ function QualityAssurancePage({ evidence = [] }) {
                                       .filter((document) => isEvidencePdf(document.url, document.mimeType))
                                     const otherDocumentCount = Math.max(
                                       0,
-                                      documentUrls.length - imageUrls.length - pdfDocuments.length,
+                                      documentUrls.length
+                                        - folderDocuments.length
+                                        - imageUrls.length
+                                        - pdfDocuments.length,
                                     )
+                                    const directLinkDocuments = documentUrls
+                                      .map((url, index) => ({
+                                        url,
+                                        documentIndex: index,
+                                        mimeType: documentTypes[index],
+                                        name: evidenceName(index),
+                                      }))
+                                      .filter((document) => (
+                                        !isEvidenceFolder(document.url, document.mimeType)
+                                      ))
                                     const isEvidenceOpen = openEvidence === item.id
                                     return (
                                       <article className={`quality-evidence-entry ${isEvidenceOpen ? 'is-open' : ''}`} key={item.id}>
@@ -2380,6 +2416,7 @@ function QualityAssurancePage({ evidence = [] }) {
                                           <span className="quality-evidence-entry__types">
                                             {imageUrls.length > 0 && <small><Images size={14} /> รูป {imageUrls.length}</small>}
                                             {pdfDocuments.length > 0 && <small><FileText size={14} /> PDF {pdfDocuments.length}</small>}
+                                            {folderDocuments.length > 0 && <small><FolderOpen size={14} /> โฟลเดอร์ {folderDocuments.length}</small>}
                                             {otherDocumentCount > 0 && <small><Link2 size={14} /> ไฟล์ {otherDocumentCount}</small>}
                                           </span>
                                           <ChevronDown size={19} />
@@ -2435,13 +2472,34 @@ function QualityAssurancePage({ evidence = [] }) {
                                                 ))}
                                               </div>
                                             )}
-                                            <div className="quality-evidence-entry__links">
-                                              {documentUrls.map((url, index) => (
-                                                <a href={url} target="_blank" rel="noreferrer" key={`${url}-${index}`}>
-                                                  {evidenceName(index)} <ExternalLink size={14} />
-                                                </a>
-                                              ))}
-                                            </div>
+                                            {folderDocuments.length > 0 && (
+                                              <div className="quality-evidence-entry__folder-grid">
+                                                {folderDocuments.map((document) => (
+                                                  <a
+                                                    href={document.url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    key={`${document.url}-${document.documentIndex}`}
+                                                  >
+                                                    <span><FolderOpen size={34} /></span>
+                                                    <div>
+                                                      <strong>{document.name}</strong>
+                                                      <small>โฟลเดอร์ Google Drive</small>
+                                                    </div>
+                                                    <ExternalLink size={17} />
+                                                  </a>
+                                                ))}
+                                              </div>
+                                            )}
+                                            {directLinkDocuments.length > 0 && (
+                                              <div className="quality-evidence-entry__links">
+                                                {directLinkDocuments.map((document) => (
+                                                  <a href={document.url} target="_blank" rel="noreferrer" key={`${document.url}-${document.documentIndex}`}>
+                                                    {document.name} <ExternalLink size={14} />
+                                                  </a>
+                                                ))}
+                                              </div>
+                                            )}
                                           </div>
                                         )}
                                       </article>
