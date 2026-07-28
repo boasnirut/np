@@ -1350,6 +1350,16 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
     setMessage(null)
   }
 
+  const updateDocumentType = (index, value) => {
+    setForm((current) => ({
+      ...current,
+      document_types: current.document_types.map((type, typeIndex) => (
+        typeIndex === index ? value : type
+      )),
+    }))
+    setMessage(null)
+  }
+
   const addDocumentUrl = () => {
     setForm((current) => (
       current.document_urls.length + files.length >= 5
@@ -1664,6 +1674,16 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
                     placeholder={`ลิงก์หลักฐานที่ ${index + 1}`}
                     aria-label={`ลิงก์หลักฐานที่ ${index + 1}`}
                   />
+                  <select
+                    value={form.document_types[index] || ''}
+                    onChange={(event) => updateDocumentType(index, event.target.value)}
+                    aria-label={`ประเภทไฟล์หลักฐานที่ ${index + 1}`}
+                  >
+                    <option value="">ตรวจชนิดไฟล์อัตโนมัติ</option>
+                    <option value="application/pdf">เอกสาร PDF</option>
+                    <option value="image/jpeg">รูปภาพ</option>
+                    <option value="application/octet-stream">ไฟล์ประเภทอื่น</option>
+                  </select>
                 </div>
                 {form.document_urls.length > 1 && (
                   <button
@@ -1676,7 +1696,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
                 )}
               </div>
             ))}
-            <small>กำหนดชื่อหลักฐานได้สูงสุด 180 ตัวอักษรต่อรายการ หากเว้นว่างระบบจะแสดงชื่อหลักฐานตามลำดับ</small>
+            <small>ระบบตรวจชนิดไฟล์ Google Drive ให้อัตโนมัติ หรือเลือก PDF/รูปภาพด้วยตนเองได้ หากไฟล์ตั้งค่าเป็นส่วนตัวระบบอาจตรวจไม่ได้</small>
           </div>
           <label className="news-field">
             <span>สถานะ</span>

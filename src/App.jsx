@@ -1923,7 +1923,7 @@ function isEvidenceImage(url, mimeType = '') {
   if (/\.(avif|bmp|gif|jpe?g|png|svg|webp)$/.test(path)) return true
   try {
     const hostname = new URL(url).hostname
-    return ['drive.google.com', 'drive.usercontent.google.com', 'lh3.googleusercontent.com'].includes(hostname)
+    return hostname === 'lh3.googleusercontent.com'
   } catch {
     return false
   }

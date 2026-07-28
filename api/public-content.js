@@ -8,6 +8,7 @@ import {
   sortByDisplayOrder,
 } from './_lib/content.js'
 import { methodNotAllowed } from './_lib/http.js'
+import { resolveEvidenceMimeTypes } from './_lib/external-file.js'
 import { readRepoFile } from './_lib/repo.js'
 
 export default async function handler(request, response) {
@@ -54,6 +55,18 @@ export default async function handler(request, response) {
       if (orderDifference) return orderDifference
       return String(left.created_at || '').localeCompare(String(right.created_at || ''))
     })
+    const qualityEvidence = await Promise.all(
+      sortByDisplayOrder(published(parseCsv(qualityFile.content))).map(async (item) => {
+        const documentUrls = evidenceDocumentUrls(item)
+        const documentTypes = evidenceDocumentTypes(item)
+        return {
+          ...item,
+          document_urls: documentUrls,
+          document_types: await resolveEvidenceMimeTypes(documentUrls, documentTypes),
+          document_names: evidenceDocumentNames(item),
+        }
+      }),
+    )
     const body = {
       news: sortByDateAndDisplayOrder(published(parseCsv(newsFile.content)), 'publish_date')
         .map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
@@ -66,12 +79,7 @@ export default async function handler(request, response) {
         published(parseCsv(newslettersFile.content)),
         'publish_date',
       ).map((item) => ({ ...item, document_urls: contentAttachmentUrls(item) })),
-      qualityEvidence: sortByDisplayOrder(published(parseCsv(qualityFile.content))).map((item) => ({
-        ...item,
-        document_urls: evidenceDocumentUrls(item),
-        document_types: evidenceDocumentTypes(item),
-        document_names: evidenceDocumentNames(item),
-      })),
+      qualityEvidence,
       documents: sortByDateAndDisplayOrder(
         published(parseCsv(documentsFile.content)),
         'publish_date',

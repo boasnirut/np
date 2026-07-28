@@ -9,6 +9,7 @@ import {
   sortByDisplayOrder,
 } from './_lib/content.js'
 import { parseCsv, stringifyCsv } from './_lib/csv.js'
+import { resolveEvidenceMimeTypes } from './_lib/external-file.js'
 import {
   dataUrlBytes,
   GoogleDriveConfigError,
@@ -124,6 +125,13 @@ function validate(item, response, hasUploadedFile = false) {
   return true
 }
 
+async function withResolvedDocumentTypes(item) {
+  return {
+    ...item,
+    document_types: await resolveEvidenceMimeTypes(item.document_urls, item.document_types),
+  }
+}
+
 function withDocumentColumns(item, urls, types = [], names = []) {
   return {
     ...item,
@@ -186,7 +194,9 @@ export default async function handler(request, response) {
     const body = await readJsonBody(request, 4_500_000)
 
     if (request.method === 'POST') {
-      const itemFields = fields(body, {}, session.role === 'admin')
+      const itemFields = await withResolvedDocumentTypes(
+        fields(body, {}, session.role === 'admin'),
+      )
       if (!validate(itemFields, response, Boolean(body.file?.data))) return undefined
       const id = randomUUID()
       const uploadedUrl = await uploadPdf(body.file, id, itemFields.title)
@@ -240,7 +250,9 @@ export default async function handler(request, response) {
         return sendJson(response, 200, { success: true })
       }
 
-      const itemFields = fields(body, evidence[index], true)
+      const itemFields = await withResolvedDocumentTypes(
+        fields(body, evidence[index], true),
+      )
       if (!validate(itemFields, response, Boolean(body.file?.data))) return undefined
       const uploadedUrl = await uploadPdf(body.file, evidence[index].id, itemFields.title)
       const {
