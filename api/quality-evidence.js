@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
 import {
   cleanExternalUrl,
+  evidenceDocumentNames,
   evidenceDocumentTypes,
   evidenceDocumentUrls,
   nextDisplayOrder,
@@ -44,6 +45,11 @@ const headers = [
   'document_type_3',
   'document_type_4',
   'document_type_5',
+  'document_name',
+  'document_name_2',
+  'document_name_3',
+  'document_name_4',
+  'document_name_5',
 ]
 
 function fields(body, existing = {}, isAdmin = false) {
@@ -53,10 +59,14 @@ function fields(body, existing = {}, isAdmin = false) {
   const sourceTypes = Array.isArray(body.document_types)
     ? body.document_types
     : evidenceDocumentTypes(existing)
+  const sourceNames = Array.isArray(body.document_names)
+    ? body.document_names
+    : evidenceDocumentNames(existing)
   const sourceEvidence = sourceUrls
     .map((url, index) => ({
       url: cleanExternalUrl(url),
       type: String(sourceTypes[index] || '').trim().toLowerCase(),
+      name: String(sourceNames[index] || '').trim(),
     }))
     .filter((item) => item.url)
   return {
@@ -66,6 +76,7 @@ function fields(body, existing = {}, isAdmin = false) {
     description: String(body.description ?? existing.description ?? '').trim(),
     document_urls: sourceEvidence.map((item) => item.url),
     document_types: sourceEvidence.map((item) => item.type),
+    document_names: sourceEvidence.map((item) => item.name),
     display_order: isAdmin
       ? String(body.display_order ?? existing.display_order ?? '').trim()
       : String(existing.display_order ?? '').trim(),
@@ -98,6 +109,10 @@ function validate(item, response, hasUploadedFile = false) {
     sendJson(response, 400, { error: 'ชนิดไฟล์หลักฐานไม่ถูกต้อง' })
     return false
   }
+  if (item.document_names.some((name) => name.length > 180)) {
+    sendJson(response, 400, { error: 'ชื่อหลักฐานแต่ละรายการต้องไม่เกิน 180 ตัวอักษร' })
+    return false
+  }
   if (!item.document_urls.length && !hasUploadedFile) {
     sendJson(response, 400, { error: 'กรุณาอัปโหลดไฟล์หลักฐานหรือกรอกลิงก์เอกสาร' })
     return false
@@ -109,7 +124,7 @@ function validate(item, response, hasUploadedFile = false) {
   return true
 }
 
-function withDocumentColumns(item, urls, types = []) {
+function withDocumentColumns(item, urls, types = [], names = []) {
   return {
     ...item,
     document_url: urls[0] || '',
@@ -122,6 +137,11 @@ function withDocumentColumns(item, urls, types = []) {
     document_type_3: types[2] || '',
     document_type_4: types[3] || '',
     document_type_5: types[4] || '',
+    document_name: names[0] || '',
+    document_name_2: names[1] || '',
+    document_name_3: names[2] || '',
+    document_name_4: names[3] || '',
+    document_name_5: names[4] || '',
   }
 }
 
@@ -131,6 +151,7 @@ async function presentEvidence(items, userNames) {
     ...item,
     document_urls: evidenceDocumentUrls(item),
     document_types: evidenceDocumentTypes(item),
+    document_names: evidenceDocumentNames(item),
   }))
 }
 
@@ -170,9 +191,17 @@ export default async function handler(request, response) {
       const id = randomUUID()
       const uploadedUrl = await uploadPdf(body.file, id, itemFields.title)
       const now = new Date().toISOString()
-      const { document_urls: documentUrls, document_types: documentTypes, ...savedFields } = itemFields
+      const {
+        document_urls: documentUrls,
+        document_types: documentTypes,
+        document_names: documentNames,
+        ...savedFields
+      } = itemFields
       const savedUrls = uploadedUrl ? [uploadedUrl, ...documentUrls] : documentUrls
       const savedTypes = uploadedUrl ? [body.file?.type || '', ...documentTypes] : documentTypes
+      const savedNames = uploadedUrl
+        ? [String(body.file?.evidence_name || body.file?.name || '').trim(), ...documentNames]
+        : documentNames
       const item = withDocumentColumns({
         id,
         ...savedFields,
@@ -181,7 +210,7 @@ export default async function handler(request, response) {
         created_at: now,
         updated_at: now,
         updated_by: '',
-      }, savedUrls, savedTypes)
+      }, savedUrls, savedTypes, savedNames)
       evidence.push(item)
       await writeRepoFile(
         'data/quality-evidence.csv',
@@ -214,15 +243,23 @@ export default async function handler(request, response) {
       const itemFields = fields(body, evidence[index], true)
       if (!validate(itemFields, response, Boolean(body.file?.data))) return undefined
       const uploadedUrl = await uploadPdf(body.file, evidence[index].id, itemFields.title)
-      const { document_urls: documentUrls, document_types: documentTypes, ...savedFields } = itemFields
+      const {
+        document_urls: documentUrls,
+        document_types: documentTypes,
+        document_names: documentNames,
+        ...savedFields
+      } = itemFields
       const savedUrls = uploadedUrl ? [uploadedUrl, ...documentUrls] : documentUrls
       const savedTypes = uploadedUrl ? [body.file?.type || '', ...documentTypes] : documentTypes
+      const savedNames = uploadedUrl
+        ? [String(body.file?.evidence_name || body.file?.name || '').trim(), ...documentNames]
+        : documentNames
       evidence[index] = withDocumentColumns({
         ...evidence[index],
         ...savedFields,
         updated_at: new Date().toISOString(),
         updated_by: session.sub,
-      }, savedUrls, savedTypes)
+      }, savedUrls, savedTypes, savedNames)
       await writeRepoFile(
         'data/quality-evidence.csv',
         stringifyCsv(evidence, headers),

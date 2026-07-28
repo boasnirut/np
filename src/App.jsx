@@ -2329,14 +2329,34 @@ function QualityAssurancePage({ evidence = [] }) {
                                           item.document_type_4,
                                           item.document_type_5,
                                         ]
-                                    const imageUrls = documentUrls.filter((url, index) => (
-                                      isEvidenceImage(url, documentTypes[index])
-                                    ))
+                                    const documentNames = item.document_names?.length
+                                      ? item.document_names
+                                      : [
+                                          item.document_name,
+                                          item.document_name_2,
+                                          item.document_name_3,
+                                          item.document_name_4,
+                                          item.document_name_5,
+                                        ]
+                                    const evidenceName = (index) => (
+                                      String(documentNames[index] || '').trim() || `หลักฐานที่ ${index + 1}`
+                                    )
+                                    const imageDocuments = documentUrls
+                                      .map((url, index) => ({
+                                        url,
+                                        documentIndex: index,
+                                        name: evidenceName(index),
+                                      }))
+                                      .filter((document) => (
+                                        isEvidenceImage(document.url, documentTypes[document.documentIndex])
+                                      ))
+                                    const imageUrls = imageDocuments.map((document) => document.url)
                                     const pdfDocuments = documentUrls
                                       .map((url, index) => ({
                                         url,
                                         documentIndex: index,
                                         mimeType: documentTypes[index],
+                                        name: evidenceName(index),
                                       }))
                                       .filter((document) => isEvidencePdf(document.url, document.mimeType))
                                     const otherDocumentCount = Math.max(
@@ -2368,23 +2388,23 @@ function QualityAssurancePage({ evidence = [] }) {
                                           <div className="quality-evidence-entry__content">
                                             {imageUrls.length > 0 && (
                                               <div className="quality-evidence-entry__gallery">
-                                                {imageUrls.map((url, index) => (
+                                                {imageDocuments.map((document, index) => (
                                                   <button
                                                     type="button"
                                                     onClick={() => openImageViewer(imageUrls, index, item.title)}
-                                                    aria-label={`เปิดภาพหลักฐาน ${index + 1} ขนาดเต็ม`}
-                                                    key={`${url}-${index}`}
+                                                    aria-label={`เปิดภาพ ${document.name} ขนาดเต็ม`}
+                                                    key={`${document.url}-${document.documentIndex}`}
                                                   >
                                                     <img
-                                                      src={displayImageUrl(url)}
-                                                      alt={`${item.title} ภาพที่ ${index + 1}`}
+                                                      src={displayImageUrl(document.url)}
+                                                      alt={document.name}
                                                       loading="lazy"
                                                       onError={(event) => {
                                                         const previewButton = event.currentTarget.closest('button')
                                                         if (previewButton) previewButton.hidden = true
                                                       }}
                                                     />
-                                                    <span><ZoomIn size={16} /> ดูภาพเต็ม</span>
+                                                    <span><ZoomIn size={16} /> {document.name}</span>
                                                   </button>
                                                 ))}
                                               </div>
@@ -2395,7 +2415,7 @@ function QualityAssurancePage({ evidence = [] }) {
                                                   <article key={`${document.url}-${document.documentIndex}`}>
                                                     <iframe
                                                       src={displayPdfUrl(document.url)}
-                                                      title={`${item.title} ตัวอย่าง PDF หลักฐานที่ ${document.documentIndex + 1}`}
+                                                      title={`${item.title} ตัวอย่าง PDF ${document.name}`}
                                                       loading="lazy"
                                                       tabIndex="-1"
                                                       aria-hidden="true"
@@ -2404,11 +2424,11 @@ function QualityAssurancePage({ evidence = [] }) {
                                                       type="button"
                                                       onClick={() => setPdfViewer({
                                                         url: document.url,
-                                                        title: `${item.title} · หลักฐานที่ ${document.documentIndex + 1}`,
+                                                        title: `${item.title} · ${document.name}`,
                                                       })}
-                                                      aria-label={`เปิดอ่าน PDF หลักฐานที่ ${document.documentIndex + 1}`}
+                                                      aria-label={`เปิดอ่าน PDF ${document.name}`}
                                                     >
-                                                      <span><FileText size={17} /> PDF หลักฐานที่ {document.documentIndex + 1}</span>
+                                                      <span><FileText size={17} /> {document.name}</span>
                                                       <strong><BookOpenText size={16} /> เปิดอ่านในหน้าเว็บ</strong>
                                                     </button>
                                                   </article>
@@ -2418,7 +2438,7 @@ function QualityAssurancePage({ evidence = [] }) {
                                             <div className="quality-evidence-entry__links">
                                               {documentUrls.map((url, index) => (
                                                 <a href={url} target="_blank" rel="noreferrer" key={`${url}-${index}`}>
-                                                  หลักฐานที่ {index + 1} <ExternalLink size={14} />
+                                                  {evidenceName(index)} <ExternalLink size={14} />
                                                 </a>
                                               ))}
                                             </div>

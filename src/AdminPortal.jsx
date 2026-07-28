@@ -1228,6 +1228,7 @@ const qualityDefaults = {
   description: '',
   document_urls: [''],
   document_types: [''],
+  document_names: [''],
   display_order: '',
   status: 'published',
 }
@@ -1236,6 +1237,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
   const [form, setForm] = useState(qualityDefaults)
   const [editingId, setEditingId] = useState(null)
   const [files, setFiles] = useState([])
+  const [fileNames, setFileNames] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [message, setMessage] = useState(null)
@@ -1263,9 +1265,15 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
   }
 
   const reset = () => {
-    setForm({ ...qualityDefaults, document_urls: [''], document_types: [''] })
+    setForm({
+      ...qualityDefaults,
+      document_urls: [''],
+      document_types: [''],
+      document_names: [''],
+    })
     setEditingId(null)
     setFiles([])
+    setFileNames([])
     setUploadProgress(0)
   }
 
@@ -1288,19 +1296,32 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
           item.document_type_4,
           item.document_type_5,
         ]
+    const documentNames = item.document_names?.length
+      ? item.document_names
+      : [
+          item.document_name,
+          item.document_name_2,
+          item.document_name_3,
+          item.document_name_4,
+          item.document_name_5,
+        ]
     setForm({
       ...Object.fromEntries(
         Object.keys(qualityDefaults)
-          .filter((key) => !['document_urls', 'document_types'].includes(key))
+          .filter((key) => !['document_urls', 'document_types', 'document_names'].includes(key))
           .map((key) => [key, item[key] || '']),
       ),
       document_urls: documentUrls.length ? documentUrls : [''],
       document_types: documentUrls.length
         ? documentUrls.map((url, index) => documentTypes[index] || inferMimeTypeFromUrl(url))
         : [''],
+      document_names: documentUrls.length
+        ? documentUrls.map((_, index) => documentNames[index] || '')
+        : [''],
     })
     setEditingId(item.id)
     setFiles([])
+    setFileNames([])
     setUploadProgress(0)
     setMessage(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1319,6 +1340,16 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
     setMessage(null)
   }
 
+  const updateDocumentName = (index, value) => {
+    setForm((current) => ({
+      ...current,
+      document_names: current.document_names.map((name, nameIndex) => (
+        nameIndex === index ? value : name
+      )),
+    }))
+    setMessage(null)
+  }
+
   const addDocumentUrl = () => {
     setForm((current) => (
       current.document_urls.length + files.length >= 5
@@ -1327,6 +1358,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
             ...current,
             document_urls: [...current.document_urls, ''],
             document_types: [...current.document_types, ''],
+            document_names: [...current.document_names, ''],
           }
     ))
     setMessage(null)
@@ -1336,10 +1368,12 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
     setForm((current) => {
       const documentUrls = current.document_urls.filter((_, urlIndex) => urlIndex !== index)
       const documentTypes = current.document_types.filter((_, typeIndex) => typeIndex !== index)
+      const documentNames = current.document_names.filter((_, nameIndex) => nameIndex !== index)
       return {
         ...current,
         document_urls: documentUrls.length ? documentUrls : [''],
         document_types: documentUrls.length ? documentTypes : [''],
+        document_names: documentUrls.length ? documentNames : [''],
       }
     })
     setMessage(null)
@@ -1369,11 +1403,23 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
     }
 
     setFiles((current) => [...current, ...selectedFiles])
+    setFileNames((current) => [
+      ...current,
+      ...selectedFiles.map((selectedFile) => selectedFile.name.replace(/\.[^.]+$/, '')),
+    ])
     setMessage(null)
   }
 
   const removeFile = (index) => {
     setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))
+    setFileNames((current) => current.filter((_, nameIndex) => nameIndex !== index))
+    setMessage(null)
+  }
+
+  const updateFileName = (index, value) => {
+    setFileNames((current) => current.map((name, nameIndex) => (
+      nameIndex === index ? value : name
+    )))
     setMessage(null)
   }
 
@@ -1401,6 +1447,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
         .map((url, index) => ({
           url: String(url || '').trim(),
           type: form.document_types[index] || inferMimeTypeFromUrl(url),
+          name: String(form.document_names[index] || '').trim(),
         }))
         .filter((item) => item.url)
       const documentUrls = [
@@ -1411,6 +1458,10 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
         ...uploadedFiles.map((uploadedFile) => uploadedFile?.mimeType || ''),
         ...linkedEvidence.map((item) => item.type),
       ]
+      const documentNames = [
+        ...uploadedFiles.map((_, index) => String(fileNames[index] || files[index]?.name || '').trim()),
+        ...linkedEvidence.map((item) => item.name),
+      ]
       const result = await apiRequest('/api/quality-evidence', {
         method: editingId ? 'PUT' : 'POST',
         body: JSON.stringify({
@@ -1418,6 +1469,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
           id: editingId,
           document_urls: documentUrls,
           document_types: documentTypes,
+          document_names: documentNames,
         }),
       })
       setItems((current) =>
@@ -1596,13 +1648,23 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
             </div>
             {form.document_urls.map((url, index) => (
               <div className="quality-link-fields__row" key={index}>
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(event) => updateDocumentUrl(index, event.target.value)}
-                  placeholder={`ลิงก์หลักฐานที่ ${index + 1}`}
-                  aria-label={`ลิงก์หลักฐานที่ ${index + 1}`}
-                />
+                <div className="quality-link-fields__inputs">
+                  <input
+                    type="text"
+                    value={form.document_names[index] || ''}
+                    onChange={(event) => updateDocumentName(index, event.target.value)}
+                    placeholder={`ชื่อหลักฐานที่ ${index + 1}`}
+                    aria-label={`ชื่อหลักฐานที่ ${index + 1}`}
+                    maxLength={180}
+                  />
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(event) => updateDocumentUrl(index, event.target.value)}
+                    placeholder={`ลิงก์หลักฐานที่ ${index + 1}`}
+                    aria-label={`ลิงก์หลักฐานที่ ${index + 1}`}
+                  />
+                </div>
                 {form.document_urls.length > 1 && (
                   <button
                     type="button"
@@ -1614,7 +1676,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
                 )}
               </div>
             ))}
-            <small>เพิ่มได้สูงสุด 5 รายการ โดยนับรวมไฟล์ที่อัปโหลด</small>
+            <small>กำหนดชื่อหลักฐานได้สูงสุด 180 ตัวอักษรต่อรายการ หากเว้นว่างระบบจะแสดงชื่อหลักฐานตามลำดับ</small>
           </div>
           <label className="news-field">
             <span>สถานะ</span>
@@ -1643,7 +1705,17 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
             {files.map((selectedFile, index) => (
               <div className="quality-upload-files__item" key={`${selectedFile.name}-${selectedFile.size}-${selectedFile.lastModified}-${index}`}>
                 <FileText size={17} />
-                <span title={selectedFile.name}>{selectedFile.name}</span>
+                <div className="quality-upload-files__copy">
+                  <span title={selectedFile.name}>{selectedFile.name}</span>
+                  <input
+                    type="text"
+                    value={fileNames[index] || ''}
+                    onChange={(event) => updateFileName(index, event.target.value)}
+                    placeholder={`ชื่อหลักฐานที่ ${index + 1}`}
+                    aria-label={`ชื่อหลักฐานสำหรับไฟล์ ${selectedFile.name}`}
+                    maxLength={180}
+                  />
+                </div>
                 <small>{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</small>
                 <button
                   type="button"

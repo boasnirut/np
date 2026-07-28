@@ -1,6 +1,7 @@
 import { parseCsv } from './_lib/csv.js'
 import {
   contentAttachmentUrls,
+  evidenceDocumentNames,
   evidenceDocumentTypes,
   evidenceDocumentUrls,
   sortByDateAndDisplayOrder,
@@ -69,6 +70,7 @@ export default async function handler(request, response) {
         ...item,
         document_urls: evidenceDocumentUrls(item),
         document_types: evidenceDocumentTypes(item),
+        document_names: evidenceDocumentNames(item),
       })),
       documents: sortByDateAndDisplayOrder(
         published(parseCsv(documentsFile.content)),

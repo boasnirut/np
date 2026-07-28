@@ -70,6 +70,16 @@ export function evidenceDocumentTypes(item) {
   ].map((type) => String(type || '').trim().toLowerCase())
 }
 
+export function evidenceDocumentNames(item) {
+  return [
+    item.document_name,
+    item.document_name_2,
+    item.document_name_3,
+    item.document_name_4,
+    item.document_name_5,
+  ].map((name) => String(name || '').trim())
+}
+
 export function contentAttachmentUrls(item) {
   return [...new Set([
     ...evidenceDocumentUrls(item),
