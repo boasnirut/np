@@ -11,6 +11,7 @@ import {
   FileText,
   FileImage,
   GalleryHorizontalEnd,
+  GripVertical,
   HelpCircle,
   Images,
   LayoutDashboard,
@@ -319,6 +320,8 @@ const modules = {
     image: true,
     imageUploadCategory: 'news-image',
     attachmentUploadCategory: 'news-attachment',
+    reorderable: true,
+    reorderGroup: (item) => String(item.publish_date || item.created_at || '').slice(0, 10),
     defaults: {
       title: '',
       category: 'ประชาสัมพันธ์',
@@ -345,7 +348,6 @@ const modules = {
       { name: 'status', label: 'สถานะ', type: 'status' },
       { name: 'summary', label: 'ข้อความสรุป', type: 'textarea', wide: true, rows: 2, placeholder: 'ข้อความสั้นสำหรับสรุปเนื้อหา' },
       { name: 'content', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 7, required: true, placeholder: 'กรอกรายละเอียดข่าวสารหรือประกาศ' },
-      { name: 'display_order', label: 'ลำดับภายในวันที่เดียวกัน (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบนับต่อภายในวันที่นี้' },
     ],
     meta: (item) => `${item.category} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
     date: (item) => item.publish_date || item.created_at,
@@ -382,6 +384,8 @@ const modules = {
     image: true,
     imageUploadCategory: 'award-image',
     attachmentUploadCategory: 'award-attachment',
+    reorderable: true,
+    reorderGroup: (item) => String(item.award_date || item.created_at || '').slice(0, 10),
     defaults: {
       title: '',
       award_type: 'school',
@@ -405,7 +409,6 @@ const modules = {
       { name: 'level', label: 'ระดับรางวัล/ประเภทผลงาน', placeholder: 'เช่น ระดับจังหวัด, Best Practice หรือวิจัยชั้นเรียน' },
       { name: 'recipient', label: 'ผู้ได้รับรางวัล/เจ้าของผลงาน', wide: true, placeholder: 'นักเรียน ครู บุคลากร หรือโรงเรียน' },
       { name: 'description', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 5, placeholder: 'รายละเอียดผลงานและความภาคภูมิใจ' },
-      { name: 'display_order', label: 'ลำดับภายในวันที่เดียวกัน (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบนับต่อภายในวันที่นี้' },
       { name: 'status', label: 'สถานะ', type: 'status' },
     ],
     meta: (item) => `${awardTypeLabels[item.award_type] || awardTypeLabels.school} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
@@ -425,11 +428,12 @@ const modules = {
     imageRequired: true,
     imageHint: 'ภาพแนวตั้ง อัตราส่วนประมาณ 1:1.4 · JPG, PNG หรือ WebP ไม่เกิน 100 MB',
     imageClass: 'image-uploader--portrait',
+    reorderable: true,
+    reorderGroup: (item) => String(item.publish_date || item.created_at || '').slice(0, 10),
     defaults: { issue_number: '', publish_date: '', display_order: '' },
     fields: [
       { name: 'issue_number', label: 'หมายเลขฉบับ', wide: true, required: true, placeholder: 'เช่น ฉบับที่ 1/2569' },
       { name: 'publish_date', label: 'วันที่เผยแพร่', type: 'date', required: true },
-      { name: 'display_order', label: 'ลำดับภายในวันที่เดียวกัน (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบนับต่อภายในวันที่นี้' },
     ],
     meta: () => 'จดหมายข่าวประชาสัมพันธ์',
     date: (item) => item.publish_date || item.created_at,
@@ -450,6 +454,8 @@ const modules = {
     attachmentHint: 'รองรับลิงก์ไฟล์ PDF จาก Google Drive หรือลิงก์ PDF แบบ https',
     uploadLabel: 'อัปโหลดไฟล์รายงาน SAR',
     uploadHint: 'รองรับไฟล์ PDF 1 ไฟล์ ขนาดไม่เกิน 100 MB',
+    reorderable: true,
+    reorderGroup: () => '__all__',
     defaults: {
       title: '',
       academic_year: '',
@@ -460,13 +466,13 @@ const modules = {
     fields: [
       { name: 'title', label: 'ชื่อรายงาน', wide: true, required: true, placeholder: 'เช่น รายงานการประเมินตนเองของสถานศึกษา ปีการศึกษา 2569' },
       { name: 'academic_year', label: 'ปีการศึกษา', required: true, placeholder: 'เช่น 2569' },
-      { name: 'display_order', label: 'ลำดับการแสดง (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบเรียงต่ออัตโนมัติ' },
       { name: 'description', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 4, placeholder: 'สรุปรายละเอียดของรายงาน SAR' },
       { name: 'status', label: 'สถานะ', type: 'status' },
     ],
     meta: (item) => `ปีการศึกษา ${item.academic_year} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
     date: (item) => item.updated_at || item.created_at,
     title: (item) => item.title,
+    sort: sortDisplayOrderDesc,
   },
   documents: {
     endpoint: '/api/services?resource=documents',
@@ -476,6 +482,8 @@ const modules = {
     eyebrow: 'SCHOOL DOCUMENTS',
     icon: Download,
     attachmentUploadCategory: 'school-attachment',
+    reorderable: true,
+    reorderGroup: (item) => String(item.publish_date || item.created_at || '').slice(0, 10),
     defaults: {
       title: '',
       category: 'แบบคำร้อง',
@@ -489,7 +497,6 @@ const modules = {
       { name: 'category', label: 'ประเภทเอกสาร', type: 'select', options: ['แบบคำร้อง', 'เอกสารวิชาการ', 'คู่มือ', 'เอกสารทั่วไป'] },
       { name: 'publish_date', label: 'วันที่เผยแพร่', type: 'date', required: true },
       { name: 'description', label: 'รายละเอียด', type: 'textarea', wide: true, rows: 3, placeholder: 'คำอธิบายสั้น ๆ หรือเงื่อนไขการใช้เอกสาร' },
-      { name: 'display_order', label: 'ลำดับภายในวันที่เดียวกัน (เลขมากแสดงก่อน)', type: 'number', adminOnly: true, placeholder: 'เว้นว่างเพื่อให้ระบบนับต่อภายในวันที่นี้' },
       { name: 'status', label: 'สถานะ', type: 'status' },
     ],
     meta: (item) => `${item.category} · ${item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}`,
@@ -509,6 +516,8 @@ const modules = {
     imageClass: 'image-uploader--site-slide',
     imageHint: 'หน้าต้อนรับใช้ภาพแนวตั้งหรือแนวนอนได้ · Billboard แนะนำอัตราส่วน 4:1 · JPG, PNG หรือ WebP ไม่เกิน 100 MB',
     attachments: false,
+    reorderable: true,
+    reorderGroup: (item) => item.placement,
     defaults: {
       placement: 'welcome',
       title: '',
@@ -526,7 +535,6 @@ const modules = {
           { value: 'billboard', label: 'Billboard Banner' },
         ],
       },
-      { name: 'display_order', label: 'ลำดับการแสดง (เลขน้อยแสดงก่อน)', type: 'number', placeholder: 'เว้นว่างเพื่อให้ระบบเรียงต่อท้ายอัตโนมัติ' },
       { name: 'title', label: 'ชื่อภาพสำหรับจัดการ', wide: true, required: true, placeholder: 'เช่น ภาพต้อนรับเปิดภาคเรียน' },
       { name: 'alt_text', label: 'คำอธิบายภาพสำหรับผู้ใช้โปรแกรมอ่านหน้าจอ', wide: true, placeholder: 'ถ้าเว้นว่าง ระบบจะใช้ชื่อภาพแทน' },
       {
@@ -539,7 +547,7 @@ const modules = {
         ],
       },
     ],
-    meta: (item) => `${item.placement === 'billboard' ? 'Billboard Banner' : 'ภาพหน้าต้อนรับ'} · ลำดับ ${item.display_order} · ${item.status === 'draft' ? 'ปิดการแสดง' : 'เผยแพร่'}`,
+    meta: (item) => `${item.placement === 'billboard' ? 'Billboard Banner' : 'ภาพหน้าต้อนรับ'} · ${item.status === 'draft' ? 'ปิดการแสดง' : 'เผยแพร่'}`,
     date: (item) => item.updated_at || item.created_at,
     title: (item) => item.title,
     sort: (items) => [...items].sort((left, right) => {
@@ -563,6 +571,8 @@ const modules = {
     imageClass: 'image-uploader--staff',
     imageHint: 'ภาพบุคลากรอัตราส่วน 4:3 · JPG, PNG หรือ WebP ไม่เกิน 100 MB',
     attachments: false,
+    reorderable: true,
+    reorderGroup: (item) => item.staff_type,
     defaults: {
       staff_type: 'teacher',
       name: '',
@@ -582,7 +592,6 @@ const modules = {
           { value: 'support', label: 'บุคลากรสนับสนุน' },
         ],
       },
-      { name: 'display_order', label: 'ลำดับภายในกลุ่ม (เลขน้อยแสดงก่อน)', type: 'number', placeholder: 'เว้นว่างเพื่อเรียงต่อท้ายอัตโนมัติ' },
       { name: 'name', label: 'ชื่อ–นามสกุล', wide: true, required: true, placeholder: 'ชื่อและนามสกุลบุคลากร' },
       { name: 'position', label: 'ตำแหน่ง', wide: true, required: true, placeholder: 'เช่น ครู โรงเรียนบ้านน้ำพร' },
       { name: 'website_url', label: 'เว็บไซต์ของครู/บุคลากร', type: 'url', wide: true, placeholder: 'https://example.com (ไม่บังคับ)' },
@@ -602,7 +611,7 @@ const modules = {
         teacher: 'ครูผู้สอน',
         support: 'บุคลากรสนับสนุน',
       }
-      return `${typeLabels[item.staff_type] || 'บุคลากร'} · ลำดับ ${item.display_order} · ${item.status === 'draft' ? 'ปิดการแสดง' : 'เผยแพร่'}`
+      return `${typeLabels[item.staff_type] || 'บุคลากร'} · ${item.status === 'draft' ? 'ปิดการแสดง' : 'เผยแพร่'}`
     },
     date: (item) => item.updated_at || item.created_at,
     title: (item) => item.name,
@@ -672,6 +681,42 @@ function recordAttachmentUrls(item) {
   ].map((url) => String(url || '').trim()).filter(Boolean))].slice(0, 5)
 }
 
+function sortDisplayOrderDesc(items) {
+  return [...items].sort((left, right) => {
+    const orderDifference = Number(right.display_order || 0) - Number(left.display_order || 0)
+    if (orderDifference) return orderDifference
+    return String(right.created_at || right.id || '').localeCompare(String(left.created_at || left.id || ''))
+  })
+}
+
+function sortQualityEvidence(items) {
+  const levelOrder = Object.fromEntries(qualityLevels.map((level, index) => [level.id, index]))
+  return [...items].sort((left, right) => {
+    const levelDifference = (levelOrder[left.education_level] ?? 99)
+      - (levelOrder[right.education_level] ?? 99)
+    if (levelDifference) return levelDifference
+    const indicatorDifference = String(left.indicator_code || '').localeCompare(
+      String(right.indicator_code || ''),
+      'th',
+      { numeric: true },
+    )
+    if (indicatorDifference) return indicatorDifference
+    const orderDifference = Number(right.display_order || 0) - Number(left.display_order || 0)
+    if (orderDifference) return orderDifference
+    return String(right.created_at || right.id || '').localeCompare(String(left.created_at || left.id || ''))
+  })
+}
+
+function moveRecord(items, sourceId, targetId) {
+  const sourceIndex = items.findIndex((item) => item.id === sourceId)
+  const targetIndex = items.findIndex((item) => item.id === targetId)
+  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return items
+  const next = [...items]
+  const [moved] = next.splice(sourceIndex, 1)
+  next.splice(targetIndex, 0, moved)
+  return next
+}
+
 function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
   const config = modules[type]
   const Icon = config.icon
@@ -684,8 +729,14 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
   const [submitting, setSubmitting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [message, setMessage] = useState(null)
+  const [draggedId, setDraggedId] = useState('')
+  const [dropTargetId, setDropTargetId] = useState('')
+  const [orderBaseline, setOrderBaseline] = useState([])
+  const [orderSaving, setOrderSaving] = useState(false)
+  const [orderMessage, setOrderMessage] = useState(null)
   const maxAttachments = config.maxAttachments || 5
   const isNewsVideo = type === 'news' && form.category === 'วิดีโอประชาสัมพันธ์'
+  const orderDirty = orderBaseline.length > 0
 
   useEffect(() => {
     setForm(config.defaults)
@@ -696,6 +747,11 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     setPreview('')
     setUploadProgress(0)
     setMessage(null)
+    setDraggedId('')
+    setDropTargetId('')
+    setOrderBaseline([])
+    setOrderSaving(false)
+    setOrderMessage(null)
   }, [config])
 
   const update = (event) => {
@@ -867,6 +923,81 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
     }
   }
 
+  const dragStart = (event, item) => {
+    if (!isAdmin || !config.reorderable || orderSaving) {
+      event.preventDefault()
+      return
+    }
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', item.id)
+    setDraggedId(item.id)
+    setOrderMessage(null)
+  }
+
+  const dragOver = (event, item) => {
+    const source = items.find((record) => record.id === draggedId)
+    if (!source || source.id === item.id) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = config.reorderGroup(source) === config.reorderGroup(item)
+      ? 'move'
+      : 'none'
+    setDropTargetId(item.id)
+  }
+
+  const drop = (event, item) => {
+    event.preventDefault()
+    const sourceId = draggedId || event.dataTransfer.getData('text/plain')
+    const source = items.find((record) => record.id === sourceId)
+    setDraggedId('')
+    setDropTargetId('')
+    if (!source || source.id === item.id) return
+    if (config.reorderGroup(source) !== config.reorderGroup(item)) {
+      setOrderMessage({
+        type: 'error',
+        text: 'รายการนี้อยู่คนละกลุ่มกัน กรุณาลากสลับภายในวันที่ ประเภท หรือตัวชี้วัดเดียวกัน',
+      })
+      return
+    }
+    setOrderBaseline((current) => current.length ? current : items.map((record) => record.id))
+    setItems((current) => moveRecord(current, source.id, item.id))
+    setOrderMessage(null)
+  }
+
+  const cancelOrder = () => {
+    const recordById = new Map(items.map((item) => [item.id, item]))
+    setItems(orderBaseline.map((id) => recordById.get(id)).filter(Boolean))
+    setOrderBaseline([])
+    setDraggedId('')
+    setDropTargetId('')
+    setOrderMessage(null)
+  }
+
+  const saveOrder = async () => {
+    setOrderSaving(true)
+    setOrderMessage(null)
+    try {
+      const result = await apiRequest('/api/services?resource=reorder', {
+        method: 'POST',
+        body: JSON.stringify({
+          resource: type,
+          orderedIds: items.map((item) => item.id),
+        }),
+      })
+      setItems((current) => (config.sort || sortRecords)(
+        current.map((item) => ({
+          ...item,
+          display_order: result.orders?.[item.id] || item.display_order,
+        })),
+      ))
+      setOrderBaseline([])
+      setOrderMessage({ type: 'success', text: 'บันทึกลำดับการแสดงเรียบร้อยแล้ว' })
+    } catch (error) {
+      setOrderMessage({ type: 'error', text: error.message })
+    } finally {
+      setOrderSaving(false)
+    }
+  }
+
   return (
     <section className="admin-content-grid">
       <form className="news-editor" onSubmit={submit}>
@@ -995,7 +1126,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
             {message.text}
           </p>
         )}
-        <button className="admin-button admin-button--primary" type="submit" disabled={submitting || !githubConfigured}>
+        <button className="admin-button admin-button--primary" type="submit" disabled={submitting || !githubConfigured || orderDirty}>
           {submitting ? <LoaderCircle className="spin" size={19} /> : <Save size={19} />}
           {submitting ? (uploadProgress ? `กำลังอัปโหลด ${uploadProgress}%` : 'กำลังบันทึก...') : editingId ? 'บันทึกการแก้ไข' : 'เพิ่มข้อมูล'}
         </button>
@@ -1006,12 +1137,64 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
           <div><span>DATABASE</span><h2>รายการที่บันทึก</h2></div>
           <Icon size={27} />
         </div>
+        {config.reorderable && isAdmin && items.length > 1 && (
+          <div className="admin-reorder-guide">
+            <GripVertical size={17} />
+            <span>ลากรายการจากสัญลักษณ์ด้านซ้ายเพื่อสลับลำดับภายในกลุ่มเดียวกัน</span>
+          </div>
+        )}
+        {orderDirty && (
+          <div className="admin-reorder-confirm">
+            <div>
+              <strong>มีการเปลี่ยนลำดับที่ยังไม่ได้บันทึก</strong>
+              <small>กดยืนยันเพื่อให้ลำดับใหม่แสดงบนเว็บไซต์</small>
+            </div>
+            <button type="button" className="is-cancel" onClick={cancelOrder} disabled={orderSaving}>
+              ยกเลิก
+            </button>
+            <button type="button" className="is-save" onClick={saveOrder} disabled={orderSaving || !githubConfigured}>
+              {orderSaving ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />}
+              {orderSaving ? 'กำลังบันทึก...' : 'ยืนยันการเปลี่ยนลำดับ'}
+            </button>
+          </div>
+        )}
+        {orderMessage && (
+          <p className={`admin-order-message is-${orderMessage.type}`}>
+            {orderMessage.type === 'success' ? <CheckCircle2 size={17} /> : <AlertCircle size={17} />}
+            {orderMessage.text}
+          </p>
+        )}
         {!items.length ? (
           <div className="admin-empty"><Icon size={34} /><strong>ยังไม่มีข้อมูลในหมวดนี้</strong></div>
         ) : (
           <div className="admin-record-list">
             {items.map((item) => (
-              <article key={item.id}>
+              <article
+                className={[
+                  config.reorderable && isAdmin ? 'is-reorderable' : '',
+                  draggedId === item.id ? 'is-dragging' : '',
+                  dropTargetId === item.id ? 'is-drop-target' : '',
+                ].filter(Boolean).join(' ')}
+                onDragOver={(event) => dragOver(event, item)}
+                onDragLeave={() => setDropTargetId('')}
+                onDrop={(event) => drop(event, item)}
+                key={item.id}
+              >
+                {config.reorderable && isAdmin && (
+                  <span
+                    className="admin-record-list__drag"
+                    title="ลากเพื่อเปลี่ยนลำดับ"
+                    draggable={!orderSaving}
+                    onDragStart={(event) => dragStart(event, item)}
+                    onDragEnd={() => {
+                      setDraggedId('')
+                      setDropTargetId('')
+                    }}
+                    aria-hidden="true"
+                  >
+                    <GripVertical size={18} />
+                  </span>
+                )}
                 <div className="admin-news-list__image">
                   {item.image_url ? <img src={displayImageUrl(item.image_url)} alt="" /> : <Icon size={24} />}
                 </div>
@@ -1025,8 +1208,8 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
                 </div>
                 {isAdmin && (
                   <div className="admin-record-list__actions">
-                    <button type="button" onClick={() => edit(item)} aria-label={`แก้ไข ${config.title(item)}`}><Pencil size={16} /></button>
-                    <button type="button" className="is-danger" onClick={() => remove(item)} aria-label={`ลบ ${config.title(item)}`}><Trash2 size={16} /></button>
+                    <button type="button" onClick={() => edit(item)} disabled={orderDirty} aria-label={`แก้ไข ${config.title(item)}`}><Pencil size={16} /></button>
+                    <button type="button" className="is-danger" onClick={() => remove(item)} disabled={orderDirty} aria-label={`ลบ ${config.title(item)}`}><Trash2 size={16} /></button>
                   </div>
                 )}
               </article>
@@ -1056,6 +1239,12 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
   const [submitting, setSubmitting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [message, setMessage] = useState(null)
+  const [draggedId, setDraggedId] = useState('')
+  const [dropTargetId, setDropTargetId] = useState('')
+  const [orderBaseline, setOrderBaseline] = useState([])
+  const [orderSaving, setOrderSaving] = useState(false)
+  const [orderMessage, setOrderMessage] = useState(null)
+  const orderDirty = orderBaseline.length > 0
   const selectedLevel = qualityLevelMap[form.education_level] || qualityLevels[0]
   const indicators = selectedLevel.standards.flatMap((standard) => standard.indicators)
 
@@ -1232,7 +1421,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
         }),
       })
       setItems((current) =>
-        sortRecords(editingId
+        sortQualityEvidence(editingId
           ? current.map((item) => (item.id === editingId ? result.evidence : item))
           : [result.evidence, ...current]),
       )
@@ -1262,6 +1451,81 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
       setMessage({ type: 'success', text: 'ลบเอกสารหลักฐานเรียบร้อยแล้ว' })
     } catch (error) {
       setMessage({ type: 'error', text: error.message })
+    }
+  }
+
+  const qualityGroup = (item) => `${item.education_level}\u001f${item.indicator_code}`
+
+  const dragStart = (event, item) => {
+    if (!isAdmin || orderSaving) {
+      event.preventDefault()
+      return
+    }
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', item.id)
+    setDraggedId(item.id)
+    setOrderMessage(null)
+  }
+
+  const dragOver = (event, item) => {
+    const source = items.find((record) => record.id === draggedId)
+    if (!source || source.id === item.id) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = qualityGroup(source) === qualityGroup(item) ? 'move' : 'none'
+    setDropTargetId(item.id)
+  }
+
+  const drop = (event, item) => {
+    event.preventDefault()
+    const sourceId = draggedId || event.dataTransfer.getData('text/plain')
+    const source = items.find((record) => record.id === sourceId)
+    setDraggedId('')
+    setDropTargetId('')
+    if (!source || source.id === item.id) return
+    if (qualityGroup(source) !== qualityGroup(item)) {
+      setOrderMessage({
+        type: 'error',
+        text: 'เอกสารหลักฐานต้องลากสลับภายในระดับการศึกษาและตัวชี้วัดเดียวกัน',
+      })
+      return
+    }
+    setOrderBaseline((current) => current.length ? current : items.map((record) => record.id))
+    setItems((current) => moveRecord(current, source.id, item.id))
+    setOrderMessage(null)
+  }
+
+  const cancelOrder = () => {
+    const recordById = new Map(items.map((item) => [item.id, item]))
+    setItems(orderBaseline.map((id) => recordById.get(id)).filter(Boolean))
+    setOrderBaseline([])
+    setDraggedId('')
+    setDropTargetId('')
+    setOrderMessage(null)
+  }
+
+  const saveOrder = async () => {
+    setOrderSaving(true)
+    setOrderMessage(null)
+    try {
+      const result = await apiRequest('/api/services?resource=reorder', {
+        method: 'POST',
+        body: JSON.stringify({
+          resource: 'quality',
+          orderedIds: items.map((item) => item.id),
+        }),
+      })
+      setItems((current) => sortQualityEvidence(
+        current.map((item) => ({
+          ...item,
+          display_order: result.orders?.[item.id] || item.display_order,
+        })),
+      ))
+      setOrderBaseline([])
+      setOrderMessage({ type: 'success', text: 'บันทึกลำดับเอกสารหลักฐานเรียบร้อยแล้ว' })
+    } catch (error) {
+      setOrderMessage({ type: 'error', text: error.message })
+    } finally {
+      setOrderSaving(false)
     }
   }
 
@@ -1352,18 +1616,6 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
             ))}
             <small>เพิ่มได้สูงสุด 5 รายการ โดยนับรวมไฟล์ที่อัปโหลด</small>
           </div>
-          {isAdmin && (
-            <label className="news-field">
-              <span>ลำดับการแสดงผล</span>
-              <input
-                type="number"
-                name="display_order"
-                value={form.display_order}
-                onChange={update}
-                placeholder="เลขมากแสดงก่อน"
-              />
-            </label>
-          )}
           <label className="news-field">
             <span>สถานะ</span>
             <select name="status" value={form.status} onChange={update}>
@@ -1416,7 +1668,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
             {message.text}
           </p>
         )}
-        <button className="admin-button admin-button--primary" type="submit" disabled={submitting || !githubConfigured}>
+        <button className="admin-button admin-button--primary" type="submit" disabled={submitting || !githubConfigured || orderDirty}>
           {submitting ? <LoaderCircle className="spin" size={19} /> : <Save size={19} />}
           {submitting ? (uploadProgress ? `กำลังอัปโหลด ${uploadProgress}%` : 'กำลังบันทึก...') : editingId ? 'บันทึกการแก้ไข' : 'เพิ่มเอกสารหลักฐาน'}
         </button>
@@ -1427,12 +1679,64 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
           <div><span>EVIDENCE DATABASE</span><h2>เอกสารหลักฐานที่บันทึก</h2></div>
           <FileText size={27} />
         </div>
+        {isAdmin && items.length > 1 && (
+          <div className="admin-reorder-guide">
+            <GripVertical size={17} />
+            <span>ลากเอกสารหลักฐานเพื่อสลับลำดับภายในตัวชี้วัดเดียวกัน</span>
+          </div>
+        )}
+        {orderDirty && (
+          <div className="admin-reorder-confirm">
+            <div>
+              <strong>มีการเปลี่ยนลำดับที่ยังไม่ได้บันทึก</strong>
+              <small>กดยืนยันเพื่อให้ลำดับหลักฐานใหม่แสดงบนเว็บไซต์</small>
+            </div>
+            <button type="button" className="is-cancel" onClick={cancelOrder} disabled={orderSaving}>
+              ยกเลิก
+            </button>
+            <button type="button" className="is-save" onClick={saveOrder} disabled={orderSaving || !githubConfigured}>
+              {orderSaving ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />}
+              {orderSaving ? 'กำลังบันทึก...' : 'ยืนยันการเปลี่ยนลำดับ'}
+            </button>
+          </div>
+        )}
+        {orderMessage && (
+          <p className={`admin-order-message is-${orderMessage.type}`}>
+            {orderMessage.type === 'success' ? <CheckCircle2 size={17} /> : <AlertCircle size={17} />}
+            {orderMessage.text}
+          </p>
+        )}
         {!items.length ? (
           <div className="admin-empty"><FileText size={34} /><strong>ยังไม่มีเอกสารหลักฐาน</strong></div>
         ) : (
           <div className="admin-record-list quality-record-list">
             {items.map((item) => (
-              <article key={item.id}>
+              <article
+                className={[
+                  isAdmin ? 'is-reorderable' : '',
+                  draggedId === item.id ? 'is-dragging' : '',
+                  dropTargetId === item.id ? 'is-drop-target' : '',
+                ].filter(Boolean).join(' ')}
+                onDragOver={(event) => dragOver(event, item)}
+                onDragLeave={() => setDropTargetId('')}
+                onDrop={(event) => drop(event, item)}
+                key={item.id}
+              >
+                {isAdmin && (
+                  <span
+                    className="admin-record-list__drag"
+                    title="ลากเพื่อเปลี่ยนลำดับ"
+                    draggable={!orderSaving}
+                    onDragStart={(event) => dragStart(event, item)}
+                    onDragEnd={() => {
+                      setDraggedId('')
+                      setDropTargetId('')
+                    }}
+                    aria-hidden="true"
+                  >
+                    <GripVertical size={18} />
+                  </span>
+                )}
                 <div className="admin-news-list__image"><FileText size={24} /></div>
                 <div className="admin-record-list__copy">
                   <span>{qualityLevelMap[item.education_level]?.shortLabel} · ตัวชี้วัดที่ {item.indicator_code}</span>
@@ -1445,8 +1749,8 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
                 </div>
                 {isAdmin && (
                   <div className="admin-record-list__actions">
-                    <button type="button" onClick={() => edit(item)} aria-label={`แก้ไข ${item.title}`}><Pencil size={16} /></button>
-                    <button type="button" className="is-danger" onClick={() => remove(item)} aria-label={`ลบ ${item.title}`}><Trash2 size={16} /></button>
+                    <button type="button" onClick={() => edit(item)} disabled={orderDirty} aria-label={`แก้ไข ${item.title}`}><Pencil size={16} /></button>
+                    <button type="button" className="is-danger" onClick={() => remove(item)} disabled={orderDirty} aria-label={`ลบ ${item.title}`}><Trash2 size={16} /></button>
                   </div>
                 )}
               </article>
@@ -2135,8 +2439,8 @@ function Dashboard() {
         setEvents(sortRecords(eventData.events || []))
         setAwards(sortRecords(awardData.awards || []))
         setNewsletters(sortRecords(newsletterData.newsletters || []))
-        setQualityEvidence(sortRecords(qualityData.evidence || []))
-        setSarDocuments(sortRecords(sarData.sarDocuments || []))
+        setQualityEvidence(sortQualityEvidence(qualityData.evidence || []))
+        setSarDocuments(modules.sar.sort(sarData.sarDocuments || []))
         setDocuments(sortRecords(documentData.documents || []))
         setQuestions(sortRecords(questionData.questions || []))
         setComplaints(sortRecords(complaintData.complaints || []))

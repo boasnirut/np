@@ -1,6 +1,7 @@
 import complaintsHandler from './_lib/complaints-handler.js'
 import driveUploadHandler from './_lib/drive-upload-handler.js'
 import questionsHandler from './_lib/questions-handler.js'
+import reorderHandler from './_lib/reorder-handler.js'
 import schoolDocumentsHandler from './_lib/school-documents-handler.js'
 import siteSlidesHandler from './_lib/site-slides-handler.js'
 import sarHandler from './_lib/sar-handler.js'
@@ -11,6 +12,7 @@ const handlers = {
   complaints: complaintsHandler,
   documents: schoolDocumentsHandler,
   questions: questionsHandler,
+  reorder: reorderHandler,
   sar: sarHandler,
   slides: siteSlidesHandler,
   staff: staffHandler,
