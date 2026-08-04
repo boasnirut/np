@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
+import { canModifyRecord, requireActiveUser, withUserDisplayNames } from './_lib/access.js'
 import {
   cleanAttachmentUrls,
   cleanExternalUrl,
@@ -158,12 +158,11 @@ export default async function handler(request, response) {
     }
 
     if (request.method === 'PUT' || request.method === 'DELETE') {
-      if (session.role !== 'admin') {
-        return sendJson(response, 403, { error: 'เฉพาะผู้ดูแลระบบเท่านั้นที่แก้ไขหรือลบรายการได้' })
-      }
-
       const index = newsletters.findIndex((item) => item.id === String(body.id || ''))
       if (index < 0) return sendJson(response, 404, { error: 'ไม่พบจดหมายข่าวที่ต้องการ' })
+      if (!canModifyRecord(session, newsletters[index])) {
+        return sendJson(response, 403, { error: 'สมาชิกแก้ไขหรือลบได้เฉพาะจดหมายข่าวที่ตนเองสร้าง' })
+      }
 
       if (request.method === 'DELETE') {
         const [removed] = newsletters.splice(index, 1)
@@ -176,7 +175,7 @@ export default async function handler(request, response) {
         return sendJson(response, 200, { success: true })
       }
 
-      const itemFields = fields(body, newsletters[index], true)
+      const itemFields = fields(body, newsletters[index], session.role === 'admin')
       if (!validate(itemFields, response)) return undefined
       const imageUrl = await uploadImage(body.image, newsletters[index].id, itemFields.issue_number)
       const { document_urls: documentUrls, ...savedFields } = itemFields

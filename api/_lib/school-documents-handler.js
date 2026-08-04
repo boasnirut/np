@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser, withUserDisplayNames } from './access.js'
+import { canModifyRecord, requireActiveUser, withUserDisplayNames } from './access.js'
 import {
   cleanAttachmentUrls,
   contentAttachmentUrls,
@@ -157,11 +157,11 @@ export default async function handler(request, response) {
     }
 
     if (request.method === 'PUT' || request.method === 'DELETE') {
-      if (session.role !== 'admin') {
-        return sendJson(response, 403, { error: 'เฉพาะผู้ดูแลระบบเท่านั้นที่แก้ไขหรือลบเอกสารได้' })
-      }
       const index = documents.findIndex((item) => item.id === String(body.id || ''))
       if (index < 0) return sendJson(response, 404, { error: 'ไม่พบเอกสารที่ต้องการ' })
+      if (!canModifyRecord(session, documents[index])) {
+        return sendJson(response, 403, { error: 'สมาชิกแก้ไขหรือลบได้เฉพาะเอกสารที่ตนเองสร้าง' })
+      }
 
       if (request.method === 'DELETE') {
         const [removed] = documents.splice(index, 1)
@@ -174,7 +174,7 @@ export default async function handler(request, response) {
         return sendJson(response, 200, { success: true })
       }
 
-      const itemFields = fields(body, documents[index], true)
+      const itemFields = fields(body, documents[index], session.role === 'admin')
       if (!validate(itemFields, response, body.document_file?.data ? 1 : 0)) return undefined
       const uploadedUrl = await uploadDocument(body.document_file, documents[index].id, itemFields.title)
       const { document_urls: documentUrls, ...savedFields } = itemFields

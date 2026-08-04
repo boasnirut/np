@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
+import { canModifyRecord, requireActiveUser, withUserDisplayNames } from './_lib/access.js'
 import {
   cleanExternalUrl,
   evidenceDocumentNames,
@@ -233,11 +233,11 @@ export default async function handler(request, response) {
     }
 
     if (request.method === 'PUT' || request.method === 'DELETE') {
-      if (session.role !== 'admin') {
-        return sendJson(response, 403, { error: 'เฉพาะผู้ดูแลระบบเท่านั้นที่แก้ไขหรือลบหลักฐานได้' })
-      }
       const index = evidence.findIndex((item) => item.id === String(body.id || ''))
       if (index < 0) return sendJson(response, 404, { error: 'ไม่พบเอกสารหลักฐานที่ต้องการ' })
+      if (!canModifyRecord(session, evidence[index])) {
+        return sendJson(response, 403, { error: 'สมาชิกแก้ไขหรือลบได้เฉพาะหลักฐานที่ตนเองสร้าง' })
+      }
 
       if (request.method === 'DELETE') {
         const [removed] = evidence.splice(index, 1)
@@ -251,7 +251,7 @@ export default async function handler(request, response) {
       }
 
       const itemFields = await withResolvedDocumentTypes(
-        fields(body, evidence[index], true),
+        fields(body, evidence[index], session.role === 'admin'),
       )
       if (!validate(itemFields, response, Boolean(body.file?.data))) return undefined
       const uploadedUrl = await uploadPdf(body.file, evidence[index].id, itemFields.title)

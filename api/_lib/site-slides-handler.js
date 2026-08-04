@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser, withUserDisplayNames } from './access.js'
+import { canModifyRecord, requireActiveUser, withUserDisplayNames } from './access.js'
 import { parseCsv, stringifyCsv } from './csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './http.js'
 import {
@@ -139,14 +139,11 @@ export default async function handler(request, response) {
     }
 
     if (request.method === 'PUT' || request.method === 'DELETE') {
-      if (session.role !== 'admin') {
-        return sendJson(response, 403, {
-          error: 'เฉพาะผู้ดูแลระบบเท่านั้นที่แก้ไขหรือลบภาพหน้าเว็บไซต์ได้',
-        })
-      }
-
       const index = slides.findIndex((item) => item.id === String(body.id || ''))
       if (index < 0) return sendJson(response, 404, { error: 'ไม่พบภาพที่ต้องการจัดการ' })
+      if (!canModifyRecord(session, slides[index])) {
+        return sendJson(response, 403, { error: 'สมาชิกแก้ไขหรือลบได้เฉพาะภาพที่ตนเองสร้าง' })
+      }
 
       if (request.method === 'DELETE') {
         const [removed] = slides.splice(index, 1)
@@ -160,6 +157,7 @@ export default async function handler(request, response) {
       }
 
       const fields = slideFields(body, slides[index])
+      if (session.role !== 'admin') fields.display_order = slides[index].display_order
       if (!validate(fields, response)) return undefined
       slides[index] = {
         ...slides[index],

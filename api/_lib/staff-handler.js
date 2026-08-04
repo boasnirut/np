@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser, withUserDisplayNames } from './access.js'
+import { canModifyRecord, requireActiveUser, withUserDisplayNames } from './access.js'
 import { parseCsv, stringifyCsv } from './csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './http.js'
 import {
@@ -148,14 +148,11 @@ export default async function staffHandler(request, response) {
     }
 
     if (request.method === 'PUT' || request.method === 'DELETE') {
-      if (session.role !== 'admin') {
-        return sendJson(response, 403, {
-          error: 'เฉพาะผู้ดูแลระบบเท่านั้นที่แก้ไขหรือลบข้อมูลบุคลากรได้',
-        })
-      }
-
       const index = staff.findIndex((item) => item.id === String(body.id || ''))
       if (index < 0) return sendJson(response, 404, { error: 'ไม่พบบุคลากรที่ต้องการจัดการ' })
+      if (!canModifyRecord(session, staff[index])) {
+        return sendJson(response, 403, { error: 'สมาชิกแก้ไขหรือลบได้เฉพาะข้อมูลบุคลากรที่ตนเองสร้าง' })
+      }
 
       if (request.method === 'DELETE') {
         const [removed] = staff.splice(index, 1)
@@ -169,6 +166,7 @@ export default async function staffHandler(request, response) {
       }
 
       const fields = staffFields(body, staff[index])
+      if (session.role !== 'admin') fields.display_order = staff[index].display_order
       if (!validate(fields, response)) return undefined
       staff[index] = {
         ...staff[index],

@@ -728,7 +728,7 @@ function moveRecord(items, sourceId, targetId) {
   return next
 }
 
-function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
+function RecordManager({ type, items, setItems, isAdmin, currentUsername, githubConfigured }) {
   const config = modules[type]
   const Icon = config.icon
   const [form, setForm] = useState(config.defaults)
@@ -748,6 +748,8 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
   const maxAttachments = config.maxAttachments || 5
   const isNewsVideo = type === 'news' && form.category === 'วิดีโอประชาสัมพันธ์'
   const orderDirty = orderBaseline.length > 0
+  const canModifyItem = (item) => isAdmin
+    || String(item.author || '').trim() === String(currentUsername || '').trim()
 
   useEffect(() => {
     setForm(config.defaults)
@@ -1217,7 +1219,7 @@ function RecordManager({ type, items, setItems, isAdmin, githubConfigured }) {
                   )}
                   <RecordAudit item={item} date={config.date(item)} />
                 </div>
-                {isAdmin && (
+                {canModifyItem(item) && (
                   <div className="admin-record-list__actions">
                     <button type="button" onClick={() => edit(item)} disabled={orderDirty} aria-label={`แก้ไข ${config.title(item)}`}><Pencil size={16} /></button>
                     <button type="button" className="is-danger" onClick={() => remove(item)} disabled={orderDirty} aria-label={`ลบ ${config.title(item)}`}><Trash2 size={16} /></button>
@@ -1244,7 +1246,7 @@ const qualityDefaults = {
   status: 'published',
 }
 
-function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
+function QualityManager({ items, setItems, isAdmin, currentUsername, githubConfigured }) {
   const [form, setForm] = useState(qualityDefaults)
   const [editingId, setEditingId] = useState(null)
   const [files, setFiles] = useState([])
@@ -1258,6 +1260,8 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
   const [orderSaving, setOrderSaving] = useState(false)
   const [orderMessage, setOrderMessage] = useState(null)
   const orderDirty = orderBaseline.length > 0
+  const canModifyItem = (item) => isAdmin
+    || String(item.author || '').trim() === String(currentUsername || '').trim()
   const selectedLevel = qualityLevelMap[form.education_level] || qualityLevels[0]
   const indicators = selectedLevel.standards.flatMap((standard) => standard.indicators)
 
@@ -1851,7 +1855,7 @@ function QualityManager({ items, setItems, isAdmin, githubConfigured }) {
                   <small>{item.status === 'draft' ? 'ฉบับร่าง' : 'เผยแพร่'}</small>
                   <RecordAudit item={item} date={item.created_at} />
                 </div>
-                {isAdmin && (
+                {canModifyItem(item) && (
                   <div className="admin-record-list__actions">
                     <button type="button" onClick={() => edit(item)} disabled={orderDirty} aria-label={`แก้ไข ${item.title}`}><Pencil size={16} /></button>
                     <button type="button" className="is-danger" onClick={() => remove(item)} disabled={orderDirty} aria-label={`ลบ ${item.title}`}><Trash2 size={16} /></button>
@@ -2684,30 +2688,31 @@ function Dashboard() {
             currentUsername={session.user.username}
           />
         ) : activeModule === 'events' ? (
-          <RecordManager type="events" items={events} setItems={setEvents} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+          <RecordManager type="events" items={events} setItems={setEvents} isAdmin={isAdmin} currentUsername={session.user.username} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'awards' ? (
-          <RecordManager type="awards" items={awards} setItems={setAwards} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+          <RecordManager type="awards" items={awards} setItems={setAwards} isAdmin={isAdmin} currentUsername={session.user.username} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'newsletters' ? (
-          <RecordManager type="newsletters" items={newsletters} setItems={setNewsletters} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+          <RecordManager type="newsletters" items={newsletters} setItems={setNewsletters} isAdmin={isAdmin} currentUsername={session.user.username} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'quality' ? (
           <QualityManager
             items={qualityEvidence}
             setItems={setQualityEvidence}
             isAdmin={isAdmin}
+            currentUsername={session.user.username}
             githubConfigured={session.githubConfigured}
           />
         ) : activeModule === 'sar' ? (
-          <RecordManager type="sar" items={sarDocuments} setItems={setSarDocuments} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+          <RecordManager type="sar" items={sarDocuments} setItems={setSarDocuments} isAdmin={isAdmin} currentUsername={session.user.username} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'documents' ? (
-          <RecordManager type="documents" items={documents} setItems={setDocuments} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+          <RecordManager type="documents" items={documents} setItems={setDocuments} isAdmin={isAdmin} currentUsername={session.user.username} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'qa' ? (
           <QaManager items={questions} setItems={setQuestions} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'complaints' ? (
           <ComplaintsManager items={complaints} setItems={setComplaints} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'slides' ? (
-          <RecordManager type="slides" items={siteSlides} setItems={setSiteSlides} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+          <RecordManager type="slides" items={siteSlides} setItems={setSiteSlides} isAdmin={isAdmin} currentUsername={session.user.username} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'staff' ? (
-          <RecordManager type="staff" items={staff} setItems={setStaff} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+          <RecordManager type="staff" items={staff} setItems={setStaff} isAdmin={isAdmin} currentUsername={session.user.username} githubConfigured={session.githubConfigured} />
         ) : activeModule === 'none' ? (
           <div className="admin-empty admin-no-permission">
             <ShieldCheck size={36} />
@@ -2715,7 +2720,7 @@ function Dashboard() {
             <p>กรุณาติดต่อผู้ดูแลระบบเพื่อกำหนดส่วนงานที่รับผิดชอบ</p>
           </div>
         ) : (
-          <RecordManager type="news" items={news} setItems={setNews} isAdmin={isAdmin} githubConfigured={session.githubConfigured} />
+          <RecordManager type="news" items={news} setItems={setNews} isAdmin={isAdmin} currentUsername={session.user.username} githubConfigured={session.githubConfigured} />
         )}
       </div>
     </main>

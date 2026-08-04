@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser, withUserDisplayNames } from './access.js'
+import { canModifyRecord, requireActiveUser, withUserDisplayNames } from './access.js'
 import { cleanExternalUrl, nextDisplayOrder, sortByDisplayOrder } from './content.js'
 import { parseCsv, stringifyCsv } from './csv.js'
 import { methodNotAllowed, readJsonBody, sendJson } from './http.js'
@@ -122,13 +122,11 @@ export default async function sarHandler(request, response) {
     }
 
     if (request.method === 'PUT' || request.method === 'DELETE') {
-      if (session.role !== 'admin') {
-        return sendJson(response, 403, {
-          error: 'เฉพาะผู้ดูแลระบบเท่านั้นที่แก้ไขหรือลบรายงาน SAR ได้',
-        })
-      }
       const index = documents.findIndex((item) => item.id === String(body.id || ''))
       if (index < 0) return sendJson(response, 404, { error: 'ไม่พบรายงาน SAR ที่ต้องการ' })
+      if (!canModifyRecord(session, documents[index])) {
+        return sendJson(response, 403, { error: 'สมาชิกแก้ไขหรือลบได้เฉพาะรายงาน SAR ที่ตนเองสร้าง' })
+      }
 
       if (request.method === 'DELETE') {
         const [removed] = documents.splice(index, 1)
@@ -141,7 +139,7 @@ export default async function sarHandler(request, response) {
         return sendJson(response, 200, { success: true })
       }
 
-      const itemFields = fields(body, documents[index], true)
+      const itemFields = fields(body, documents[index], session.role === 'admin')
       if (!validate(itemFields, response)) return undefined
       documents[index] = {
         ...documents[index],

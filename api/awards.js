@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requireActiveUser, withUserDisplayNames } from './_lib/access.js'
+import { canModifyRecord, requireActiveUser, withUserDisplayNames } from './_lib/access.js'
 import {
   cleanAttachmentUrls,
   cleanExternalUrl,
@@ -167,11 +167,11 @@ export default async function handler(request, response) {
     }
 
     if (request.method === 'PUT' || request.method === 'DELETE') {
-      if (session.role !== 'admin') {
-        return sendJson(response, 403, { error: 'เฉพาะผู้ดูแลระบบเท่านั้นที่แก้ไขหรือลบรายการได้' })
-      }
       const index = awards.findIndex((item) => item.id === String(body.id || ''))
       if (index < 0) return sendJson(response, 404, { error: 'ไม่พบผลงานที่ต้องการ' })
+      if (!canModifyRecord(session, awards[index])) {
+        return sendJson(response, 403, { error: 'สมาชิกแก้ไขหรือลบได้เฉพาะผลงานที่ตนเองสร้าง' })
+      }
       if (request.method === 'DELETE') {
         const [removed] = awards.splice(index, 1)
         await writeRepoFile(

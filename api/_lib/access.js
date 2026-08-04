@@ -41,6 +41,12 @@ export async function requireActiveUser(request, response, options = {}) {
   }
 }
 
+export function canModifyRecord(session, item) {
+  if (!session || !item) return false
+  return session.role === 'admin'
+    || String(item.author || '').trim() === String(session.sub || '').trim()
+}
+
 export async function withUserDisplayNames(items, knownNames = null) {
   let displayNames = knownNames
   if (!displayNames) {
