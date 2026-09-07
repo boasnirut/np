@@ -482,12 +482,12 @@ function Hero() {
               สังกัดสำนักงานเขตพื้นที่การศึกษาประถมศึกษาเลย เขต 1
             </AutoFitText>
             <div className="hero__actions">
-              <a className="button button--gold" href="#news">
-                ดูข่าวสารล่าสุด
+              <a className="button button--gold" href="/operations/external-quality">
+                ประกันคุณภาพภายนอก (สมศ.)
                 <ArrowRight size={19} aria-hidden="true" />
               </a>
-              <a className="button button--ghost" href="#about">
-                รู้จักโรงเรียน
+              <a className="button button--ghost" href="/about/staff">
+                ข้อมูลบุคลากร
               </a>
             </div>
             <div className="hero__trust">
