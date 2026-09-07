@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Namporn - ผลการดำเนินงาน โรงเรียนบ้านน้ำพร</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lottie Library สำหรับ Splash Screen Intro -->
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.3/dist/dotlottie-wc.js" type="module"></script>
+    
+    <!-- Chart.js Library สำหรับแสดงกราฟสถิติ -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    },
+                    colors: {
+                        namporn: {
+                            main: '#0055ff',
+                            dark: '#003db8',
+                            bg: '#141414',
+                            card: '#2f2f2f'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #141414;
+            color: #ffffff;
+            font-family: 'Prompt', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Improved card hover state to prevent cutoff */
+        .card-container {
+            padding-bottom: 2rem;
+            padding-top: 1rem;
+        }
+        
+        .card-hover:hover {
+            transform: scale(1.08);
+            z-index: 20;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7);
+        }
+
+        .hero-gradient {
+            background: linear-gradient(to top, #141414 0%, rgba(20,20,20,0) 100%);
+        }
+        
+        /* Modal transitions */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+        }
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1), transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Custom scrollbar for modal */
+        .modal-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .modal-scroll::-webkit-scrollbar-track {
+            background: #1f1f1f;
+            border-radius: 4px;
+        }
+        .modal-scroll::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 4px;
+        }
+        .modal-scroll::-webkit-scrollbar-thumb:hover {
+            background: #0055ff;
+        }
+
+        /* Logo Glow Effects */
+        .logo-glow {
+            filter: drop-shadow(0 2px 10px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 3px rgba(255, 255, 255, 0.7));
+        }
+        .logo-hover-effect:hover {
+            filter: drop-shadow(0 0 15px rgba(0, 85, 255, 0.9)) drop-shadow(0 0 5px rgba(255, 255, 255, 0.9));
+            transform: scale(1.08);
+        }
+    </style>
+</head>
+<body class="antialiased pb-12 overflow-hidden">
+
+    <!-- Splash Screen / Intro Animation -->
+    <div id="splash-screen" class="fixed inset-0 z-[9999] bg-[#141414] flex flex-col items-center justify-center transition-opacity duration-1000 ease-in-out opacity-100">
+        <dotlottie-wc src="https://lottie.host/8bb2e108-39fe-48cf-9840-73237bdb4105/UQChHQk7vx.lottie" style="width: 300px; height: 300px;" autoplay loop></dotlottie-wc>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="fixed w-full z-50 transition-all duration-300 bg-gradient-to-b from-black/90 to-transparent py-4 px-4 md:px-12 flex items-center justify-between" id="navbar">
+        <div class="flex items-end gap-6 md:gap-10">
+            <!-- ขยายขนาดโลโก้ให้ใหญ่ขึ้นอีก (h-20 สำหรับมือถือ, h-28 สำหรับคอมฯ) -->
+            <img src="https://i.postimg.cc/ncrpK2tL/AMPORN.png" alt="Namporn Logo" class="h-20 md:h-28 w-auto cursor-pointer object-contain transition-all duration-300 logo-glow logo-hover-effect" onclick="window.scrollTo(0,0)">
+            <!-- เมนูจัดชิดล่าง (items-end จาก div แม่) และเสริม mb-2 md:mb-4 เพื่อให้ได้ระดับสายตาที่พอดี -->
+            <ul class="hidden md:flex gap-6 text-sm md:text-base font-medium text-gray-300 mb-2 md:mb-4">
+                <li class="text-white font-semibold cursor-pointer border-b-2 border-namporn-main pb-1">หน้าแรก</li>
+                <li class="hover:text-white cursor-pointer transition pb-1" onclick="scrollToShowcase()">ผลการดำเนินงาน</li>
+                <li class="hover:text-white cursor-pointer transition pb-1" onclick="showInfoModal()">ข้อมูลโรงเรียน</li>
+            </ul>
+        </div>
+        <div class="flex items-center gap-4 text-xl">
+            <div class="flex items-center gap-2 bg-gray-800/60 rounded-full px-3 py-1.5 border border-gray-700/50 focus-within:border-namporn-main transition-colors">
+                <i class="fas fa-search text-gray-400 text-sm"></i>
+                <input type="text" id="searchInput" placeholder="ค้นหา..." class="bg-transparent border-none outline-none text-sm text-white w-20 md:w-32 placeholder-gray-500" oninput="handleSearch(event)">
+            </div>
+            <img src="https://i.postimg.cc/vHPW1sqg/2.png" alt="School Info" class="w-12 h-12 md:w-14 md:h-14 rounded-full cursor-pointer hover:scale-110 transition-transform shadow-lg border-2 border-transparent hover:border-namporn-main bg-white object-contain p-0.5" onclick="showInfoModal()">
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="relative h-[75vh] md:h-[95vh] flex items-center justify-start px-4 md:px-12 overflow-hidden bg-[#141414]">
+        <!-- Hero Background Slider -->
+        <div id="hero-slide-1" class="absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-100" style="background-image: url('https://i.postimg.cc/y8hWbD9S/3334.jpg');"></div>
+        <div id="hero-slide-2" class="absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-0" style="background-image: url('https://i.postimg.cc/VLpj80dD/641688038_25954666070862537_2614096724727383264_n.jpg');"></div>
+        <div id="hero-slide-3" class="absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-0" style="background-image: url('https://ik.imagekit.io/boasnirut/DSC_4336.jpg');"></div>
+        
+        <div class="absolute inset-0 bg-black/60 md:bg-black/10 z-0"></div>
+        <div class="absolute inset-0 hero-gradient z-0"></div>
+        
+        <div class="relative z-10 max-w-3xl mt-16 md:mt-24">
+            <h2 class="text-blue-500 font-bold tracking-widest text-xs md:text-sm mb-3 flex items-center gap-2">
+                <i class="fas fa-award"></i> นิทรรศการผลการดำเนินงาน
+            </h2>
+            <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 leading-tight">โรงเรียนบ้านน้ำพร<br><span class="text-2xl md:text-4xl lg:text-5xl text-gray-200 mt-2 block">โรงเรียนขยายโอกาสคุณภาพ</span></h1>
+            <p class="text-gray-300 text-base md:text-xl mb-8 max-w-2xl text-shadow leading-relaxed">
+                "สร้างโอกาสทางการศึกษา พัฒนาทักษะวิชาการและอาชีพ ผสานเทคโนโลยีและเครือข่าย เพื่อผู้เรียนโรงเรียนบ้านน้ำพรก้าวไกลและพึ่งพาตนเองได้"
+            </p>
+            <div class="flex flex-wrap gap-4">
+                <button onclick="scrollToShowcase()" class="bg-white text-black px-6 md:px-8 py-3 rounded md:rounded-lg font-bold hover:bg-gray-200 transition flex items-center gap-2 shadow-lg hover:scale-105 transform">
+                    <i class="fas fa-play text-xl"></i> รับชมผลงาน
+                </button>
+                <button onclick="showInfoModal()" class="bg-gray-600/50 text-white px-6 md:px-8 py-3 rounded md:rounded-lg font-bold hover:bg-gray-500/70 transition flex items-center gap-2 backdrop-blur-md border border-gray-500/30 hover:scale-105 transform">
+                    <i class="fas fa-info-circle text-xl"></i> ข้อมูลโรงเรียน
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content (Showcase Rows) -->
+    <main class="relative z-20 px-4 md:px-12 -mt-4 md:-mt-8 space-y-6 md:space-y-10" id="showcase-container">
+        <!-- Content will be injected by JavaScript -->
+    </main>
+
+    <!-- Gallery Section (New) -->
+    <section class="relative z-20 px-4 md:px-12 mt-10 mb-16" id="gallery-section">
+        <div class="mb-4 relative z-10">
+            <div class="flex flex-col xl:flex-row xl:items-center gap-4 mb-6 px-2 md:px-4 justify-between">
+                <h2 class="text-lg md:text-2xl font-bold text-white flex items-center gap-2 shrink-0">
+                    <i class="fas fa-camera-retro text-namporn-main"></i> ประเมินโรงเรียนขยายโอกาสคุณภาพ 4 มีนาคม 2569
+                </h2>
+                <!-- ลิงก์ไปยัง Google Photos (ปรับให้เด่นชัดขึ้น) -->
+                <a href="https://photos.app.goo.gl/CmkUtTBJ8Z388Pp26" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-[#003db8] hover:from-blue-500 hover:to-blue-600 border border-blue-400/50 rounded-full text-white transition-all text-sm md:text-base font-bold shadow-[0_0_15px_rgba(0,85,255,0.4)] hover:shadow-[0_0_25px_rgba(0,85,255,0.8)] hover:-translate-y-1 transform group w-full xl:w-auto text-center">
+                    <i class="fas fa-images text-white text-lg group-hover:scale-110 transition-transform"></i> 
+                    คลิก!! เพื่อดูอัลบั้มภาพการประเมินโรงเรียนขยายโอกาสคุณภาพ 4 มีนาคม 2569 ทั้งหมด
+                    <i class="fas fa-external-link-alt ml-1 opacity-80 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"></i>
+                </a>
+            </div>
+            
+            <!-- พื้นที่แสดงภาพ (เลื่อนได้เต็มความกว้าง) -->
+            <div class="px-2 md:px-4 w-full relative">
+                <div id="gallery-container" class="w-full flex overflow-x-auto hide-scrollbar gap-4 snap-x snap-mandatory py-2 scroll-smooth">
+                    
+                    <!-- รูปที่ 1 -->
+                    <div class="snap-start shrink-0 w-[240px] md:w-[320px] aspect-[4/3] relative rounded-lg overflow-hidden cursor-pointer group/item border border-gray-800" onclick="openImageModal('https://ik.imagekit.io/boasnirut/QOES/QOES69%20(36).jpg')">
+                        <img src="https://ik.imagekit.io/boasnirut/QOES/QOES69%20(36).jpg" class="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110" alt="Gallery Image">
+                        <div class="absolute inset-0 bg-black/0 group-hover/item:bg-black/30 transition-colors duration-300"></div>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-20">
+                            <div class="w-12 h-12 rounded-full border-2 border-white/80 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white transform scale-75 group-hover/item:scale-100 transition-transform duration-300 shadow-xl">
+                                <i class="fas fa-search-plus text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- รูปที่ 2 -->
+                    <div class="snap-start shrink-0 w-[240px] md:w-[320px] aspect-[4/3] relative rounded-lg overflow-hidden cursor-pointer group/item border border-gray-800" onclick="openImageModal('https://ik.imagekit.io/boasnirut/QOES/QOES69%20(39).jpg')">
+                        <img src="https://ik.imagekit.io/boasnirut/QOES/QOES69%20(39).jpg" class="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110" alt="Gallery Image">
+                        <div class="absolute inset-0 bg-black/0 group-hover/item:bg-black/30 transition-colors duration-300"></div>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-20">
+                            <div class="w-12 h-12 rounded-full border-2 border-white/80 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white transform scale-75 group-hover/item:scale-100 transition-transform duration-300 shadow-xl">
+                                <i class="fas fa-search-plus text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- รูปที่ 3 -->
+                    <div class="snap-start shrink-0 w-[240px] md:w-[320px] aspect-[4/3] relative rounded-lg overflow-hidden cursor-pointer group/item border border-gray-800" onclick="openImageModal('https://ik.imagekit.io/boasnirut/QOES/QOES69%20(19).jpg')">
+                        <img src="https://ik.imagekit.io/boasnirut/QOES/QOES69%20(19).jpg" class="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110" alt="Gallery Image">
+                        <div class="absolute inset-0 bg-black/0 group-hover/item:bg-black/30 transition-colors duration-300"></div>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-20">
+                            <div class="w-12 h-12 rounded-full border-2 border-white/80 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white transform scale-75 group-hover/item:scale-100 transition-transform duration-300 shadow-xl">
+                                <i class="fas fa-search-plus text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- รูปที่ 4 -->
+                    <div class="snap-start shrink-0 w-[240px] md:w-[320px] aspect-[4/3] relative rounded-lg overflow-hidden cursor-pointer group/item border border-gray-800" onclick="openImageModal('https://ik.imagekit.io/boasnirut/QOES/QOES69%20(72).jpg')">
+                        <img src="https://ik.imagekit.io/boasnirut/QOES/QOES69%20(72).jpg" class="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110" alt="Gallery Image">
+                        <div class="absolute inset-0 bg-black/0 group-hover/item:bg-black/30 transition-colors duration-300"></div>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-20">
+                            <div class="w-12 h-12 rounded-full border-2 border-white/80 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white transform scale-75 group-hover/item:scale-100 transition-transform duration-300 shadow-xl">
+                                <i class="fas fa-search-plus text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- รูปที่ 5 -->
+                    <div class="snap-start shrink-0 w-[240px] md:w-[320px] aspect-[4/3] relative rounded-lg overflow-hidden cursor-pointer group/item border border-gray-800" onclick="openImageModal('https://ik.imagekit.io/boasnirut/QOES/QOES69%20(67).jpg')">
+                        <img src="https://ik.imagekit.io/boasnirut/QOES/QOES69%20(67).jpg" class="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110" alt="Gallery Image">
+                        <div class="absolute inset-0 bg-black/0 group-hover/item:bg-black/30 transition-colors duration-300"></div>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-20">
+                            <div class="w-12 h-12 rounded-full border-2 border-white/80 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white transform scale-75 group-hover/item:scale-100 transition-transform duration-300 shadow-xl">
+                                <i class="fas fa-search-plus text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+					<!-- รูปที่ 6 -->
+                    <div class="snap-start shrink-0 w-[240px] md:w-[320px] aspect-[4/3] relative rounded-lg overflow-hidden cursor-pointer group/item border border-gray-800" onclick="openImageModal('https://ik.imagekit.io/boasnirut/QOES/QOES69%20(64).jpg')">
+                        <img src="https://ik.imagekit.io/boasnirut/QOES/QOES69%20(64).jpg" class="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110" alt="Gallery Image">
+                        <div class="absolute inset-0 bg-black/0 group-hover/item:bg-black/30 transition-colors duration-300"></div>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-20">
+                            <div class="w-12 h-12 rounded-full border-2 border-white/80 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white transform scale-75 group-hover/item:scale-100 transition-transform duration-300 shadow-xl">
+                                <i class="fas fa-search-plus text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+					<!-- รูปที่ 7 -->
+                    <div class="snap-start shrink-0 w-[240px] md:w-[320px] aspect-[4/3] relative rounded-lg overflow-hidden cursor-pointer group/item border border-gray-800" onclick="openImageModal('https://ik.imagekit.io/boasnirut/QOES/QOES69%20(5).jpg')">
+                        <img src="https://ik.imagekit.io/boasnirut/QOES/QOES69%20(5).jpg" class="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110" alt="Gallery Image">
+                        <div class="absolute inset-0 bg-black/0 group-hover/item:bg-black/30 transition-colors duration-300"></div>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-20">
+                            <div class="w-12 h-12 rounded-full border-2 border-white/80 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white transform scale-75 group-hover/item:scale-100 transition-transform duration-300 shadow-xl">
+                                <i class="fas fa-search-plus text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+					<!-- รูปที่ 8 -->
+                    <div class="snap-start shrink-0 w-[240px] md:w-[320px] aspect-[4/3] relative rounded-lg overflow-hidden cursor-pointer group/item border border-gray-800" onclick="openImageModal('https://ik.imagekit.io/boasnirut/QOES/QOES69%20(50).jpg')">
+                        <img src="https://ik.imagekit.io/boasnirut/QOES/QOES69%20(50).jpg" class="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110" alt="Gallery Image">
+                        <div class="absolute inset-0 bg-black/0 group-hover/item:bg-black/30 transition-colors duration-300"></div>
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-20">
+                            <div class="w-12 h-12 rounded-full border-2 border-white/80 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white transform scale-75 group-hover/item:scale-100 transition-transform duration-300 shadow-xl">
+                                <i class="fas fa-search-plus text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- กลุ่มปุ่ม ย้ายมาแถวใหม่ ตรงกลาง -->
+            <div class="flex items-center justify-center gap-4 mt-6 w-full">
+                <button onclick="scrollGallery('left')" class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#1f1f1f] hover:bg-namporn-main border border-gray-700 flex items-center justify-center transition-colors text-white shadow-lg cursor-pointer focus:outline-none hover:scale-110 transform duration-200" title="เลื่อนซ้าย">
+                    <i class="fas fa-chevron-left text-sm md:text-base"></i>
+                </button>
+                <button onclick="toggleGalleryAutoPlay()" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-namporn-main hover:bg-blue-400 border border-blue-500 flex items-center justify-center transition-colors text-white shadow-[0_0_15px_rgba(0,85,255,0.5)] cursor-pointer focus:outline-none hover:scale-110 transform duration-200" title="เล่น/หยุดอัตโนมัติ">
+                    <i id="gallery-play-icon" class="fas fa-pause text-base md:text-lg"></i>
+                </button>
+                <button onclick="scrollGallery('right')" class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#1f1f1f] hover:bg-namporn-main border border-gray-700 flex items-center justify-center transition-colors text-white shadow-lg cursor-pointer focus:outline-none hover:scale-110 transform duration-200" title="เลื่อนขวา">
+                    <i class="fas fa-chevron-right text-sm md:text-base"></i>
+                </button>
+            </div>
+            
+        </div>
+    </section>
+
+    <!-- Modals -->
+    <!-- Info Modal -->
+    <div id="info-modal" class="fixed inset-0 z-[100] bg-black/80 hidden items-center justify-center p-4 backdrop-blur-sm transition-all duration-300">
+        <div class="bg-[#181818] border border-gray-800 rounded-xl max-w-2xl w-full p-6 md:p-8 relative shadow-2xl modal-content">
+            <button onclick="closeModal('info-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-800 transition">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 class="text-2xl md:text-3xl font-bold mb-6 text-namporn-main flex items-center gap-3">
+                <i class="fas fa-school"></i> ข้อมูลโรงเรียนบ้านน้ำพร
+            </h2>
+            
+            <div class="space-y-4 text-gray-300 mb-8">
+                <div class="p-5 bg-gray-800/50 rounded-lg border border-gray-700">
+                    <h3 class="font-bold text-white mb-2 text-lg">วิสัยทัศน์ (Vision)</h3>
+                    <p class="text-sm md:text-base leading-relaxed text-gray-300">มุ่งมั่นพัฒนาโรงเรียนขยายโอกาสทางการศึกษาให้มีคุณภาพเป็นศูนย์กลางการเรียนรู้ของชุมชน มีความพร้อมด้านหลักสูตร บุคลากร สื่อ เทคโนโลยี และสภาพแวดล้อมการเรียนรู้ที่ส่งเสริมทักษะศตวรรษที่ 21 เพื่อให้ผู้เรียนในพื้นที่ได้รับโอกาสทางการศึกษาที่เท่าเทียม</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-5 bg-blue-900/10 rounded-lg border border-blue-900/50 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-900/30 flex items-center justify-center text-blue-500 text-xl"><i class="fas fa-map-marker-alt"></i></div>
+                        <div>
+                            <div class="text-blue-400 text-xs mb-1">สังกัด</div>
+                            <div class="font-bold text-white text-base">สพป.เลย เขต 1</div>
+                        </div>
+                    </div>
+                    <div class="p-5 bg-blue-900/10 rounded-lg border border-blue-900/50 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-900/30 flex items-center justify-center text-blue-500 text-xl"><i class="fas fa-graduation-cap"></i></div>
+                        <div>
+                            <div class="text-blue-400 text-xs mb-1">ประเภท</div>
+                            <div class="font-bold text-white text-base">โรงเรียนขยายโอกาส</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end">
+                <button onclick="closeModal('info-modal')" class="bg-namporn-main text-white px-8 py-3 rounded-lg font-bold hover:bg-namporn-dark transition w-full md:w-auto">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail/Evidence Modal -->
+    <div id="detail-modal" class="fixed inset-0 z-[100] bg-black/90 hidden items-center justify-center p-2 md:p-4 backdrop-blur-md">
+        <!-- Wrapper for inner scroll -->
+        <div class="bg-[#141414] border border-gray-800 rounded-xl max-w-4xl w-full relative shadow-2xl modal-content flex flex-col max-h-[95vh] md:max-h-[90vh]">
+            
+            <!-- Close Button (Fixed at top right) -->
+            <button onclick="closeModal('detail-modal')" class="absolute top-4 right-4 text-white hover:text-white text-xl z-30 bg-black/50 hover:bg-namporn-main w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition-all shadow-lg border border-white/10">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <!-- Scrollable Body -->
+            <div class="overflow-y-auto modal-scroll w-full h-full rounded-xl">
+                
+                <!-- Image Header -->
+                <div class="h-48 md:h-72 w-full relative bg-gray-900 shrink-0">
+                    <div id="modal-image" class="absolute inset-0 bg-cover bg-center opacity-80" style="background-image: url('');"></div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/70 to-transparent"></div>
+                    
+                    <div class="absolute bottom-0 left-0 p-5 md:p-8 w-full z-10">
+                        <div id="modal-badge" class="inline-block text-xs font-bold px-3 py-1.5 rounded-md bg-namporn-main text-white mb-3 shadow-lg">
+                            ด้านคุณภาพผู้เรียน
+                        </div>
+                        <h2 id="modal-title" class="text-xl md:text-3xl font-bold text-white leading-tight drop-shadow-lg">
+                            ชื่อตัวชี้วัด
+                        </h2>
+                    </div>
+                </div>
+
+                <!-- Content Body -->
+                <div class="p-5 md:p-8">
+                    <div class="flex items-center gap-3 mb-6 text-gray-400 border-b border-gray-800 pb-4">
+                        <span class="font-bold text-lg md:text-xl text-white flex items-center gap-2">
+                            <i class="fas fa-bookmark text-namporn-main"></i> ตัวชี้วัดที่ <span id="modal-id">0.0</span>
+                        </span>
+                    </div>
+                    
+                    <!-- Text Description -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                            <i class="fas fa-align-left text-gray-400"></i> ผลการดำเนินงานเชิงประจักษ์:
+                        </h3>
+                        <p id="modal-description" class="text-gray-300 leading-relaxed text-sm md:text-base bg-gray-900/50 p-4 rounded-lg border border-gray-800/50">
+                            รายละเอียดการดำเนินงาน...
+                        </p>
+                    </div>
+
+                    <!-- Chart / Statistics Section (New) -->
+                    <div id="modal-chart-section" class="mb-8 hidden">
+                        <!-- Chart injected via JS -->
+                    </div>
+                    
+                    <!-- Evidence Links Section -->
+                    <div id="modal-evidence-section" class="mb-8">
+                        <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <i class="fas fa-folder-open text-namporn-main"></i> <span id="modal-evidence-title-text">หลักฐาน และ เอกสารอ้างอิง (คลิกเพื่อเข้าชม)</span>
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="modal-evidence-list">
+                            <!-- Links injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Image Gallery Section -->
+                    <div id="modal-image-section">
+                        <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <i class="fas fa-images text-green-400"></i> <span id="modal-image-title-text">ภาพหลักฐานการดำเนินงาน</span>
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="modal-image-gallery">
+                            <!-- Images injected via JS -->
+                        </div>
+                        <p class="text-xs text-gray-500 mt-3 text-center md:text-left"><i class="fas fa-search-plus"></i> คลิกที่ภาพเพื่อดูขนาดเต็ม</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Lightbox Modal -->
+    <div id="image-lightbox" class="fixed inset-0 z-[200] bg-black/95 hidden items-center justify-center p-2 md:p-4 backdrop-blur-xl transition-opacity duration-300 opacity-0" onclick="closeImageModal()">
+        <button onclick="closeImageModal()" class="absolute top-4 right-4 md:top-6 md:right-6 text-white/70 hover:text-white text-3xl md:text-4xl z-50 w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-all">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="lightbox-img" src="" alt="Expanded Evidence" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl transform scale-95 transition-transform duration-300 cursor-zoom-out" onclick="event.stopPropagation(); closeImageModal();">
+    </div>
+
+    <script>
+        // Global variable เก็บ object ของกราฟ (Chart.js)
+        let modalChartInstance = null;
+
+        // Variables for Gallery Autoplay
+        let galleryInterval;
+        let isGalleryAutoPlaying = true;
+
+        // --- Helper Function for Evidence ---
+        // ใส่ลิงก์เอกสารอ้างอิงตรงนี้ได้เลย (อ้างอิงร่วมกัน หรือจะแยกในแต่ละ item ก็ได้)
+        const defaultEvidences = [
+            { label: "รายงานผลการประเมินตนเอง (SAR)", url: "https://google.com", icon: "fa-file-pdf text-red-400" },
+            { label: "แผนพัฒนาคุณภาพการศึกษา", url: "https://google.com", icon: "fa-file-word text-blue-400" },
+            { label: "ลิงก์แหล่งเรียนรู้/ผลงานออนไลน์", url: "https://google.com", icon: "fa-link text-gray-400" }
+        ];
+
+        // --- Data Structure ---
+        const showcaseData = [
+            {
+                id: 1,
+                title: "ด้านคุณภาพผู้เรียน",
+                subtitle: "Learner Quality Dimension",
+                icon: "fa-user-graduate",
+                image: "https://i.postimg.cc/hPxwFZTz/DSC-9922.jpg",
+                items: [
+                    { 
+                        id: "1.1", 
+                        title: "การจัดทำแผนพัฒนาคุณภาพผู้เรียนอย่างเป็นระบบ", 
+                        coverImage: "https://i.postimg.cc/R0xDV71K/DSC_0302.jpg",
+                        text: "โรงเรียนจัดทำแผนพัฒนาคุณภาพผู้เรียนอย่างเป็นระบบ เชื่อมโยงกับผลวิเคราะห์สารสนเทศ เพื่อกำหนดเป้าหมายชัดเจน",
+                        detail: "โรงเรียนบ้านน้ำพรได้ดำเนินการวิเคราะห์ข้อมูลสารสนเทศของผู้เรียนรายบุคคล และนำมาจัดทำแผนพัฒนาคุณภาพการศึกษาที่สอดคล้องกับบริบท โดยมีการกำหนดเป้าหมายด้านผลสัมฤทธิ์ทางการเรียน สมรรถนะ และคุณลักษณะอันพึงประสงค์อย่างเป็นรูปธรรม ผ่านกระบวนการมีส่วนร่วมของคณะครูและกรรมการสถานศึกษา",
+                        
+                        // ตัวอย่างการเปลี่ยนชื่อหัวข้อสำหรับข้อนี้เฉพาะ (ถ้าไม่ใส่ จะใช้ชื่อเริ่มต้น)
+                        evidenceTitle: "เอกสารแผนพัฒนาสถานศึกษาและเป้าหมาย", 
+                        evidences: [
+                            { label: "แผนพัฒนาการจัดการศึกษาโรงเรียนบ้านน้้ำพร 2566-2570", url: "https://drive.google.com/file/d/1usom74EDvSp8EY79-oAh44H8UMHMqjII/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                            { label: "รายงานผลการดําเนินงานเปรียบค่าเป้าหมายตามมาตรฐานการศึกษาของสถานศึกษา", url: "https://drive.google.com/file/d/1KzXd1pooC-aLuieUTcaVY0sSHSIEIRXi/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                        ], 
+
+                        // ตัวอย่างการเปลี่ยนชื่อหัวข้อรูปภาพสำหรับข้อนี้เฉพาะ
+                        imageTitle: "ภาพกิจกรรมการประชุมจัดทำแผนพัฒนาคุณภาพ", 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/LINE_ALBUM.jpg?updatedAt=1772079719477", 
+                            "https://ik.imagekit.io/boasnirut/654156.jpg", 
+                            "https://ik.imagekit.io/boasnirut/1253%20(263).jpg"  
+                        ]
+                    },
+                    { 
+                        id: "1.2", 
+                        title: "การดำเนินงานตามแผนปฏิบัติการประจำปี", 
+                        coverImage: "https://i.postimg.cc/26WKmNxX/3340.jpg",
+                        text: "ดำเนินการตามแผนปฏิบัติการประจำปีมุ่งพัฒนาผู้เรียนให้มีผลสัมฤทธิ์ สมรรถนะ และคุณลักษณะตามเป้าหมาย",
+                        detail: "มีการขับเคลื่อนโครงการและกิจกรรมตามแผนปฏิบัติการประจำปีอย่างครบถ้วน เช่น โครงการยกระดับผลสัมฤทธิ์ทางวิชาการ กิจกรรมส่งเสริมคุณธรรมจริยธรรม ส่งผลให้ผู้เรียนได้รับการพัฒนาตามเป้าหมายที่กำหนดไว้อย่างเป็นระบบและสามารถตรวจสอบได้",
+                        evidences: [
+                            { label: "แผนปฏิบัติการประจำปีงบประมาณ 2569", url: "https://drive.google.com/file/d/1Bh0_TSnJSNLQOdAD-SI_2d8EHDGUONZk/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                            { label: "รายงานการประเมินตนเอง ของสถานศึกษา (SAR)", url: "https://drive.google.com/file/d/1athBb895vlNYWACklGgFP-p5GdHRmaHT/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                            { label: "รายงานผลการดําเนินงานเปรียบค่าเป้าหมายตามมาตรฐานการศึกษาของสถานศึกษา", url: "https://drive.google.com/file/d/1ECLsiaIJy6FJaTL4MurbTb2fO3f-CSXy/view?usp=sharing", icon: "fa-file-pdf text-red-400" } 
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/3339.jpg", 
+                            "https://ik.imagekit.io/boasnirut/637767101_25954666257529185_6414469140782877334_n.jpg", 
+                            "https://ik.imagekit.io/boasnirut/641688038_25954666070862537_2614096724727383264_n.jpg"  
+                        ]
+                    },
+                    { 
+                        id: "1.3", 
+                        title: "ผลสัมฤทธิ์ทางการเรียนผ่านเกณฑ์ขั้นต่ำ", 
+                        coverImage: "https://i.postimg.cc/QCWn8Gkb/3335.jpg",
+                        text: "ผู้เรียนร้อยละ 80 ขึ้นไป มีผลสัมฤทธิ์ทางการเรียน 'ผ่านเกณฑ์ขั้นต่ำระดับชาติ' หรือสูงขึ้นจากปีก่อน",
+                        detail: "โรงเรียนบ้านน้ำพรมีผลการประเมินความสามารถด้านการอ่านของผู้เรียน (RT) ชั้นประถมศึกษาปีที่ 1 อยู่ในระดับดี มีผลการประเมินการทดสอบความสามารถพื้นฐานของผู้เรียนระดับชาติ (NT) ค่าเฉลี่ยสูงกว่าระดับประเทศทุกด้าน มีผลการทดสอบทางการศึกษาระดับชาติ (O-NET) ชั้นประถมศึกษาปีที่ 6 มีคะแนนเฉลี่ยสูงกว่าระดับชาติในกลุ่มสาระการเรียนรู้ วิทยาศาสตร์และเทคโนโลยี และชั้นมัธยมศึกษาปีที่ 3 มีคะแนนเฉลี่ยสูงกว่าระดับชาติในกลุ่มสาระการเรียนรู้ ภาษาต่างประเทศ",
+                        
+                        // ข้อมูลกราฟแท่งสำหรับข้อ 1.3
+                        complexChart: {
+                            title: "เปรียบเทียบคะแนนเฉลี่ยร้อยละผลการทดสอบ O-NET ชั้น ม.3",
+                            type: 'bar', // เปลี่ยนจาก 'line' เป็น 'bar'
+                            showDiff: true, // เปิดใช้งานตัวเลขแสดงผลต่าง
+                            data: {
+                                labels: ['ปีการศึกษา 2563', 'ปีการศึกษา 2564', 'ปีการศึกษา 2565', 'ปีการศึกษา 2566', 'ปีการศึกษา 2567'],
+                                datasets: [
+                                    {
+                                        label: 'ภาษาไทย',
+                                        data: [47.92, 46.18, 46.36, 40.73, 34.10],
+                                        backgroundColor: '#fca5a5', // red-300
+                                        borderRadius: 4 // มุมโค้งมนของแท่งกราฟ
+                                    },
+                                    {
+                                        label: 'ภาษาอังกฤษ',
+                                        data: [26.04, 26.79, 22.29, 23.93, 25.39],
+                                        backgroundColor: '#fde047', // yellow-400
+                                        borderRadius: 4
+                                    },
+                                    {
+                                        label: 'คณิตศาสตร์',
+                                        data: [20.00, 24.43, 21.22, 21.38, 18.41],
+                                        backgroundColor: '#60a5fa', // blue-400
+                                        borderRadius: 4
+                                    },
+                                    {
+                                        label: 'วิทยาศาสตร์',
+                                        data: [27.33, 28.75, 30.87, 31.08, 28.34],
+                                        backgroundColor: '#4ade80', // green-400
+                                        borderRadius: 4
+                                    },
+                                    {
+                                        label: 'รวมเฉลี่ย',
+                                        data: [30.32, 31.54, 30.19, 29.28, 26.56],
+                                        backgroundColor: '#c084fc', // purple-400
+                                        borderRadius: 4
+                                    }
+                                ]
+                            }
+                        },
+                        
+                        evidences: [
+                            { label: "ตารางเปรียบเทียบ RT ปีการศึกษา 2567", url: "https://drive.google.com/file/d/1Z2WDmZJq-uikeViTxsDEsEtnmdD7kikF/view?usp=sharing", icon: "fa-file-pdf text-red-400" },
+							{ label: "ตารางเปรียบเทียบ NT ปีการศึกษา 2567", url: "https://drive.google.com/file/d/179aSKokR-mmRFsBSeL7MP849lNqKP325/view?usp=sharing", icon: "fa-file-pdf text-red-400" },
+							{ label: "ตารางเปรียบเทียบ O-NET  ป.6 ปีการศึกษา 2567", url: "https://drive.google.com/file/d/1Rvdrc7Aqqh8d2Kfn3ORLOtIjsFNacfRB/view?usp=sharing", icon: "fa-file-pdf text-red-400" },							
+                            { label: "ตารางเปรียบเทียบ O-NET  ม.3 ปีการศึกษา 2567", url: "https://drive.google.com/file/d/1f8j2Aw7IqfTqZXiwARI5vq0mR4hSE8T3/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 														
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/260225_1.jpg?updatedAt=1772079647455", 
+                            "https://ik.imagekit.io/boasnirut/3335.jpg", 
+                            "https://ik.imagekit.io/boasnirut/260226_1.jpg?updatedAt=1772079663064"  
+                        ]
+                    },
+                    { 
+                        id: "1.4", 
+                        title: "สมรรถนะสำคัญและคุณลักษณะอันพึงประสงค์", 
+                        coverImage: "https://i.postimg.cc/qMS8T6zK/642228849_25954666154195862_4191773910592630483_n.jpg",
+                        text: "ผู้เรียนร้อยละ 80 ขึ้นไป มีสมรรถนะสำคัญและคุณลักษณะอันพึงประสงค์อยู่ในระดับ 'ดีขึ้นไป'",
+                        detail: "โรงเรียนบ้านน้ำพรมีการประเมินตามสภาพจริง (Authentic Assessment) และมีแฟ้มสะสมงาน (Portfolio) พบว่าผู้เรียนร้อยละ 90.16 มีทักษะการคิดวิเคราะห์ การสื่อสาร และมีจิตสาธารณะ ผ่านเกณฑ์การประเมินในระดับ 'ดี' ขึ้นไป",
+                        
+                        // เพิ่มข้อมูลกราฟสำหรับข้อ 1.4 อ้างอิงจากตารางคุณลักษณะอันพึงประสงค์
+                        multiChart: {
+                            title: "ผลการประเมินคุณลักษณะอันพึงประสงค์ ปีการศึกษา 2567",
+                            colorClass: "text-purple-400",
+                            glowClass: "bg-purple-500/20",
+                            bars: [
+                                { label: "ชั้นประถมศึกษาปีที่ 1", total: 11, passed: 11, percentage: 100.00, colorClass: "text-emerald-400", bgClass: "bg-emerald-500" },
+                                { label: "ชั้นประถมศึกษาปีที่ 2", total: 8, passed: 7, percentage: 87.50, colorClass: "text-emerald-400", bgClass: "bg-emerald-500" },
+                                { label: "ชั้นประถมศึกษาปีที่ 3", total: 8, passed: 8, percentage: 100.00, colorClass: "text-emerald-400", bgClass: "bg-emerald-500" },
+                                { label: "ชั้นประถมศึกษาปีที่ 4", total: 15, passed: 15, percentage: 100.00, colorClass: "text-emerald-400", bgClass: "bg-emerald-500" },
+                                { label: "ชั้นประถมศึกษาปีที่ 5", total: 13, passed: 13, percentage: 100.00, colorClass: "text-emerald-400", bgClass: "bg-emerald-500" },
+                                { label: "ชั้นประถมศึกษาปีที่ 6", total: 22, passed: 21, percentage: 95.45, colorClass: "text-emerald-400", bgClass: "bg-emerald-500" },
+                                { label: "ชั้นมัธยมศึกษาปีที่ 1", total: 19, passed: 14, percentage: 73.68, colorClass: "text-amber-400", bgClass: "bg-amber-500" }, // ต่ำกว่า 80% ใช้สีเหลือง
+                                { label: "ชั้นมัธยมศึกษาปีที่ 2", total: 13, passed: 11, percentage: 84.62, colorClass: "text-emerald-400", bgClass: "bg-emerald-500" },
+                                { label: "ชั้นมัธยมศึกษาปีที่ 3", total: 13, passed: 10, percentage: 76.92, colorClass: "text-amber-400", bgClass: "bg-amber-500" }, // ต่ำกว่า 80% ใช้สีเหลือง
+                                { label: "รวม (ระดับ 'ดีขึ้นไป')", total: 122, passed: 110, percentage: 90.16, colorClass: "text-purple-400", bgClass: "bg-purple-500", isTotal: true }
+                            ]
+                        },
+
+                        evidences: [
+                            { label: "รายงานการประเมินตนเอง ของสถานศึกษา (SAR)", url: "https://drive.google.com/file/d/1athBb895vlNYWACklGgFP-p5GdHRmaHT/view?usp=sharing", icon: "fa-file-pdf text-red-400" },
+							{ label: "ปพ.5", url: "https://drive.google.com/drive/folders/1Vx7cUU2bMt7dOGPH4nHKYIns2I8gzUBx?usp=sharing", icon: "fas fa-folder text-yellow-400" },							
+                            //{ label: "สมรรถนะสำคัญและคุณลักษณะอันพึงประสงค์ ม.3", url: "https://www.boasnirut.in.th/m3-69a", icon: "fa-link text-gray-400" } 
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/2-1%20(1).jpg", 
+                            "https://ik.imagekit.io/boasnirut/2-1%20(3).jpg", 
+                            "https://ik.imagekit.io/boasnirut/2-1%20(2).jpg"  
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 2,
+                title: "ด้านการพัฒนาหลักสูตรฯ",
+                subtitle: "Curriculum and Learning Management",
+                icon: "fa-book-open",
+                image: "https://i.postimg.cc/hPxwFZTz/DSC-9922.jpg",
+                items: [
+                    { 
+                        id: "2.1", 
+                        title: "การพัฒนาและนำหลักสูตรสถานศึกษาไปใช้", 
+                        coverImage: "https://i.postimg.cc/fLq6Wv4V/LINE_ALBUM_สอบ_NT_260225_1.jpg",
+                        text: "พัฒนา ปรับปรุง และนำหลักสูตรสถานศึกษาไปใช้ทุกกลุ่มสาระฯ สอดคล้องกับหลักสูตรแกนกลาง",
+                        detail: "โรงเรียนมีการปรับปรุงหลักสูตรสถานศึกษาให้สอดคล้องกับความต้องการของท้องถิ่นและหลักสูตรแกนกลาง โดยเพิ่มรายวิชาเพิ่มเติมที่เน้นทักษะอาชีพ และมีการนำไปใช้จริงในทุกระดับชั้นพร้อมติดตามประเมินผลอย่างเป็นระบบ",
+                        evidences: [
+                            { label: "รายงานผลการใช้หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน", url: "https://drive.google.com/file/d/1RMEWXl-vBJ7LX9_5FUm4gvaTAnCdmjmN/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                            { label: "หลักสูตรสถานศึกษาปฐมวัย", url: "https://drive.google.com/file/d/1h9p1U46jU5YgHP1BHLhxjw1NYNW3aMfZ/view?usp=drive_link", icon: "fa-file-pdf text-red-400" }, 
+                            { label: "หลักสูตรสถานศึกษาชั้นประถมศึกษาตอนต้น ปีพุทธศักราช 2568", url: "https://drive.google.com/file/d/1dG22WJgr3wca9QVZV2qJLoMaR5n1vS7z/view?usp=drive_link", icon: "fa-file-pdf text-red-400" } 
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/2-1%20(4).jpg", 
+                            "https://ik.imagekit.io/boasnirut/2-1%20(5).jpg", 
+                            "https://ik.imagekit.io/boasnirut/2-1%20(6).jpg"  
+                        ]
+                    },
+                    { 
+                        id: "2.2", 
+                        title: "การจัดการเรียนรู้เชิงรุก (Active Learning)", 
+                        coverImage: "https://i.postimg.cc/3xZRGK6N/S_15925250.jpg",
+                        text: "จัดการเรียนรู้เชิงรุก (Active Learning) พร้อมออกแบบการวัดประเมินผลตามสภาพจริง",
+                        detail: "คณะครูทุกคนได้รับการอบรมและนำกระบวนการจัดการเรียนรู้แบบ Active Learning เช่น รูปแบบ Project-Based Learning และ STEAM Education มาใช้ในชั้นเรียน เพื่อให้ผู้เรียนได้ลงมือปฏิบัติจริง สร้างสรรค์ผลงาน และประเมินผลตามสภาพจริง",
+                        evidences: [
+                            { label: "คลังแผนการจัดการเรียนรู้", url: "https://drive.google.com/drive/folders/1_LJFAt-z-4OHZxgjlcQE0CSbhssu6NND?usp=sharing", icon: "fa-brands fa-google-drive text-green-400" }, 
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/2-2%20(2).jpg", 
+                            "https://ik.imagekit.io/boasnirut/2-2%20(1).jpg", 
+                            "https://ik.imagekit.io/boasnirut/2-2%20(3).jpg"  
+                        ]
+                    },
+                    { 
+                        id: "2.3", 
+                        title: "การประเมินและรายงานผลการใช้หลักสูตร", 
+                        coverImage: "https://i.postimg.cc/8cRk73Tw/LINE-ALBUM-s-lph-t-thkr-rmn-kre-ynkhr-ngth-73-260214-551.jpg",
+                        text: "โรงเรียนรายงานผลการใช้หลักสูตรสถานศึกษาอย่างน้อยปีละ 1 ครั้ง",
+                        detail: "คณะกรรมการบริหารหลักสูตรได้ดำเนินการนิเทศ ติดตาม และสรุปผลการใช้หลักสูตรเมื่อสิ้นสุดปีการศึกษา เพื่อนำผลสะท้อนกลับ (Feedback) มาใช้ในการปรับปรุงโครงสร้างรายวิชาในปีถัดไป",
+                        evidences: [
+                            { label: "รายงานผลการใช้หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน", url: "https://drive.google.com/file/d/1RMEWXl-vBJ7LX9_5FUm4gvaTAnCdmjmN/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                        ],  
+                        images: [
+                            //"https://ik.imagekit.io/boasnirut/3-1%20(2).jpg", 
+                            //"https://ik.imagekit.io/boasnirut/3-1%20(1).jpg", 
+                            //"https://ik.imagekit.io/boasnirut/3-1%20(3).jpg"  
+                        ]
+                    },
+                    { 
+                        id: "2.4", 
+                        title: "การจัดทำแผนและการบันทึกหลังสอน", 
+                        coverImage: "https://i.postimg.cc/KzFMcdSS/0000.jpg",
+                        text: "ครูร้อยละ 80 ขึ้นไป จัดการเรียนรู้ตามแผนฯ มีบันทึกหลังสอน สะท้อนผล และนำข้อมูลไปปรับปรุง",
+                        detail: "จากการนิเทศภายในพบว่า ครูร้อยละ 100 มีแผนการจัดการเรียนรู้ล่วงหน้า มีการบันทึกปัญหา อุปสรรค และความสำเร็จหลังการจัดกิจกรรม นำไปสู่กระบวนการวิจัยในชั้นเรียนเพื่อแก้ปัญหาผู้เรียนต่อไป",
+                        chart: {
+                            title: "สถิติครูที่มีแผนการจัดการเรียนรู้",
+                            total: 14,
+                            passed: 14,
+                            percentage: 100,
+                            colorClass: "text-yellow-400",
+                            bgClass: "bg-yellow-500",
+                            borderClass: "border-yellow-900/50",
+                            glowClass: "bg-yellow-500/20"
+                        },
+                        evidences: [
+                            { label: "คลังบันทึกหลังการสอน", url: "https://drive.google.com/drive/folders/1C_Jjg4SdPJ8l-JY0VpY3Cj8bSGQwgwix?usp=sharing", icon: "fas fa-folder text-yellow-400" }, 
+                            { label: "คลังวิจัยในชั้นเรียน", url: "https://drive.google.com/drive/folders/1RbSFdJRY4HZulKsyR6aS47eJWn-yf3JK?usp=sharing", icon: "fas fa-folder text-yellow-400" } 
+                        ], 
+                        images: [
+                            //"https://placehold.co/800x600/1f1f1f/0055ff?text=2.4+Image+1", 
+                            //"https://placehold.co/800x600/1f1f1f/0055ff?text=2.4+Image+2", 
+                            //"https://placehold.co/800x600/1f1f1f/0055ff?text=2.4+Image+3"  
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 3,
+                title: "ด้านสมรรถนะครูและบุคลากร",
+                subtitle: "Teacher and Educational Personnel Competency",
+                icon: "fa-chalkboard-teacher",
+                image: "https://i.postimg.cc/hPxwFZTz/DSC-9922.jpg",
+                items: [
+                    { 
+                        id: "3.1", 
+                        title: "การส่งเสริมพัฒนาสมรรถนะด้านเทคโนโลยีและภาษา", 
+                        coverImage: "https://i.postimg.cc/GpYy60g6/LINE_ALBUM_ประช_ม_ยกร_างโปรแกรมฯ_สำหร_บการจ_างงา.jpg",
+                        text: "ส่งเสริมการพัฒนาสมรรถนะด้านเทคโนโลยีดิจิทัล และภาษาอังกฤษ สร้างชุมชนการเรียนรู้ (PLC)",
+                        detail: "โรงเรียนสนับสนุนให้ครูเข้ารับการอบรมการใช้เครื่องมือดิจิทัลสำหรับการสอน (เช่น Canva for Education, Google Workspace) และมีกระบวนการ PLC ทุกสัปดาห์เพื่อแลกเปลี่ยนเทคนิคการสอน",
+                        evidences: [
+                            { label: "<span class='bg-blue-500 text-white px-2 py-0.5 rounded text-xs mr-2 font-bold shadow-sm'>PLC</span> บันทึกชุมชนการเรียนรู้ทางวิชาชีพ", url: "https://numporn.loei1.go.th/plc2-68", icon: "fas fa-users text-blue-400" }
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/3-1%20(2).jpg", 
+                            "https://ik.imagekit.io/boasnirut/3-1%20(1).jpg", 
+                            "https://ik.imagekit.io/boasnirut/3-1%20(3).jpg"    
+                        ]
+                    },
+                    { 
+                        id: "3.2", 
+                        title: "การพัฒนาตนเองอย่างต่อเนื่อง (Self-Development)", 
+                        coverImage: "https://i.postimg.cc/pdb18HwB/IMG_5242.jpg",
+                        text: "บุคลากรพัฒนาตนเอง อบรมสัมมนา อย่างน้อยภาคเรียนละ 1 ครั้ง นำความรู้ไปประยุกต์ใช้ได้จริง",
+                        detail: "ครูทุกท่านมีชั่วโมงการอบรมพัฒนาตนเองผ่านระบบออนไลน์และออฟไลน์ มากกว่า 20 ชั่วโมง/ภาคเรียน และได้นำนวัตกรรมใหม่ๆ มาประยุกต์ใช้ในการสร้างสื่อการสอนได้อย่างเป็นรูปธรรม",
+                        evidences: [
+                            { label: "คลังวุฒิบัตร/เกียรติบัตรการพัฒนาตนเอง(ครู)", url: "https://drive.google.com/drive/folders/1uZKduTGhPFCyDY2hdye1BPIOhq2N6qd4?usp=sharing", icon: "fa-brands fa-google-drive text-green-400" } 
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/3-2%20(1).jpg", 
+                            "https://ik.imagekit.io/boasnirut/3-2%20(3).jpg", 
+                            "https://ik.imagekit.io/boasnirut/3-2%20(2).jpg"  
+                        ]
+                    },
+                    { 
+                        id: "3.3", 
+                        title: "สมรรถนะดิจิทัล (Digital Competency)", 
+                        coverImage: "https://i.postimg.cc/RVyxh2X9/Screenshot_2026_02_24_202803.png",
+                        text: "ครูร้อยละ 80 ขึ้นไป มีผลประเมินสมรรถนะดิจิทัล ในระดับ DC-3 ขึ้นไป",
+                        detail: "ผลการประเมินสมรรถนะทางเทคโนโลยีดิจิทัลของบุคลากร พบว่าร้อยละ 85.71 อยู่ในระดับ DC-3 สามารถประยุกต์ใช้เทคโนโลยีสร้างห้องเรียนออนไลน์ และสื่อสารกับผู้เรียนได้อย่างมีประสิทธิภาพ",
+                        chart: {
+                            title: "สถิติครูที่ผ่านการประเมินสมรรถนะดิจิทัล ระดับ DC-3 ขึ้นไป",
+                            total: 14,
+                            passed: 12,
+                            percentage: 85.71,
+                            colorClass: "text-blue-400",
+                            bgClass: "bg-blue-500",
+                            borderClass: "border-blue-900/50",
+                            glowClass: "bg-blue-500/20"
+                        },
+                        evidences: [
+                            { label: "คลังวุฒิบัตรหลักสูตรพัฒนาสมรรถนะดิจิทัล", url: "https://photos.app.goo.gl/HYvQFmuMBwZceZUv9", icon: "fa-brands fa-google-drive text-green-400" } 
+                        ], 
+                        images: [] 
+                    },
+                    { 
+                        id: "3.4", 
+                        title: "สมรรถนะภาษาอังกฤษตามกรอบ CEFR", 
+                        coverImage: "https://i.postimg.cc/0Q2BcCch/Screenshot_2026_02_24_202926.png",
+                        text: "ครูร้อยละ 80 ขึ้นไป มีสมรรถนะภาษาอังกฤษระดับ A2 ขึ้นไป และใช้สื่อสารจัดกิจกรรมได้จริง",
+                        detail: "คณะครูได้รับการทดสอบทักษะภาษาอังกฤษและร้อยละ 92.86 อยู่ในระดับ A2 ขึ้นไป มีการสอดแทรกคำศัพท์ภาษาอังกฤษ (English Integration) ในรายวิชาต่างๆ นอกเหนือจากวิชาภาษาอังกฤษหลัก",
+                        chart: {
+                            title: "สถิติครูที่ผ่านการประเมินสมรรถนะภาษาอังกฤษ (CEFR) ระดับ A2 ขึ้นไป",
+                            total: 14,
+                            passed: 13,
+                            percentage: 92.86,
+                            colorClass: "text-green-400",
+                            bgClass: "bg-green-500",
+                            borderClass: "border-green-900/50",
+                            glowClass: "bg-green-500/20"
+                        },
+                        evidences: [
+                            { label: "คลังวุฒิบัตร หลักสูตรพัฒนาทักษะภาษาอังกฤษตามกรอบมาตรฐานความสามารถทางภาษาอังกฤษ (CEFR)", url: "https://photos.app.goo.gl/JiNk39eKHYcjCkZ16", icon: "fa-brands fa-google-drive text-green-400" } 
+                        ], 
+                        images: []
+                    }
+                ]
+            },
+            {
+                id: 4,
+                title: "ด้านการใช้สื่อ เทคโนโลยี AI",
+                subtitle: "Media, Technology, and Innovation",
+                icon: "fa-laptop-code",
+                image: "https://i.postimg.cc/hPxwFZTz/DSC-9922.jpg",
+                items: [
+                    { 
+                        id: "4.1", 
+                        title: "การวางแผนสนับสนุนโครงสร้างพื้นฐานดิจิทัล", 
+                        coverImage: "https://i.postimg.cc/3wjhhqF2/baeb-sit.jpg",
+                        text: "วางแผน สนับสนุนการใช้สื่อ เทคโนโลยี AI และมีโครงสร้างพื้นฐานและการเข้าถึงอินเทอร์เน็ตที่เพียงพอ",
+                        detail: "โรงเรียนได้พัฒนาระบบเครือข่ายอินเทอร์เน็ตไร้สาย (Wi-Fi) ให้ครอบคลุมทุกห้องเรียน มีการจัดตั้งห้อง E-SMART CLASSROOM ที่พร้อมด้วยจอ Interactive และอุปกรณ์สำหรับการสอนออนไลน์แบบผสมผสาน",
+                        evidences: [
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/ASD%20(5).jpg", 
+                            "https://ik.imagekit.io/boasnirut/ASD%20(3).jpg", 
+                            "https://ik.imagekit.io/boasnirut/ASD%20(1).jpg"  
+                        ]
+                    },
+                    { 
+                        id: "4.2", 
+                        title: "การใช้สื่อและแหล่งเรียนรู้ดิจิทัล", 
+                        coverImage: "https://ik.imagekit.io/boasnirut/DLTV1.jpg",
+                        text: "ครูใช้สื่อเทคโนโลยี จัดการเรียนรู้ด้วยแหล่งดิจิทัล เช่น OBEC Content Center, DLTV",
+                        detail: "ครูทุกคนใช้ระบบ OBEC Content Center ในการสืบค้นสื่อการสอน และใช้ AI tools ในการช่วยออกแบบสื่อวิดีโอ ใบงาน ทำให้นักเรียนเกิดความสนใจและเรียนรู้ได้รวดเร็วขึ้น",
+                        evidences: [
+
+                            { label: "ห้องเรียนออนไลน์ครู", url: "https://numporn.loei1.go.th/E-Teacher", icon: "fa-link text-gray-400" } 
+                        ], 
+                        images: [
+							"https://ik.imagekit.io/boasnirut/DLTV1.jpg",
+							"https://ik.imagekit.io/boasnirut/DLTV.jpg",
+						]
+                    },
+                    { 
+                        id: "4.3", 
+                        title: "ระบบจัดเก็บและขยายผลสื่อนวัตกรรม", 
+                        coverImage: "https://i.postimg.cc/CxTygXhV/Screenshot_2026_02_24_213038.png",
+                        text: "มีระบบจัดเก็บ แบ่งปัน ขยายผลสื่อ/นวัตกรรม ผ่านแพลตฟอร์ม Google Site หรือระบบโรงเรียน",
+                        detail: "โรงเรียนได้จัดทำคลังสื่ออิเล็กทรอนิกส์ส่วนกลาง (Google Drive / Google Site ของโรงเรียน) เพื่อให้ครูและนักเรียนสามารถเข้าไปดาวน์โหลดทบทวนบทเรียนได้ตลอด 24 ชั่วโมง",
+                        evidences: [
+                            { label: "ห้องเรียนออนไลน์ครู", url: "https://numporn.loei1.go.th/E-Teacher", icon: "fa-link text-gray-400" } 
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/4-3%20(1).png",
+							"https://ik.imagekit.io/boasnirut/4-3%20(3).png",
+							"https://ik.imagekit.io/boasnirut/4-3%20(2).png",
+                        ]
+                    },
+                    { 
+                        id: "4.4", 
+                        title: "ความสามารถในการผลิตสื่อและนวัตกรรม", 
+                        coverImage: "https://i.postimg.cc/9Q6XCZ3s/Screenshot-2026-02-25-111217.png",
+                        text: "ครูร้อยละ 80 ขึ้นไป สามารถผลิต/พัฒนาสื่อเทคโนโลยี สอดคล้องกับผู้เรียน นำไปใช้จริง",
+                        detail: "ครูร้อยละ 100 สามารถผลิตหรือพัฒนาสื่อเทคโนโลยีปัญญาประดิษฐ์และนวัตกรรมทางการเรียนรู้ที่สอดคล้องกับบริบทของผู้เรียนและนำไปใช้ในชั้นเรียนหรือกิจกรรมการเรียนรู้",
+                        chart: {
+                            title: "สถิติครูที่สามารถผลิตและพัฒนาสื่อเทคโนโลยี",
+                            total: 14,
+                            passed: 14,
+                            percentage: 100,
+                            colorClass: "text-purple-400",
+                            bgClass: "bg-purple-500",
+                            borderClass: "border-purple-900/50",
+                            glowClass: "bg-purple-500/20"
+                        },
+                        evidences: [
+                            { label: "E Class Room", url: "https://numporn.loei1.go.th/E-Teacher", icon: "fa-link text-gray-400" },
+							{ label: "เกม ZAP คำที่มีตัวการันต์ ป.2", url: "https://quiz.zep.us/th/play/lpZEv1", icon: "fa-link text-gray-400" }, 
+                            { label: "สื่อที่เผยแพร่", url: "https://contentcenter.obec.go.th/detail/vdo/188408", icon: "fa-link text-gray-400" }, 
+							{ label: "มัคคุเทศน้อย โรงเรียนบ้านน้ำพร", url: "https://youtu.be/6tgDt4N8Etg?si=7a8jFTBb1YAksGtN", icon: "fa-brands fa-youtube text-red-500" }, 
+							{ label: "ภาพยนต์สั้น ห่อข้าวของแม่ (โรงเรียนบ้านน้ำพร สพป เลย1)", url: "https://youtu.be/U27eb2r68iM?si=TOPmFxSWVwaNitMX", icon: "fa-brands fa-youtube text-red-500" },  
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/4-4%20(1).png", 
+                            "https://ik.imagekit.io/boasnirut/4-4%20(2).png", 
+                            "https://ik.imagekit.io/boasnirut/4-4%20(3).png"  
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 5,
+                title: "ด้านการบริหารจัดการและเครือข่าย",
+                subtitle: "Management and Networking",
+                icon: "fa-network-wired",
+                image: "https://i.postimg.cc/hPxwFZTz/DSC-9922.jpg",
+                items: [
+                    { 
+                        id: "5.1", 
+                        title: "การบริหารจัดการโดยใช้ข้อมูลสารสนเทศ (Data-driven)", 
+                        coverImage: "https://i.postimg.cc/hPxwFZTz/DSC-9922.jpg",
+                        text: "บริหารจัดการตามหลักธรรมาภิบาล ใช้ข้อมูลสารสนเทศ (DMC, School MIS) ในการตัดสินใจ",
+                        detail: "โรงเรียนบริหารจัดการอย่างโปร่งใส โดยใช้ข้อมูลจากระบบ DMC และ Loei 1 Big Data มาเป็นฐานในการวิเคราะห์ เพื่อจัดสรรงบประมาณโครงการให้เกิดประโยชน์สูงสุดต่อตัวผู้เรียน",
+                        evidences: [
+                            { label: "แผนปฏิบัติการประจำปีงบประมาณ 2569", url: "https://drive.google.com/file/d/1Bh0_TSnJSNLQOdAD-SI_2d8EHDGUONZk/view?usp=sharing", icon: "fa-file-pdf text-red-400" },
+                            { label: "ฐานข้อมูล DMC โรงเรียน", url: "https://portal.bopp-obec.info/obec68/publicstat/report?areaCode=42010000&schoolCode=42010113", icon: "fa-link text-gray-400" }, 
+                            { label: "เว็บไซต์โรงเรียน", url: "https://numporn.loei1.go.th", icon: "fa-link text-gray-400" },
+							{ label: "Big Data Loei1", url: "https://bigdata.loei1.go.th/tableSchoolID.php?id=42010113", icon: "fa-link text-gray-400" }
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/czo2.jpg", 
+                            "https://ik.imagekit.io/boasnirut/czo1.png", 
+                            "https://ik.imagekit.io/boasnirut/czo3.png"  
+                        ]
+                    },
+                    { 
+                        id: "5.2", 
+                        title: "การส่งเสริมความร่วมมือและการมีส่วนร่วม", 
+                        coverImage: "https://ik.imagekit.io/boasnirut/20230909_095320.heic",
+                        text: "ส่งเสริมและพัฒนาความร่วมมือกับหน่วยงานภายในและภายนอก เพื่อสนับสนุนการจัดการศึกษา",
+                        detail: "มีการส่งเสริมและพัฒนาความร่วมมือกับหน่วยงานทั้งภายในและภายนอก เช่น การทำบันทึกข้อตกลงความร่วมมือ (MOU) กับหน่วยงานอื่น เพื่อสนับสนุนการจัดการศึกษาและการพัฒนาผู้เรียนอย่างมีส่วนร่วม",
+                        evidences: [
+                            { label: "โครงการฟันสวยยิ้มใส", url: "https://drive.google.com/file/d/1x_Yn2wzhUlGii2Ehnh01OPVZWZMgF67z/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                            { label: "โครงการลดขยะ ลดโรค ใส่ใจสิ่งแวดล้อม", url: "https://drive.google.com/file/d/1rfdJBTLpqM5grZJ6QrGz3vBreNDHIOay/view?usp=sharing", icon: "fa-file-pdf text-red-400" } , 
+                            { label: "บันทึกข้อตกลงความร่วมมือ MOU ด้านการคุ้มครองและช่วยเหลือนักเรียน และความปลอดภัยในสภานศึกษา", url: "https://drive.google.com/file/d/1_vKDUcScwR0BRXI-10c33LQCWfeIA4SR/view", icon: "fa-file-pdf text-red-400" }
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/260202_2.jpg?updatedAt=1772079571651", 
+                            "https://ik.imagekit.io/boasnirut/IMG_7565.HEIC?updatedAt=1772079510538", 
+                            "https://ik.imagekit.io/boasnirut/20240730_120841.jpg"  
+                        ]
+                    },
+                    { 
+                        id: "5.3", 
+                        title: "ระบบบริหารคุณภาพภายในที่มีประสิทธิภาพ", 
+                        coverImage: "https://i.postimg.cc/k4tp9RCC/654156.jpg",
+                        text: "มีระบบบริหารคุณภาพ โปร่งใส ตรวจสอบได้ และประเมินคุณภาพภายในระดับ 'ดีเลิศขึ้นไป'",
+                        detail: "รายงานการประเมินตนเอง (SAR) ของสถานศึกษา ได้รับการประเมินจากหน่วยงานต้นสังกัดให้อยู่ในระดับ 'ยอดเยี่ยม' ด้วยระบบการทำงานแบบ PDCA ที่สามารถตรวจสอบย้อนกลับได้ทุกขั้นตอน",
+                        evidences: [
+                            { label: "รายงานการประเมินตนเอง ของสถานศึกษา (SAR)", url: "https://drive.google.com/file/d/1athBb895vlNYWACklGgFP-p5GdHRmaHT/view?usp=sharing", icon: "fa-file-pdf text-red-400" }
+                        ], 
+                        images: [
+                            //"https://placehold.co/800x600/1f1f1f/0055ff?text=5.3+Image+1", 
+                            "https://ik.imagekit.io/boasnirut/SAR.jpg", 
+                            "https://ik.imagekit.io/boasnirut/SAR.2.jpg"  
+                        ]
+                    },
+                    { 
+                        id: "5.4", 
+                        title: "การสร้างเครือข่ายและโครงการเชิงประจักษ์", 
+                        coverImage: "https://i.postimg.cc/qv33thHM/IMG_7565.avif",
+                        text: "มีเครือข่ายความร่วมมือเข้มแข็ง มีโครงการร่วมกับภาคีเครือข่ายเชิงประจักษ์ อย่างน้อย 3 รายการ",
+                        detail: "มีเครือข่ายความร่วมมือที่เข้มแข็ง และมีโครงการหรือกิจกรรมร่วมกับภาคีเครือข่ายที่ก่อให้เกิดผลลัพธ์เชิงประจักษ์ อย่างน้อย 3 รายการ",
+                        evidences: [
+                            { label: "แนะแนวนักเรียนเพื่อส่งเสริมการเรียนต่อสายอาชีพ", url: "https://drive.google.com/file/d/1Xr9oJaxP_Asm0hb4qxmPvCDWDhqA1h6l/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                            { label: "โครงการฟันสวยยิ้มใส", url: "https://drive.google.com/file/d/1x_Yn2wzhUlGii2Ehnh01OPVZWZMgF67z/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                            { label: "โครงการลดขยะ ลดโรค ใส่ใจสิ่งแวดล้อม", url: "https://drive.google.com/file/d/1rfdJBTLpqM5grZJ6QrGz3vBreNDHIOay/view?usp=sharing", icon: "fa-file-pdf text-red-400" } 
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/20240730_125756.jpg", 
+                            "https://ik.imagekit.io/boasnirut/20250207_094632.jpg?updatedAt=1772354202553", 
+                            "https://ik.imagekit.io/boasnirut/ASD.png"  
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 6,
+                title: "ด้านการส่งเสริมอาชีพและทักษะชีวิต",
+                subtitle: "Career Promotion and Life Skills",
+                icon: "fa-tools",
+                image: "https://ik.imagekit.io/boasnirut/IMG_3418.HEIC",
+                items: [
+                    { 
+                        id: "6.1", 
+                        title: "การบูรณาการทักษะอาชีพในหลักสูตร", 
+                        coverImage: "https://ik.imagekit.io/boasnirut/IMG_3418.HEIC",
+                        text: "บูรณาการการเรียนรู้ด้านทักษะอาชีพและทักษะชีวิต ไว้ในหลักสูตรสถานศึกษา",
+                        detail: "โรงเรียนได้บรรจุรายวิชาเพิ่มเติม 'ทักษะอาชีพท้องถิ่น' และ 'การเกษตรเพื่ออาหารกลางวัน' เพื่อให้นักเรียนระดับมัธยมศึกษาตอนต้นได้เรียนรู้พื้นฐานการประกอบอาชีพในชุมชน",
+                        evidences: [
+                            { label: "รายงานผลการใช้หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน", url: "https://drive.google.com/file/d/1RMEWXl-vBJ7LX9_5FUm4gvaTAnCdmjmN/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                            { label: "หลักสูตรสถานศึกษาปฐมวัย", url: "https://drive.google.com/file/d/1h9p1U46jU5YgHP1BHLhxjw1NYNW3aMfZ/view?usp=drive_link", icon: "fa-file-pdf text-red-400" },
+							{ label: "หลักสูตรท้องถิ่น", url: "https://drive.google.com/file/d/104ehjhZEHAbhNPMgzIolM02RwmvQK_ct/view?usp=sharing", icon: "fa-file-pdf text-red-400" },
+                            { label: "หลักสูตรสถานศึกษาชั้นประถมศึกษาตอนต้น ปีพุทธศักราช 2568", url: "https://drive.google.com/file/d/1dG22WJgr3wca9QVZV2qJLoMaR5n1vS7z/view?usp=drive_link", icon: "fa-file-pdf text-red-400" } 
+                        ],  
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/IMG_3395.HEIC", 
+                            "https://ik.imagekit.io/boasnirut/ASD%20(4).jpg", 
+                            "https://ik.imagekit.io/boasnirut/ASD%20(2).heic"  
+                        ]
+                    },
+                    { 
+                        id: "6.2", 
+                        title: "การจัดโครงงานอาชีพ (Career Project)", 
+                        coverImage: "https://i.postimg.cc/1t1L8z4s/LINE-ALBUM-s-lph-t-thkr-rmn-kre-ynkhr-ngth-73-260214-129.jpg",
+                        text: "จัดกิจกรรมหรือโครงงานอาชีพ ฝึกทักษะจริง สร้างรายได้ระหว่างเรียน",
+                        detail: "มีการจัดกิจกรรมโครงงานอาชีพ (เช่น สิ่งของจากวัสดุธรรมชาติ, ผักไฮโดรโปรนิกส์, แหนมเห็ด, หมอลำไทเลย ฯลฯ) และงานหัตถกรรม โดยให้นักเรียนบริหารจัดการรูปแบบบริษัทจำลอง สร้างรายได้และเงินออมระหว่างเรียนได้จริง",
+                        evidences: [
+                            { label: "โครงงานปลูกผัก Hydroponics", url: "https://drive.google.com/file/d/1fMZ7byS1zEsYnwq4S2eOAIPMmxXUgSyM/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                            { label: "โครงงานอาชีพ แหนมสองสหายหน่อไม้–เห็ดนางฟ้า แซ่บสร้างอาชีพ", url: "https://drive.google.com/file/d/1uCYNQNrErQ9BJXg2tKXcmAyAmHyCOT6H/view?usp=sharing", icon: "fa-file-pdf text-red-400" },
+                            { label: "มัคคุเทศน้อย โรงเรียนบ้านน้ำพร", url: "https://youtu.be/6tgDt4N8Etg?si=7a8jFTBb1YAksGtN", icon: "fa-brands fa-youtube text-red-500" }, 
+							{ label: "ภาพยนต์สั้น ห่อข้าวของแม่ (โรงเรียนบ้านน้ำพร สพป เลย1)", url: "https://youtu.be/U27eb2r68iM?si=TOPmFxSWVwaNitMX", icon: "fa-brands fa-youtube text-red-500" }, 
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/1253%20(690).jpg", 
+                            "https://ik.imagekit.io/boasnirut/1253%20(399).jpg", 
+                            "https://ik.imagekit.io/boasnirut/20230826_163312.heic"  
+                        ]
+                    },
+                    { 
+                        id: "6.3", 
+                        title: "ผู้เรียนมีทักษะอาชีพสามารถปฏิบัติได้จริง", 
+                        coverImage: "https://i.postimg.cc/fT5Xnnjs/IMG_3253.avif",
+                        text: "ผู้เรียนร้อยละ 80 ขึ้นไป มีทักษะอาชีพระดับ 'ดีขึ้นไป' มีผลิตภัณฑ์จากอาชีพ",
+                        detail: "นักเรียนระดับชั้น ม.1-3 ทุกคนมีผลงานหรือผลิตภัณฑ์จากโครงงานอาชีพอย่างน้อย 1 ชิ้นต่อภาคเรียน คิดเป็นร้อยละ 91.30 และสามารถนำเสนอขั้นตอนการผลิต การคิดต้นทุนกำไร ได้อย่างคล่องแคล่ว",
+                        multiChart: {
+                            title: "สถิตินักเรียนที่มีผลงาน/ผลิตภัณฑ์จากโครงงานอาชีพ",
+                            colorClass: "text-emerald-400",
+                            glowClass: "bg-emerald-500/20",
+                            bars: [
+                                { label: "นักเรียนชั้น ม.1", total: 16, passed: 14, percentage: 87.50, colorClass: "text-emerald-400", bgClass: "bg-emerald-500" },
+                                { label: "นักเรียนชั้น ม.2", total: 20, passed: 18, percentage: 90.00, colorClass: "text-emerald-400", bgClass: "bg-emerald-500" },
+                                { label: "นักเรียนชั้น ม.3", total: 10, passed: 10, percentage: 100.00, colorClass: "text-emerald-400", bgClass: "bg-emerald-500" }, // อัปเดตข้อมูล ม.3
+                                { label: "รวมภาพรวม ม.1-3", total: 46, passed: 42, percentage: 91.30, colorClass: "text-blue-400", bgClass: "bg-blue-500", isTotal: true } // อัปเดตผลรวม
+                            ]
+                        },
+                        evidences: [
+                            { label: "โครงงานปลูกผัก Hydroponics", url: "https://drive.google.com/file/d/1fMZ7byS1zEsYnwq4S2eOAIPMmxXUgSyM/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                            { label: "โครงงานอาชีพ แหนมสองสหายหน่อไม้–เห็ดนางฟ้า แซ่บสร้างอาชีพ", url: "https://drive.google.com/file/d/1uCYNQNrErQ9BJXg2tKXcmAyAmHyCOT6H/view?usp=sharing", icon: "fa-file-pdf text-red-400" }, 
+                            { label: "มัคคุเทศน้อย โรงเรียนบ้านน้ำพร", url: "https://youtu.be/6tgDt4N8Etg?si=7a8jFTBb1YAksGtN", icon: "fa-brands fa-youtube text-red-500" }, 
+							{ label: "ภาพยนต์สั้น ห่อข้าวของแม่ (โรงเรียนบ้านน้ำพร สพป เลย1)", url: "https://youtu.be/U27eb2r68iM?si=TOPmFxSWVwaNitMX", icon: "fa-brands fa-youtube text-red-500" },
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/1253%20(294).jpg?updatedAt=1772079956765", 
+                            "https://ik.imagekit.io/boasnirut/260202_4.jpg?updatedAt=1772079557279", 
+                            "https://ik.imagekit.io/boasnirut/1253%20(404).jpg?updatedAt=1772079956660"  
+                        ]
+                    },
+                    { 
+                        id: "6.4", 
+                        title: "การเผยแพร่และขยายผลนวัตกรรมอาชีพ", 
+                        coverImage: "https://ik.imagekit.io/boasnirut/260202_2.jpg?updatedAt=1772079571651",
+                        text: "เผยแพร่ผลงานนวัตกรรมกิจกรรมหรือโครงงานอาชีพ แลกเปลี่ยนเรียนรู้ ขยายผลสู่เครือข่าย",
+                        detail: "โรงเรียนมีการเผยแพร่ผลงานนวัตกรรมกิจกรรม 7 ขั้นตอนสู่การเป็นนักเขียนรุ่นจิ๋ว ร่วมถ่ายทำรายการ รักษ์ภาษาไทยกับครอบครัวภาษาไทย ของสถาบันภาษาไทย สพฐ. และได้นำผลิตภัณฑ์นวัตกรรมอาชีพของนักเรียนไปจัดแสดงและจำหน่ายในงานศิลปหัตถกรรมนักเรียนและงานดอกฝ้ายบาน สืบสานวัฒนธรรมไทยเลย ซึ่งเป็นที่ยอมรับและได้รับการยกย่องเป็นแบบอย่าง",
+                        evidences: [
+							{ label: "มัคคุเทศน้อย โรงเรียนบ้านน้ำพร", url: "https://youtu.be/6tgDt4N8Etg?si=7a8jFTBb1YAksGtN", icon: "fa-brands fa-youtube text-red-500" }, 
+							{ label: "ภาพยนต์สั้น ห่อข้าวของแม่ (โรงเรียนบ้านน้ำพร สพป เลย1)", url: "https://youtu.be/U27eb2r68iM?si=TOPmFxSWVwaNitMX", icon: "fa-brands fa-youtube text-red-500" },
+							{ label: "จดหมายข่าวประชาสัมพันธ์", url: "https://photos.app.goo.gl/L4QuL6SL9VZQXSCbA", icon: "fa-brands fa-google-drive text-green-400" },
+                        ], 
+                        images: [
+                            "https://ik.imagekit.io/boasnirut/PhotoSite/a6c5.jpg?updatedAt=1772375451216", 
+                            "https://ik.imagekit.io/boasnirut/PhotoSite/b709.jpg?updatedAt=1772375436032", 
+                            "https://ik.imagekit.io/boasnirut/260202_3.jpg?updatedAt=1772079543687"  
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Splash Screen Intro Logic ---
+            const splash = document.getElementById('splash-screen');
+            
+            setTimeout(() => {
+                if (splash) {
+                    splash.classList.remove('opacity-100');
+                    splash.classList.add('opacity-0');
+                    
+                    // หลังจากจางหายให้ซ่อน element และอนุญาตให้เลื่อนหน้าจอได้
+                    setTimeout(() => {
+                        splash.style.display = 'none';
+                        document.body.classList.remove('overflow-hidden');
+                    }, 1000); // รอให้เอฟเฟกต์จางหายทำงานเสร็จ (1 วินาที)
+                }
+            }, 3000); // ระยะเวลาแสดงโลโก้ 3 วินาที (ปรับตัวเลขตรงนี้ได้)
+
+            renderShowcaseRows();
+            
+            // เริ่มต้นระบบสไลด์ภาพ Hero Section
+            initHeroSlider();
+            
+            // เรียกใช้ระบบ Gallery Autoplay
+            initGalleryAutoplay();
+            
+            // Navbar scroll effect
+            window.addEventListener('scroll', () => {
+                const nav = document.getElementById('navbar');
+                if (window.scrollY > 50) {
+                    nav.classList.add('bg-[#141414]', 'shadow-lg');
+                    nav.classList.remove('bg-gradient-to-b', 'from-black/90', 'to-transparent');
+                } else {
+                    nav.classList.remove('bg-[#141414]', 'shadow-lg');
+                    nav.classList.add('bg-gradient-to-b', 'from-black/90', 'to-transparent');
+                }
+            });
+        });
+
+        // --- Gallery Scrolling & Autoplay Functions ---
+        function initGalleryAutoplay() {
+            const container = document.getElementById('gallery-container');
+            if (!container) return;
+            startGalleryAutoPlay();
+        }
+
+        function scrollGallery(direction) {
+            const container = document.getElementById('gallery-container');
+            if (!container) return;
+
+            // คำนวณระยะการเลื่อน (ความกว้างการ์ด + ช่องว่าง)
+            const scrollAmount = container.clientWidth > 768 ? 336 : 256; 
+            
+            if (direction === 'right') {
+                // เช็คว่าเลื่อนไปสุดทางขวาหรือยัง (เผื่อระยะบัฟเฟอร์ 10px)
+                if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 10) {
+                    // กลับไปจุดเริ่มต้น
+                    container.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                }
+            } else if (direction === 'left') {
+                // ถ้าอยู่ซ้ายสุดแล้ว จะให้กลับไปจุดจบสุดมั้ย (ออพชั่นเสริม)
+                if (container.scrollLeft <= 0) {
+                    container.scrollTo({ left: container.scrollWidth, behavior: 'smooth' });
+                } else {
+                    container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                }
+            }
+        }
+
+        function startGalleryAutoPlay() {
+            if (galleryInterval) clearInterval(galleryInterval);
+            galleryInterval = setInterval(() => {
+                scrollGallery('right');
+            }, 5000); // 5000 มิลลิวินาที (5 วินาที)
+        }
+
+        function stopGalleryAutoPlay() {
+            if (galleryInterval) clearInterval(galleryInterval);
+        }
+
+        function toggleGalleryAutoPlay() {
+            isGalleryAutoPlaying = !isGalleryAutoPlaying;
+            const btnIcon = document.getElementById('gallery-play-icon');
+            
+            if (isGalleryAutoPlaying) {
+                startGalleryAutoPlay();
+                btnIcon.classList.remove('fa-play');
+                btnIcon.classList.add('fa-pause');
+            } else {
+                stopGalleryAutoPlay();
+                btnIcon.classList.remove('fa-pause');
+                btnIcon.classList.add('fa-play');
+            }
+        }
+
+        // --- Other System Functions ---
+        function initHeroSlider() {
+            let currentSlide = 1;
+            const totalSlides = 3;
+            setInterval(() => {
+                const current = document.getElementById(`hero-slide-${currentSlide}`);
+                current.classList.remove('opacity-100');
+                current.classList.add('opacity-0');
+                
+                currentSlide = currentSlide >= totalSlides ? 1 : currentSlide + 1;
+                
+                const next = document.getElementById(`hero-slide-${currentSlide}`);
+                next.classList.remove('opacity-0');
+                next.classList.add('opacity-100');
+            }, 5000); // สลับภาพทุกๆ 5000 มิลลิวินาที (5 วินาที)
+        }
+
+        function scrollToShowcase() {
+            const el = document.getElementById('showcase-container');
+            const y = el.getBoundingClientRect().top + window.scrollY - 130;
+            window.scrollTo({ behavior: 'smooth', top: y });
+        }
+
+        function handleSearch(event) {
+            const keyword = event.target.value.toLowerCase();
+            if (!keyword) {
+                renderShowcaseRows(showcaseData);
+                return;
+            }
+
+            const filteredData = showcaseData.map(dim => {
+                const filteredItems = dim.items.filter(item => 
+                    item.title.toLowerCase().includes(keyword) || 
+                    item.text.toLowerCase().includes(keyword) ||
+                    item.detail.toLowerCase().includes(keyword)
+                );
+                return { ...dim, items: filteredItems };
+            }).filter(dim => dim.items.length > 0);
+
+            renderShowcaseRows(filteredData);
+        }
+
+        // --- Rendering ---
+        function renderShowcaseRows(dataToRender = showcaseData) {
+            const container = document.getElementById('showcase-container');
+            container.innerHTML = '';
+
+            if (dataToRender.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-20 w-full">
+                        <i class="fas fa-search text-5xl text-gray-600 mb-4"></i>
+                        <p class="text-gray-400 text-lg font-medium">ไม่พบตัวชี้วัด หรือผลการดำเนินงานที่ตรงกับคำค้นหา</p>
+                    </div>
+                `;
+                return;
+            }
+
+            dataToRender.forEach((dimension) => {
+                const rowHtml = `
+                    <div class="mb-4 relative z-10">
+                        <div class="flex items-end gap-3 mb-2 px-2 md:px-4">
+                            <h2 class="text-lg md:text-2xl font-bold text-white flex items-center gap-2">
+                                <span class="text-namporn-main">${dimension.id}.</span> ${dimension.title}
+                            </h2>
+                            <span class="text-xs md:text-sm text-gray-400 hidden sm:inline-block mb-1 border-l border-gray-600 pl-3">
+                                <i class="fas ${dimension.icon} mr-1 text-gray-500"></i> ${dimension.subtitle}
+                            </span>
+                        </div>
+                        
+                        <div class="card-container flex overflow-x-auto hide-scrollbar gap-4 px-2 md:px-4 snap-x snap-mandatory group">
+                            ${dimension.items.map(item => `
+                                <div class="snap-start shrink-0 w-[260px] md:w-[320px] aspect-[4/3] relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 card-hover bg-namporn-card group/card"
+                                     onclick="openDetailModal(${dimension.id}, '${item.id}')">
+                                    
+                                    <div class="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-700 group-hover/card:scale-110" 
+                                         style="background-image: url('${item.coverImage}');"></div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/80 to-transparent"></div>
+                                    
+                                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 z-20">
+                                        <div class="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white/80 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white transform scale-75 group-hover/card:scale-100 transition-transform duration-300 shadow-xl">
+                                            <i class="fas fa-eye text-lg md:text-xl"></i>
+                                        </div>
+                                    </div>
+
+                                    <div class="absolute inset-0 p-4 md:p-5 flex flex-col justify-end z-10">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <span class="font-black text-2xl md:text-3xl text-namporn-main drop-shadow-lg leading-none">${item.id}</span>
+                                        </div>
+                                        <h3 class="font-bold text-white text-sm md:text-base leading-tight mb-2 drop-shadow-md">
+                                            ${item.title}
+                                        </h3>
+                                        <p class="text-[10px] md:text-xs text-gray-300 font-medium leading-snug line-clamp-2 transition-all drop-shadow-md group-hover/card:text-white">
+                                            ${item.text}
+                                        </p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', rowHtml);
+            });
+        }
+
+        // --- Modal Functions ---
+        function openDetailModal(dimId, itemId) {
+            const dimension = showcaseData.find(d => d.id === dimId);
+            const item = dimension.items.find(i => i.id === itemId);
+            
+            // Populate text
+            document.getElementById('modal-image').style.backgroundImage = `url('${item.coverImage}')`;
+            document.getElementById('modal-badge').innerHTML = `<i class="fas ${dimension.icon} mr-1"></i> ${dimension.title}`;
+            document.getElementById('modal-id').innerText = item.id;
+            document.getElementById('modal-title').innerText = item.title;
+            document.getElementById('modal-description').innerText = item.detail;
+
+            // 0. Chart Section Logic
+            const chartSection = document.getElementById('modal-chart-section');
+            if (item.complexChart) {
+                // แสดงกราฟแบบซับซ้อน (Chart.js)
+                chartSection.style.display = 'block';
+                chartSection.innerHTML = `
+                    <div class="bg-gradient-to-br from-[#1f1f1f] to-[#141414] border border-gray-700 rounded-xl p-4 md:p-6 shadow-lg mb-6 relative overflow-hidden">
+                        <div class="absolute -right-10 -top-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl"></div>
+                        <h4 class="text-white font-bold text-base md:text-lg mb-4 flex items-center gap-2 relative z-10">
+                            <i class="fas fa-chart-line text-blue-400"></i> ${item.complexChart.title}
+                        </h4>
+                        <div class="relative w-full h-64 md:h-80 z-10">
+                            <canvas id="complexChartCanvas"></canvas>
+                        </div>
+                    </div>
+                `;
+
+                // ทำลายกราฟเก่าถ้ามี เพื่อป้องกันบั๊ก Canvas
+                if (window.modalChartInstance) {
+                    window.modalChartInstance.destroy();
+                }
+
+                // สร้างกราฟใหม่
+                setTimeout(() => {
+                    const ctx = document.getElementById('complexChartCanvas');
+                    if(ctx) {
+                        window.modalChartInstance = new Chart(ctx.getContext('2d'), {
+                            type: item.complexChart.type,
+                            data: item.complexChart.data,
+                            options: {
+                                layout: {
+                                    padding: { top: 25 } // เพิ่มระยะขอบบน ไม่ให้ตัวเลขโดนตัด
+                                },
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                color: '#9ca3af',
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false,
+                                },
+                                scales: {
+                                    x: { 
+                                        ticks: { color: '#9ca3af', font: { family: 'Prompt' } }, 
+                                        grid: { color: '#374151' } 
+                                    },
+                                    y: { 
+                                        ticks: { color: '#9ca3af', font: { family: 'Prompt' } }, 
+                                        grid: { color: '#374151' },
+                                        beginAtZero: true,
+                                        max: 100
+                                    }
+                                },
+                                plugins: {
+                                    legend: { 
+                                        labels: { color: '#d1d5db', font: { family: 'Prompt' } } 
+                                    },
+                                    tooltip: {
+                                        titleFont: { family: 'Prompt' },
+                                        bodyFont: { family: 'Prompt' },
+                                        callbacks: {
+                                            // เพิ่มคำอธิบายผลต่างใน Tooltip เมื่อเอาเมาส์ชี้
+                                            label: function(context) {
+                                                let label = context.dataset.label || '';
+                                                if (label) {
+                                                    label += ': ';
+                                                }
+                                                if (context.parsed.y !== null) {
+                                                    label += context.parsed.y;
+                                                }
+                                                if (item.complexChart.showDiff && context.dataIndex > 0) {
+                                                    const currentVal = context.parsed.y;
+                                                    const prevVal = context.dataset.data[context.dataIndex - 1];
+                                                    const diff = (currentVal - prevVal).toFixed(2);
+                                                    const diffText = diff > 0 ? '+' + diff : diff;
+                                                    label += '  (เทียบปีก่อน: ' + diffText + ')';
+                                                }
+                                                return label;
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            // Custom Plugin วาดตัวเลข ผลต่าง ไว้บนแท่งกราฟ
+                            plugins: [{
+                                id: 'diffTextPlugin',
+                                afterDatasetsDraw(chart, args, options) {
+                                    if (!item.complexChart.showDiff) return; // ทำงานเฉพาะกราฟที่เปิดใช้งาน showDiff
+                                    
+                                    const { ctx } = chart;
+                                    chart.data.datasets.forEach((dataset, datasetIndex) => {
+                                        const meta = chart.getDatasetMeta(datasetIndex);
+                                        if (meta.hidden) return;
+                                        
+                                        meta.data.forEach((element, index) => {
+                                            if (index === 0) return; // ข้ามปีแรก เพราะไม่มีปีก่อนหน้าให้เทียบ
+                                            
+                                            const currentVal = dataset.data[index];
+                                            const prevVal = dataset.data[index - 1];
+                                            const diff = (currentVal - prevVal).toFixed(2);
+                                            
+                                            if (isNaN(diff)) return;
+
+                                            ctx.save();
+                                            
+                                            let color = '#9ca3af'; // สีเทา (ถ้าคะแนนเท่าเดิม)
+                                            let text = diff;
+                                            if (diff > 0) {
+                                                color = '#4ade80'; // สีเขียว (ถ้าคะแนนเพิ่ม)
+                                                text = '+' + diff;
+                                            } else if (diff < 0) {
+                                                color = '#f87171'; // สีแดง (ถ้าคะแนนลด)
+                                            }
+
+                                            ctx.fillStyle = color;
+                                            ctx.font = 'bold 10.5px Prompt';
+                                            ctx.textAlign = 'center';
+                                            ctx.textBaseline = 'bottom';
+                                            
+                                            // วาดตัวเลขไว้บนหัวแท่งกราฟ (เขยิบขึ้นไป 4px)
+                                            ctx.fillText(text, element.x, element.y - 4);
+                                            
+                                            ctx.restore();
+                                        });
+                                    });
+                                }
+                            }]
+                        });
+                    }
+                }, 100);
+
+            } else if (item.multiChart) {
+                // แสดงกราฟความก้าวหน้าแบบหลายแท่ง (สำหรับแบ่งเป็นห้องเรียน)
+                chartSection.style.display = 'block';
+                chartSection.innerHTML = `
+                    <div class="bg-gradient-to-br from-[#1f1f1f] to-[#141414] border border-gray-700 rounded-xl p-5 md:p-6 shadow-lg mb-6 relative overflow-hidden">
+                        <div class="absolute -right-10 -top-10 w-40 h-40 ${item.multiChart.glowClass} rounded-full blur-3xl"></div>
+                        <h4 class="text-white font-bold text-base md:text-lg mb-6 flex items-center gap-2 relative z-10">
+                            <i class="fas fa-chart-bar ${item.multiChart.colorClass}"></i> ${item.multiChart.title}
+                        </h4>
+                        <div class="space-y-3 md:space-y-4 relative z-10">
+                            ${item.multiChart.bars.map((bar, index) => `
+                                <div class="${bar.isTotal ? 'mt-5 pt-3 border-t border-gray-700' : ''}">
+                                    <div class="flex justify-between items-end mb-1">
+                                        <span class="text-sm font-medium ${bar.isTotal ? 'text-white' : 'text-gray-200'}">${bar.label} <span class="text-[10px] md:text-xs text-gray-500 ml-1">(จำนวน ${bar.passed} จาก ${bar.total} คน)</span></span>
+                                        <span class="text-sm font-bold ${bar.colorClass}">${bar.percentage}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-800 rounded-full ${bar.isTotal ? 'h-4' : 'h-2.5'} overflow-hidden border border-gray-700 relative">
+                                        <!-- เส้นเป้าหมายสีแดง (เกณฑ์ 80%) -->
+                                        <div class="absolute left-[80%] top-0 bottom-0 w-0.5 bg-red-500/70 z-10 shadow-[0_0_5px_rgba(239,68,68,0.8)]" title="เป้าหมาย 80%"></div>
+                                        
+                                        <div class="${bar.bgClass} ${bar.isTotal ? 'h-4' : 'h-2.5'} rounded-full transition-all duration-1000 ease-out relative z-0" style="width: 0%" id="modal-multichart-progress-${index}"></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-gray-800 text-xs text-gray-500 flex items-center gap-2 relative z-10">
+                            <div class="w-2 h-2 bg-red-500/70 rounded-full shadow-[0_0_3px_rgba(239,68,68,0.8)]"></div> เส้นสีแดงคือเกณฑ์ขั้นต่ำ (ร้อยละ 80)
+                        </div>
+                    </div>
+                `;
+                
+                // ให้แถบเปอร์เซ็นต์ค่อยๆ วิ่ง
+                setTimeout(() => {
+                    item.multiChart.bars.forEach((bar, index) => {
+                        const el = document.getElementById(`modal-multichart-progress-${index}`);
+                        if (el) el.style.width = bar.percentage + '%';
+                    });
+                }, 200);
+
+            } else if (item.chart) {
+                // แสดงกราฟความก้าวหน้าแบบธรรมดา (Progress Bar 1 แท่ง)
+                chartSection.style.display = 'block';
+                chartSection.innerHTML = `
+                    <div class="bg-gradient-to-br from-[#1f1f1f] to-[#141414] border border-gray-700 rounded-xl p-5 md:p-6 shadow-lg relative overflow-hidden">
+                        <!-- แสงวงกลมพื้นหลัง -->
+                        <div class="absolute -right-10 -top-10 w-40 h-40 ${item.chart.glowClass} rounded-full blur-3xl"></div>
+                        
+                        <h4 class="text-white font-bold text-base md:text-lg mb-4 flex items-center gap-2 relative z-10">
+                            <i class="fas fa-chart-pie ${item.chart.colorClass}"></i> ${item.chart.title}
+                        </h4>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-5 relative z-10">
+                            <div class="bg-black/40 rounded-lg px-4 py-3 border border-gray-800 flex flex-col justify-center">
+                                <div class="text-xs text-gray-400 mb-1">จำนวนทั้งหมด</div>
+                                <div class="text-2xl md:text-3xl font-black text-white">${item.chart.total} <span class="text-sm font-normal text-gray-500">คน</span></div>
+                            </div>
+                            <div class="bg-black/40 rounded-lg px-4 py-3 border ${item.chart.borderClass} flex flex-col justify-center">
+                                <div class="text-xs ${item.chart.colorClass} mb-1">จำนวนที่บรรลุเป้าหมาย</div>
+                                <div class="text-2xl md:text-3xl font-black ${item.chart.colorClass}">${item.chart.passed} <span class="text-sm font-normal text-gray-500">คน</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="relative z-10">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-300">คิดเป็นร้อยละ</span>
+                                <span class="text-sm font-bold text-white">${item.chart.percentage}%</span>
+                            </div>
+                            <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden border border-gray-700">
+                                <div class="${item.chart.bgClass} h-3 rounded-full transition-all duration-1000 ease-out" style="width: 0%" id="modal-chart-progress"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // ให้แถบเปอร์เซ็นต์ค่อยๆ วิ่งหลังจากโหลดป๊อปอัป
+                setTimeout(() => {
+                    const progressBar = document.getElementById('modal-chart-progress');
+                    if (progressBar) progressBar.style.width = item.chart.percentage + '%';
+                }, 200);
+            } else {
+                chartSection.style.display = 'none';
+                chartSection.innerHTML = '';
+            }
+
+            // 1. Evidence Links Section Logic
+            const evidenceSection = document.getElementById('modal-evidence-section');
+            const evidenceTitleText = document.getElementById('modal-evidence-title-text');
+            const evidenceContainer = document.getElementById('modal-evidence-list');
+            
+            if(item.evidences && item.evidences.length > 0) {
+                evidenceSection.style.display = 'block'; // แสดงหัวข้อเมื่อมีข้อมูล
+                evidenceTitleText.innerText = item.evidenceTitle || 'หลักฐาน และ เอกสารอ้างอิง (คลิกเพื่อเข้าชม)';
+                
+                evidenceContainer.innerHTML = item.evidences.map(ev => `
+                    <a href="${ev.url}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 p-3 bg-[#1f1f1f] hover:bg-[#2a2a2a] rounded-lg border border-gray-700 hover:border-namporn-main transition-all group">
+                        <div class="w-8 flex justify-center"><i class="fas ${ev.icon} text-lg group-hover:scale-110 transition-transform"></i></div>
+                        <span class="text-sm text-gray-300 group-hover:text-white flex-1 font-medium">${ev.label}</span>
+                        <i class="fas fa-external-link-alt text-xs text-gray-500 group-hover:text-namporn-main"></i>
+                    </a>
+                `).join('');
+            } else {
+                evidenceSection.style.display = 'none'; // ซ่อนทั้งส่วนหัวและกล่องถ้าไม่มีข้อมูล
+            }
+
+            // 2. Populate Images Logic - Updated to use Image Lightbox
+            const imageSection = document.getElementById('modal-image-section');
+            const imageTitleText = document.getElementById('modal-image-title-text');
+            const imagesContainer = document.getElementById('modal-image-gallery');
+            
+            if(item.images && item.images.length > 0) {
+                imageSection.style.display = 'block'; // แสดงหัวข้อเมื่อมีข้อมูล
+                imageTitleText.innerText = item.imageTitle || 'ภาพหลักฐานการดำเนินงาน';
+                
+                imagesContainer.innerHTML = item.images.map(img => `
+                    <div class="aspect-[4/3] rounded-lg overflow-hidden border border-gray-700 bg-gray-900 group relative">
+                        <img src="${img}" alt="Evidence" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 cursor-pointer" onclick="openImageModal('${img}')">
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none"></div>
+                    </div>
+                `).join('');
+            } else {
+                imageSection.style.display = 'none'; // ซ่อนทั้งส่วนหัวและกล่องถ้าไม่มีรูป
+            }
+
+            // Show modal
+            const modal = document.getElementById('detail-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            
+            setTimeout(() => {
+                modal.querySelector('.modal-content').classList.add('modal-enter-active');
+            }, 10);
+        }
+
+        // --- Image Lightbox Modal Functions ---
+        function openImageModal(imgSrc) {
+            const lightbox = document.getElementById('image-lightbox');
+            const imgElement = document.getElementById('lightbox-img');
+            
+            imgElement.src = imgSrc;
+            
+            lightbox.classList.remove('hidden');
+            lightbox.classList.add('flex');
+            
+            // Trigger reflow for transition
+            void lightbox.offsetWidth;
+            
+            lightbox.classList.remove('opacity-0');
+            lightbox.classList.add('opacity-100');
+            imgElement.classList.remove('scale-95');
+            imgElement.classList.add('scale-100');
+        }
+
+        function closeImageModal() {
+            const lightbox = document.getElementById('image-lightbox');
+            const imgElement = document.getElementById('lightbox-img');
+            
+            lightbox.classList.remove('opacity-100');
+            lightbox.classList.add('opacity-0');
+            imgElement.classList.remove('scale-100');
+            imgElement.classList.add('scale-95');
+            
+            setTimeout(() => {
+                lightbox.classList.add('hidden');
+                lightbox.classList.remove('flex');
+                imgElement.src = '';
+            }, 300); // match transition duration
+        }
+
+        function showInfoModal() {
+            const modal = document.getElementById('info-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            
+            setTimeout(() => {
+                modal.querySelector('.modal-content').classList.add('modal-enter-active');
+            }, 10);
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.querySelector('.modal-content').classList.remove('modal-enter-active');
+            
+            // Restore background scrolling only if image modal is NOT open
+            const imageLightbox = document.getElementById('image-lightbox');
+            if (imageLightbox.classList.contains('hidden')) {
+                document.body.style.overflow = '';
+            }
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+    </script>
+</body>
+</html>

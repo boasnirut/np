@@ -30,8 +30,7 @@ export const navItems = [
       { label: 'ประกันคุณภาพภายนอก (สมศ.)', href: '/operations/external-quality' },
       {
         label: 'โรงเรียนขยายโอกาสคุณภาพ',
-        href: 'https://numporn.loei1.go.th/qoes69',
-        external: true,
+        href: '/โรงเรียนขยายโอกาสคุณภาพ.html',
       },
       { label: 'ITA Online', href: '/operations/ita' },
       { label: 'SAR สถานศึกษา', href: '/operations/sar' },
