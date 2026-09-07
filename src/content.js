@@ -31,6 +31,7 @@ export const navItems = [
       {
         label: 'โรงเรียนขยายโอกาสคุณภาพ',
         href: '/โรงเรียนขยายโอกาสคุณภาพ.html',
+        external: true,
       },
       { label: 'ITA Online', href: '/operations/ita' },
       { label: 'SAR สถานศึกษา', href: '/operations/sar' },
