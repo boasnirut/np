@@ -39,6 +39,18 @@ export default async function handler(request, response) {
     })
   } catch (error) {
     console.error('Login error', error)
+    if (error.status === 401) {
+      return sendJson(response, 503, {
+        code: 'GITHUB_CREDENTIALS_INVALID',
+        error: 'ระบบเชื่อมต่อฐานข้อมูลสมาชิกไม่ได้ กรุณาให้ผู้ดูแลตรวจสอบ GITHUB_TOKEN ใน Vercel (โทเคนอาจหมดอายุหรือถูกเพิกถอน)',
+      })
+    }
+    if (error.status === 403 || error.status === 429) {
+      return sendJson(response, 503, {
+        code: 'GITHUB_ACCESS_UNAVAILABLE',
+        error: 'GitHub ปฏิเสธการอ่านฐานข้อมูลสมาชิก กรุณาให้ผู้ดูแลตรวจสอบสิทธิ์โทเคนหรือข้อจำกัดการใช้งาน GitHub',
+      })
+    }
     return sendJson(response, 500, { error: 'ไม่สามารถเข้าสู่ระบบได้ในขณะนี้' })
   }
 }
