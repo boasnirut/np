@@ -9,7 +9,7 @@ import {
 } from './_lib/content.js'
 import { methodNotAllowed } from './_lib/http.js'
 import { resolveEvidenceMimeTypes } from './_lib/external-file.js'
-import { readRepoFile } from './_lib/repo.js'
+import { readPublicRepoFile as readRepoFile } from './_lib/repo.js'
 
 export default async function handler(request, response) {
   if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])

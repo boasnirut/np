@@ -49,6 +49,31 @@ export async function readRepoFile(path) {
   }
 }
 
+// Only the public-content handler may use this read-only fallback.
+// Authentication and mutations must still fail if GitHub credentials fail.
+export async function readPublicRepoFile(path) {
+  const publicFiles = new Set([
+    'data/news.csv', 'data/events.csv', 'data/awards.csv',
+    'data/newsletters.csv', 'data/quality-evidence.csv',
+    'data/school-documents.csv', 'data/questions.csv',
+    'data/site-slides.csv', 'data/staff.csv', 'data/sar.csv',
+  ])
+  if (!publicFiles.has(path)) throw new Error('Unsupported public content file')
+  try {
+    return await readRepoFile(path)
+  } catch (error) {
+    console.warn('Public repository read failed; trying latest raw content', {
+      path, status: error.status || 'network',
+    })
+    const response = await fetch(rawGithubUrl(path), {
+      signal: AbortSignal.timeout(10000),
+      cache: 'no-store',
+    })
+    if (!response.ok) throw new Error(`Public repository read failed: ${response.status}`)
+    return { content: await response.text(), sha: null }
+  }
+}
+
 export async function writeRepoFile(path, content, message, sha) {
   if (!process.env.GITHUB_TOKEN) throw new RepositoryConfigError()
 
